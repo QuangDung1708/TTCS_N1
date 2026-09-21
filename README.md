@@ -49,13 +49,20 @@ Hệ thống hỗ trợ 7 nhóm người dùng với cơ chế phân quyền d�
 ---
 
 ## 5. Thành viên nhóm & Phân công vai trò (Team Members)
-| STT | Họ và tên | MSSV | Vai trò trong nhóm (Scrum Role / Dev) |
-| :-: | :--- | :-: | :--- |
-| 1 | [Tên bạn] | [...] | Product Owner / Fullstack Dev |
-| 2 | [Tên thành viên] | [...] | Scrum Master / Fullstack Dev |
-| 3 | [Tên thành viên] | [...] | Developer |
-| 4 | [Tên thành viên] | [...] | Developer |
-| 5 | [Tên thành viên] | [...] | Developer |
+
+| STT | Họ và Tên | Vai trò | Trách nhiệm chính | Nguồn lực |
+| :-: | :--- | :--- | :--- | :-: |
+| 1 | Triệu Quang Dũng | Product Owner | Quản lý Product Backlog, xác định thứ tự ưu tiên các công việc, đại diện cho khách hàng và các bên liên quan. | 10 giờ/tuần |
+| 1 | Triệu Quang Dũng | Scrum Master kiêm Leader | Huấn luyện nhóm về Agile và Scrum, loại bỏ các trở ngại (impediments), đảm bảo quy trình được tuân thủ, và đưa ra quyết định kỹ thuật cuối cùng khi cần. | 40 giờ/tuần |
+| 2 | Lê Minh Danh | Developer BE | Viết code, thực hiện Unit Test, tham gia Code Review, và đảm bảo chất lượng sản phẩm. | 40 giờ/tuần |
+| 3 | Nguyễn Trần Việt Anh | Developer BE | Viết code, thực hiện Unit Test, tham gia Code Review, và đảm bảo chất lượng sản phẩm. | 40 giờ/tuần |
+| 4 | Đỗ Tuấn Dũng | Developer BE | Viết code, thực hiện Unit Test, tham gia Code Review, và đảm bảo chất lượng sản phẩm. | 40 giờ/tuần |
+| 5 | Nguyễn Thùy Chang | Developer BE | Viết code, thực hiện Unit Test, tham gia Code Review, và đảm bảo chất lượng sản phẩm. | 40 giờ/tuần |
+| 6 | Phạm Xuân Bính | Developer BE | Viết code, thực hiện Unit Test, tham gia Code Review, và đảm bảo chất lượng sản phẩm. | 40 giờ/tuần |
+| 7 | Nguyễn Ngọc Anh | Developer FE | Viết code, thực hiện Unit Test, tham gia Code Review, và đảm bảo chất lượng sản phẩm. | 40 giờ/tuần |
+| 8 | Chẩu Thùy Dung | Developer FE | Viết code, thực hiện Unit Test, tham gia Code Review, và đảm bảo chất lượng sản phẩm. | 40 giờ/tuần |
+| 9 | Hoàng Lan Anh | Developer FE | Viết code, thực hiện Unit Test, tham gia Code Review, và đảm bảo chất lượng sản phẩm. | 40 giờ/tuần |
+| 10 | Hứa Huệ An | Developer FE | Viết code, thực hiện Unit Test, tham gia Code Review, và đảm bảo chất lượng sản phẩm. | 40 giờ/tuần |
 
 ---
 
