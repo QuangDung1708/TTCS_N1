@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
-import ForgotPassword from './ForgotPassword' // Import component Quên mật khẩu vừa tạo
+import ForgotPassword from './ForgotPassword'
+import ResetPassword from './ResetPassword'
 
 import heroImg from './assets/hero.png'
 import reactLogo from './assets/react.svg'
@@ -15,16 +16,32 @@ function Home() {
     <>
       <section id="center">
         <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+          <img
+            src={heroImg}
+            className="base"
+            width="170"
+            height="179"
+            alt=""
+          />
+          <img
+            src={reactLogo}
+            className="framework"
+            alt="React logo"
+          />
+          <img
+            src={viteLogo}
+            className="vite"
+            alt="Vite logo"
+          />
         </div>
+
         <div>
           <h1>Get started</h1>
           <p>
             Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
           </p>
         </div>
+
         <button
           type="button"
           className="counter"
@@ -35,7 +52,13 @@ function Home() {
 
         {/* Nút chuyển nhanh sang trang Quên mật khẩu để kiểm thử */}
         <div style={{ marginTop: '20px' }}>
-          <Link to="/forgot-password" style={{ color: '#646cff', fontWeight: 'bold' }}>
+          <Link
+            to="/forgot-password"
+            style={{
+              color: '#646cff',
+              fontWeight: 'bold'
+            }}
+          >
             👉 Đi tới trang Quên Mật Khẩu
           </Link>
         </div>
@@ -45,35 +68,69 @@ function Home() {
 
       <section id="next-steps">
         <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
+          <svg
+            className="icon"
+            role="presentation"
+            aria-hidden="true"
+          >
             <use href="/icons.svg#documentation-icon"></use>
           </svg>
+
           <h2>Documentation</h2>
           <p>Your questions, answered</p>
+
           <ul>
             <li>
-              <a href="https://vite.dev/" target="_blank" rel="noreferrer">
-                <img className="logo" src={viteLogo} alt="" />
+              <a
+                href="https://vite.dev/"
+                target="_blank"
+                rel="noreferrer"
+              >
+                <img
+                  className="logo"
+                  src={viteLogo}
+                  alt=""
+                />
                 Explore Vite
               </a>
             </li>
+
             <li>
-              <a href="https://react.dev/" target="_blank" rel="noreferrer">
-                <img className="button-icon" src={reactLogo} alt="" />
+              <a
+                href="https://react.dev/"
+                target="_blank"
+                rel="noreferrer"
+              >
+                <img
+                  className="button-icon"
+                  src={reactLogo}
+                  alt=""
+                />
                 Learn more
               </a>
             </li>
           </ul>
         </div>
+
         <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
+          <svg
+            className="icon"
+            role="presentation"
+            aria-hidden="true"
+          >
             <use href="/icons.svg#social-icon"></use>
           </svg>
+
           <h2>Connect with us</h2>
           <p>Join the Vite community</p>
+
           <ul>
             <li>
-              <a href="https://github.com/vitejs/vite" target="_blank" rel="noreferrer">
+              <a
+                href="https://github.com/vitejs/vite"
+                target="_blank"
+                rel="noreferrer"
+              >
                 <svg
                   className="button-icon"
                   role="presentation"
@@ -84,8 +141,13 @@ function Home() {
                 GitHub
               </a>
             </li>
+
             <li>
-              <a href="https://chat.vite.dev/" target="_blank" rel="noreferrer">
+              <a
+                href="https://chat.vite.dev/"
+                target="_blank"
+                rel="noreferrer"
+              >
                 <svg
                   className="button-icon"
                   role="presentation"
@@ -96,8 +158,13 @@ function Home() {
                 Discord
               </a>
             </li>
+
             <li>
-              <a href="https://x.com/vite_js" target="_blank" rel="noreferrer">
+              <a
+                href="https://x.com/vite_js"
+                target="_blank"
+                rel="noreferrer"
+              >
                 <svg
                   className="button-icon"
                   role="presentation"
@@ -108,8 +175,13 @@ function Home() {
                 X.com
               </a>
             </li>
+
             <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank" rel="noreferrer">
+              <a
+                href="https://bsky.app/profile/vite.dev"
+                target="_blank"
+                rel="noreferrer"
+              >
                 <svg
                   className="button-icon"
                   role="presentation"
@@ -136,7 +208,16 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
+
+        <Route
+          path="/forgot-password"
+          element={<ForgotPassword />}
+        />
+
+        <Route
+          path="/reset-password"
+          element={<ResetPassword />}
+        />
       </Routes>
     </BrowserRouter>
   )
