@@ -6,21 +6,17 @@ const { Header, Sider, Content } = Layout
 function MainLayout() {
   const { userInfo } = useUser()
 
-  const menuItems = [
-    {
-      key: 'dashboard',
-      label: 'Trang chủ',
-    },
-    {
-      key: 'employees',
-      label: 'Quản lý nhân viên',
-    },
-    {
-      key: 'departments',
-      label: 'Quản lý phòng ban',
-    },
-  ]
+ const menuItems = [
+  { key: 'dashboard', label: 'Trang chủ' },
 
+  ...(userInfo?.role_name === 'Admin'
+    ? [{ key: 'employees', label: 'Quản lý nhân viên' }]
+    : []),
+
+  ...(userInfo?.role_name === 'Admin' || userInfo?.role_name === 'Leader'
+    ? [{ key: 'departments', label: 'Quản lý phòng ban' }]
+    : []),
+]
   return (
     <Layout style={{ minHeight: '100vh' }}>
       <Sider breakpoint="md" collapsedWidth="0">
