@@ -1,14 +1,15 @@
-import { Layout, Menu, Typography } from 'antd'
+import { useState } from 'react'
+import { Layout, Menu, Typography, Button } from 'antd'
+import { MenuOutlined } from '@ant-design/icons'
 import { useUser } from './context/UserContext.jsx'
-
+import './MainLayout.css'
 const { Header, Sider, Content } = Layout
 
 function MainLayout() {
   const { userInfo } = useUser()
-
- const menuItems = [
+const [sidebarOpen, setSidebarOpen] = useState(false) 
+const menuItems = [
   { key: 'dashboard', label: 'Trang chủ' },
-
   ...(userInfo?.role_name === 'Admin'
     ? [{ key: 'employees', label: 'Quản lý nhân viên' }]
     : []),
@@ -19,7 +20,10 @@ function MainLayout() {
 ]
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <Sider breakpoint="md" collapsedWidth="0">
+      <Sider
+  className={`crm-sider ${sidebarOpen ? 'mobile-open' : ''}`}
+  
+>
         <div
           style={{
             color: 'white',
@@ -38,7 +42,12 @@ function MainLayout() {
           items={menuItems}
         />
       </Sider>
-
+{sidebarOpen && (
+  <div
+    className="sidebar-overlay"
+    onClick={() => setSidebarOpen(false)}
+  />
+)}
       <Layout>
         <Header
           style={{
@@ -49,6 +58,12 @@ function MainLayout() {
             padding: '0 24px',
           }}
         >
+          <Button
+  className="hamburger-button"
+  type="text"
+  icon={<MenuOutlined />}
+  onClick={() => setSidebarOpen(true)}
+/>
           <Typography.Text>
             {userInfo
               ? `${userInfo.email} - ${userInfo.role_name}`
