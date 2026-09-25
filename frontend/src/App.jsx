@@ -1,3 +1,14 @@
+import React from 'react';
+import UserManagement from './pages/UserManagement';
+function App() {
+  return (
+    <div>
+      <UserManagement />
+    </div>
+  );
+}
+
+export default App;
 import { useState } from 'react'
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
 import ForgotPassword from './ForgotPassword' // Import component Quên mật khẩu vừa tạo
