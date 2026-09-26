@@ -1,3 +1,23 @@
+<<<<<<< Updated upstream
+=======
+import { useState } from 'react';
+import heroImg from './assets/hero.png';
+import reactLogo from './assets/react.svg';
+import viteLogo from './assets/vite.svg';
+import './App.css';
+import React from 'react';
+import UserManagement from './pages/UserManagement';
+
+function App() {
+  const [count, setCount] = useState(0);
+
+  return (
+    <>
+      <UserManagement />
+    </>
+  );
+}
+>>>>>>> Stashed changes
 
 import MainLayout from './MainLayout.jsx'
 import { useState } from 'react'
