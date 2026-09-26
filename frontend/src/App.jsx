@@ -1,18 +1,9 @@
-import React from 'react';
-import UserManagement from './pages/UserManagement';
-function App() {
-  return (
-    <div>
-      <UserManagement />
-    </div>
-  );
-}
 
-export default App;
 import { useState } from 'react'
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
 import ForgotPassword from './ForgotPassword' // Import component Quên mật khẩu vừa tạo
-
+import Page403 from './pages/Errors/Page403'
+import Page404 from './pages/Errors/Page404'
 import heroImg from './assets/hero.png'
 import reactLogo from './assets/react.svg'
 import viteLogo from './assets/vite.svg'
@@ -148,6 +139,8 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/403" element={<Page403 />} />
+<Route path="*" element={<Page404 />} />
       </Routes>
     </BrowserRouter>
   )
