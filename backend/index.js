@@ -2,33 +2,19 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 
-// Routers
-const authRoutes = require('./routes/authRoutes');
-
-let userRoutes;
-try {
-  userRoutes = require('./routes/userRoutes');
-} catch (e) {
-  // Bỏ qua nếu chưa nạp userRoutes
-}
+//const authRoutes = require('./routes/authRoutes');
 
 const app = express();
-const PORT = process.env.PORT || 5001;
 
-// Middlewares
-app.use(cors());
+// Middleware
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(cors());
 
 // Routes
-app.use('/api/auth', authRoutes);
-app.use('/api', authRoutes);
+//app.use('/api', authRoutes);
 
-if (userRoutes) {
-  app.use('/api/users', userRoutes);
-}
-
-// Khởi chạy server
+// Khởi chạy Server
+const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => {
-  console.log(`🚀 Server đang chạy tại cổng http://localhost:${PORT}`);
+  console.log(`🚀 Server đang chạy tại port ${PORT}`);
 });
