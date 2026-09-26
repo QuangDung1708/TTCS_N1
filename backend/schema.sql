@@ -17,5 +17,7 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash VARCHAR(255) NOT NULL,
     full_name VARCHAR(100) NOT NULL,
     role_id INT,
-    FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE SET NULL
+    group_id INT,
+    FOREIGN KEY (role_id) REFERENCES roles(id),
+    FOREIGN KEY (group_id) REFERENCES groups(id)
 );
