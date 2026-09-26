@@ -3,27 +3,41 @@ import { Layout, Menu, Typography, Button } from 'antd'
 import { MenuOutlined } from '@ant-design/icons'
 import { useUser } from './context/UserContext.jsx'
 import './MainLayout.css'
+
 const { Header, Sider, Content } = Layout
 
 function MainLayout() {
   const { userInfo } = useUser()
-const [sidebarOpen, setSidebarOpen] = useState(false) 
-const menuItems = [
-  { key: 'dashboard', label: 'Trang chủ' },
-  ...(userInfo?.role_name === 'Admin'
-    ? [{ key: 'employees', label: 'Quản lý nhân viên' }]
-    : []),
+  const [collapsed, setCollapsed] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
 
-  ...(userInfo?.role_name === 'Admin' || userInfo?.role_name === 'Leader'
-    ? [{ key: 'departments', label: 'Quản lý phòng ban' }]
-    : []),
-]
+  const menuItems = [
+    { key: 'dashboard', label: 'Trang chủ' },
+
+    ...(userInfo?.role_name === 'Admin'
+      ? [{ key: 'employees', label: 'Quản lý nhân viên' }]
+      : []),
+
+    ...(userInfo?.role_name === 'Admin' || userInfo?.role_name === 'Leader'
+      ? [{ key: 'departments', label: 'Quản lý phòng ban' }]
+      : []),
+  ]
+
   return (
     <Layout style={{ minHeight: '100vh' }}>
       <Sider
-  className={`crm-sider ${sidebarOpen ? 'mobile-open' : ''}`}
-  
->
+        className="crm-sider"
+        collapsible
+        collapsed={collapsed}
+        onCollapse={(value) => setCollapsed(value)}
+        breakpoint="md"
+        collapsedWidth="0"
+        trigger={null}
+        onBreakpoint={(broken) => {
+  setIsMobile(broken)
+  setCollapsed(broken)
+}}
+      >
         <div
           style={{
             color: 'white',
@@ -40,14 +54,21 @@ const menuItems = [
           theme="dark"
           mode="inline"
           items={menuItems}
+          onClick={() => {
+            if (isMobile) {
+              setCollapsed(true)
+            }
+          }}
         />
       </Sider>
-{sidebarOpen && (
-  <div
-    className="sidebar-overlay"
-    onClick={() => setSidebarOpen(false)}
-  />
-)}
+
+      {isMobile && !collapsed && (
+        <div
+          className="sidebar-overlay"
+          onClick={() => setCollapsed(true)}
+        />
+      )}
+
       <Layout>
         <Header
           style={{
@@ -58,12 +79,15 @@ const menuItems = [
             padding: '0 24px',
           }}
         >
-          <Button
-  className="hamburger-button"
-  type="text"
-  icon={<MenuOutlined />}
-  onClick={() => setSidebarOpen(true)}
-/>
+          {isMobile && (
+            <Button
+              className="hamburger-button"
+              type="text"
+              icon={<MenuOutlined />}
+              onClick={() => setCollapsed(!collapsed)}
+            />
+          )}
+
           <Typography.Text>
             {userInfo
               ? `${userInfo.email} - ${userInfo.role_name}`

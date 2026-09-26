@@ -1,10 +1,15 @@
-/* Sidebar trên màn hình lớn */
+/* Sidebar */
 .crm-sider {
-  z-index: 1000;
+  z-index: 1001;
 }
 
 /* Nút Hamburger mặc định ẩn */
 .hamburger-button {
+  display: none;
+}
+
+/* Overlay mặc định ẩn */
+.sidebar-overlay {
   display: none;
 }
 
@@ -25,25 +30,13 @@
     bottom: 0;
     height: 100vh !important;
     z-index: 1001;
-    transform: translateX(-100%);
-    transition: transform 0.3s ease;
-  }
-
-  .crm-sider.mobile-open {
-    transform: translateX(0);
   }
 
   .crm-sider .ant-menu-item {
     min-height: 44px;
     line-height: 44px;
   }
-}
-/* Lớp nền mờ phía sau Sidebar */
-.sidebar-overlay {
-  display: none;
-}
 
-@media (max-width: 768px) {
   .sidebar-overlay {
     display: block;
     position: fixed;
