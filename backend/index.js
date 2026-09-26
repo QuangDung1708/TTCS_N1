@@ -2,28 +2,33 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 
-const userRoutes = require('./routes/userRoutes');
+// Routers
+const authRoutes = require('./routes/authRoutes');
+
+let userRoutes;
+try {
+  userRoutes = require('./routes/userRoutes');
+} catch (e) {
+  // Bỏ qua nếu chưa nạp userRoutes
+}
 
 const app = express();
 const PORT = process.env.PORT || 5001;
 
-// Middleware cấu hình
+// Middlewares
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Route kiểm tra hệ thống cơ bản
-app.get('/api/v1', (req, res) => {
-  res.json({
-    status: 'success',
-    message: 'Hệ thống Backend CRM đang hoạt động!'
-  });
-});
+// Routes
+app.use('/api/auth', authRoutes);
+app.use('/api', authRoutes);
 
-// Đăng ký route User
-app.use('/api/users', userRoutes);
+if (userRoutes) {
+  app.use('/api/users', userRoutes);
+}
 
-// Lắng nghe cổng kết nối
+// Khởi chạy server
 app.listen(PORT, () => {
   console.log(`🚀 Server đang chạy tại cổng http://localhost:${PORT}`);
 });
