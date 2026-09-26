@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Table, Input, Button, Space, message, Card } from 'antd';
 import { SearchOutlined, UserAddOutlined, EditOutlined, LockOutlined, UnlockOutlined } from '@ant-design/icons';
 import UserFormModal from './UserFormModal';
+import axiosClient from '../api/axiosClient'; 
 
 const UserManagement = () => {
     const [users, setUsers] = useState([]);
@@ -23,9 +24,9 @@ const UserManagement = () => {
     const fetchUsers = async (currentPage, searchQuery) => {
         setLoading(true);
         try {
-            const response = await fetch(`http://localhost:3000/api/users?page=${currentPage}&search=${searchQuery}`);
-            if (!response.ok) throw new Error('Lỗi tải dữ liệu!');
-            const data = await response.json();
+         
+            const response = await axiosClient.get(`/users?page=${currentPage}&search=${searchQuery}`);
+            const data = response.data;
             
             if (Array.isArray(data)) {
                 setUsers(data);
@@ -42,17 +43,11 @@ const UserManagement = () => {
         }
     };
 
-    // Xử lý Khóa / Mở khóa tài khoản
     const handleToggleLock = async (record) => {
         const newStatus = record.status === 'Đã khóa' ? 'Đang hoạt động' : 'Đã khóa';
         try {
-            const response = await fetch(`http://localhost:3000/api/users/${record.id}/status`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status: newStatus }),
-            });
-
-            if (!response.ok) throw new Error('Thất bại');
+    
+            await axiosClient.put(`/users/${record.id}/status`, { status: newStatus });
             
             message.success(`Đã ${newStatus === 'Đã khóa' ? 'khóa' : 'mở khóa'} nhân viên thành công!`);
             fetchUsers(page, search); 

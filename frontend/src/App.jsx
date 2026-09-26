@@ -1,36 +1,16 @@
-<<<<<<< Updated upstream
-=======
 import { useState } from 'react';
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+import MainLayout from './MainLayout.jsx';
+import ForgotPassword from './ForgotPassword';
+import UserManagement from './pages/UserManagement';
 import heroImg from './assets/hero.png';
 import reactLogo from './assets/react.svg';
 import viteLogo from './assets/vite.svg';
 import './App.css';
-import React from 'react';
-import UserManagement from './pages/UserManagement';
 
-function App() {
-  const [count, setCount] = useState(0);
 
-  return (
-    <>
-      <UserManagement />
-    </>
-  );
-}
->>>>>>> Stashed changes
-
-import MainLayout from './MainLayout.jsx'
-import { useState } from 'react'
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
-import ForgotPassword from './ForgotPassword' // Import component Quên mật khẩu vừa tạo
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
-
-// Component giao diện mặc định ban đầu của Vite
 function Home() {
-  const [count, setCount] = useState(0)
+  const [count, setCount] = useState(0);
 
   return (
     <>
@@ -95,11 +75,7 @@ function Home() {
           <ul>
             <li>
               <a href="https://github.com/vitejs/vite" target="_blank" rel="noreferrer">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
+                <svg className="button-icon" role="presentation" aria-hidden="true">
                   <use href="/icons.svg#github-icon"></use>
                 </svg>
                 GitHub
@@ -107,11 +83,7 @@ function Home() {
             </li>
             <li>
               <a href="https://chat.vite.dev/" target="_blank" rel="noreferrer">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
+                <svg className="button-icon" role="presentation" aria-hidden="true">
                   <use href="/icons.svg#discord-icon"></use>
                 </svg>
                 Discord
@@ -119,11 +91,7 @@ function Home() {
             </li>
             <li>
               <a href="https://x.com/vite_js" target="_blank" rel="noreferrer">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
+                <svg className="button-icon" role="presentation" aria-hidden="true">
                   <use href="/icons.svg#x-icon"></use>
                 </svg>
                 X.com
@@ -131,11 +99,7 @@ function Home() {
             </li>
             <li>
               <a href="https://bsky.app/profile/vite.dev" target="_blank" rel="noreferrer">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
+                <svg className="button-icon" role="presentation" aria-hidden="true">
                   <use href="/icons.svg#bluesky-icon"></use>
                 </svg>
                 Bluesky
@@ -148,9 +112,11 @@ function Home() {
       <div className="ticks"></div>
       <section id="spacer"></section>
     </>
-  )
+  );
 }
+
 function App() {
-  return <MainLayout />
+  return <MainLayout />;
 }
-export default App
+
+export default App;

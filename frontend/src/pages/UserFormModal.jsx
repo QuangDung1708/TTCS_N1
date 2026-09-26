@@ -1,10 +1,10 @@
 import React, { useEffect } from 'react';
 import { Modal, Form, Input, Select, message } from 'antd';
+import axiosClient from '../api/axiosClient'; 
 
 const UserFormModal = ({ visible, onCancel, onSuccess, editingUser }) => {
     const [form] = Form.useForm();
 
-    
     useEffect(() => {
         if (visible) {
             if (editingUser) {
@@ -15,35 +15,25 @@ const UserFormModal = ({ visible, onCancel, onSuccess, editingUser }) => {
         }
     }, [visible, editingUser, form]);
 
-  
     const handleOk = () => {
         form.validateFields()
             .then(async (values) => {
                 try {
-                    const url = editingUser 
-                        ? `http://localhost:3000/api/users/${editingUser.id}` 
-                        : 'http://localhost:3000/api/users';
+                    let response;
+                    if (editingUser) {
+                     
+                        response = await axiosClient.put(`/users/${editingUser.id}`, values);
+                    } else {
                     
-                    const method = editingUser ? 'PUT' : 'POST';
-
-                    const response = await fetch(url, {
-                        method: method,
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(values),
-                    });
-
-                    const data = await response.json();
-
-                    if (!response.ok) {
-                       
-                        throw new Error(data.message || 'Thao tác thất bại');
+                        response = await axiosClient.post('/users', values);
                     }
 
-                    
                     message.success(editingUser ? 'Cập nhật thành công!' : 'Thêm thành công!');
                     onSuccess(); 
                 } catch (error) {
-                    message.error(error.message || 'Lỗi kết nối tới Server!');
+                    console.error('Lỗi API:', error);
+                    const errorMsg = error.response?.data?.message || error.message || 'Lỗi kết nối tới Server!';
+                    message.error(errorMsg);
                 }
             })
             .catch((info) => {
