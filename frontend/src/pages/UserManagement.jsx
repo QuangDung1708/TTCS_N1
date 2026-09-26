@@ -1,140 +1,165 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Input, Select, Button, Card, Typography, Space, Tag, message } from 'antd';
-import { SearchOutlined, UserAddOutlined, EditOutlined, LockOutlined } from '@ant-design/icons';
-
-const { Title } = Typography;
-const { Option } = Select;
+import { Table, Input, Button, Space, message, Card } from 'antd';
+import { SearchOutlined, UserAddOutlined, EditOutlined, LockOutlined, UnlockOutlined } from '@ant-design/icons';
+import UserFormModal from './UserFormModal';
+import axiosClient from '../api/axiosClient'; 
 
 const UserManagement = () => {
-  const [loading, setLoading] = useState(false);
-  const [users, setUsers] = useState([]);
-  const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [roleFilter, setRoleFilter] = useState('');
-  const [page, setPage] = useState(1);
+    const [users, setUsers] = useState([]);
+    const [page, setPage] = useState(1);
+    const [search, setSearch] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [total, setTotal] = useState(0);
 
-  // Kỹ thuật Debounce 500ms cho ô tìm kiếm
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedSearch(search);
-    }, 500);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingUser, setEditingUser] = useState(null);
 
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [search]);
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            fetchUsers(page, search);
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [page, search]);
 
-  // Gọi API lấy danh sách nhân viên
-  useEffect(() => {
-    const fetchUsers = async () => {
-      setLoading(true);
-      try {
-        setTimeout(() => {
-          const mockData = [
-            { key: '1', stt: 1, name: 'Nguyễn Văn A', email: 'a.nguyen@company.com', role: 'Admin', team: 'Ban Giám Đốc', status: 'Active' },
-            { key: '2', stt: 2, name: 'Trần Thị B', email: 'b.tran@company.com', role: 'Trưởng nhóm', team: 'Phòng Kinh Doanh 1', status: 'Active' },
-            { key: '3', stt: 3, name: 'Lê Văn C', email: 'c.le@company.com', role: 'Nhân viên', team: 'Phòng Kinh Doanh 1', status: 'Inactive' },
-            { key: '4', stt: 4, name: 'Phạm Thị D', email: 'd.pham@company.com', role: 'Nhân viên', team: 'Phòng Kỹ Thuật', status: 'Active' },
-          ];
-
-          const filtered = mockData.filter(item => {
-            const matchSearch = item.name.toLowerCase().includes(debouncedSearch.toLowerCase()) || 
-                                item.email.toLowerCase().includes(debouncedSearch.toLowerCase());
-            const matchRole = roleFilter ? item.role === roleFilter : true;
-            return matchSearch && matchRole;
-          });
-
-          setUsers(filtered);
-          setLoading(false);
-        }, 300);
-      } catch (error) {
-        message.error('Lỗi tải dữ liệu nhân viên');
-        setLoading(false);
-      }
+    const fetchUsers = async (currentPage, searchQuery) => {
+        setLoading(true);
+        try {
+         
+            const response = await axiosClient.get(`/users?page=${currentPage}&search=${searchQuery}`);
+            const data = response.data;
+            
+            if (Array.isArray(data)) {
+                setUsers(data);
+                setTotal(data.length);
+            } else {
+                setUsers(data.users || []);
+                setTotal(data.total || 0);
+            }
+        } catch (error) {
+            console.error(error);
+            message.error('Lỗi kết nối API lấy danh sách!');
+        } finally {
+            setLoading(false);
+        }
     };
 
-    fetchUsers();
-  }, [debouncedSearch, roleFilter, page]);
+    const handleToggleLock = async (record) => {
+        const newStatus = record.status === 'Đã khóa' ? 'Đang hoạt động' : 'Đã khóa';
+        try {
+    
+            await axiosClient.put(`/users/${record.id}/status`, { status: newStatus });
+            
+            message.success(`Đã ${newStatus === 'Đã khóa' ? 'khóa' : 'mở khóa'} nhân viên thành công!`);
+            fetchUsers(page, search); 
+        } catch (error) {
+            message.error('Không thể thay đổi trạng thái nhân viên!');
+        }
+    };
 
-  const columns = [
-    { title: 'STT', dataIndex: 'stt', key: 'stt', width: 70 },
-    { title: 'Họ và tên', dataIndex: 'name', key: 'name' },
-    { title: 'Email', dataIndex: 'email', key: 'email' },
-    { 
-      title: 'Vai trò', 
-      dataIndex: 'role', 
-      key: 'role',
-      render: (role) => (
-        <Tag color={role === 'Admin' ? 'red' : role === 'Trưởng nhóm' ? 'green' : 'blue'}>
-          {role}
-        </Tag>
-      )
-    },
-    { title: 'Nhóm', dataIndex: 'team', key: 'team' },
-    { 
-      title: 'Trạng thái', 
-      dataIndex: 'status', 
-      key: 'status',
-      render: (status) => (
-        <Tag color={status === 'Active' ? 'success' : 'default'}>
-          {status === 'Active' ? 'Đang hoạt động' : 'Đã khóa'}
-        </Tag>
-      )
-    },
-    {
-      title: 'Hành động',
-      key: 'action',
-      render: (_, record) => (
-        <Space size="middle">
-          <Button type="link" icon={<EditOutlined />} onClick={() => message.info(`Sửa nhân viên: ${record.name}`)}>Sửa</Button>
-          <Button type="link" danger icon={<LockOutlined />} onClick={() => message.warning(`Khóa tài khoản: ${record.name}`)}>Khóa</Button>
-        </Space>
-      ),
-    },
-  ];
+    const columns = [
+        {
+            title: 'STT',
+            dataIndex: 'id',
+            key: 'stt',
+            render: (text, record, index) => (page - 1) * 10 + index + 1,
+        },
+        { title: 'Họ và tên', dataIndex: 'name', key: 'name' },
+        { title: 'Email', dataIndex: 'email', key: 'email' },
+        { title: 'Vai trò', dataIndex: 'role', key: 'role' },
+        { title: 'Nhóm', dataIndex: 'department', key: 'department' },
+        {
+            title: 'Trạng thái',
+            dataIndex: 'status',
+            key: 'status',
+            render: (status) => {
+                const isLocked = status === 'Đã khóa';
+                return (
+                    <span style={{ color: isLocked ? 'red' : 'green', fontWeight: '500' }}>
+                        {status || 'Đang hoạt động'}
+                    </span>
+                );
+            },
+        },
+        {
+            title: 'Hành động',
+            key: 'action',
+            render: (_, record) => {
+                const isLocked = record.status === 'Đã khóa';
+                return (
+                    <Space size="middle">
+                        <Button 
+                            type="link" 
+                            icon={<EditOutlined />} 
+                            onClick={() => {
+                                setEditingUser(record);
+                                setIsModalOpen(true);
+                            }}
+                        >
+                            Sửa
+                        </Button>
+                        <Button 
+                            type="link" 
+                            danger={!isLocked} 
+                            icon={isLocked ? <UnlockOutlined /> : <LockOutlined />} 
+                            onClick={() => handleToggleLock(record)}
+                        >
+                            {isLocked ? 'Mở khóa' : 'Khóa'}
+                        </Button>
+                    </Space>
+                );
+            },
+        },
+    ];
 
-  return (
-    <Card bordered={false} style={{ margin: 24, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.03)', borderRadius: '8px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <Title level={3} style={{ margin: 0 }}>Quản lý danh sách nhân sự</Title>
-        <Button type="primary" icon={<UserAddOutlined />} onClick={() => message.success('Mở modal thêm nhân viên')}>
-          + Thêm nhân viên
-        </Button>
-      </div>
+    return (
+        <Card title="Quản lý danh sách nhân sự" bordered={false} style={{ margin: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+                <Space size="middle">
+                    <Input
+                        placeholder="Tìm kiếm theo tên hoặc email..."
+                        prefix={<SearchOutlined />}
+                        allowClear
+                        style={{ width: 300 }}
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                    />
+                </Space>
+                <Button 
+                    type="primary" 
+                    icon={<UserAddOutlined />}
+                    onClick={() => {
+                        setEditingUser(null);
+                        setIsModalOpen(true);
+                    }}
+                >
+                    Thêm nhân viên
+                </Button>
+            </div>
 
-      <Space style={{ marginBottom: 20 }} wrap>
-        <Input
-          placeholder="Tìm kiếm theo tên hoặc email..."
-          prefix={<SearchOutlined />}
-          style={{ width: 280 }}
-          allowClear
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <Select
-          placeholder="Lọc theo vai trò"
-          style={{ width: 180 }}
-          allowClear
-          onChange={(value) => setRoleFilter(value || '')}
-        >
-          <Option value="Admin">Admin</Option>
-          <Option value="Trưởng nhóm">Trưởng nhóm</Option>
-          <Option value="Nhân viên">Nhân viên</Option>
-        </Select>
-      </Space>
+            <Table
+                columns={columns}
+                dataSource={users}
+                rowKey="id"
+                loading={loading}
+                pagination={{
+                    current: page,
+                    pageSize: 5,
+                    total: total,
+                    onChange: (newPage) => setPage(newPage),
+                }}
+            />
 
-      <Table
-        dataSource={users}
-        columns={columns}
-        loading={loading}
-        pagination={{
-          current: page,
-          pageSize: 5,
-          total: users.length,
-          onChange: (p) => setPage(p),
-        }}
-      />
-    </Card>
-  );
+            <UserFormModal
+                visible={isModalOpen}
+                editingUser={editingUser}
+                onCancel={() => setIsModalOpen(false)}
+                onSuccess={() => {
+                    setIsModalOpen(false);
+                    fetchUsers(page, search); 
+                }}
+            />
+        </Card>
+    );
 };
 
 export default UserManagement;
