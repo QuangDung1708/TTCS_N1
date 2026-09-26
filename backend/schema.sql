@@ -18,6 +18,6 @@ CREATE TABLE IF NOT EXISTS users (
     full_name VARCHAR(100) NOT NULL,
     role_id INT,
     group_id INT,
-    FOREIGN KEY (role_id) REFERENCES roles(id),
-    FOREIGN KEY (group_id) REFERENCES groups(id)
+    FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE SET NULL,
+    FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE SET NULL
 );
