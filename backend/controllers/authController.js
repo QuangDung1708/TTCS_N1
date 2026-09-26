@@ -2,6 +2,7 @@ const pool = require('../db');
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const nodemailer = require('nodemailer');
+const jwt = require('jsonwebtoken');
 
 const sendResetEmail = async (toEmail, resetLink) => {
   let transporter;
@@ -112,7 +113,38 @@ const resetPassword = async (req, res) => {
   }
 };
 
+const login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) return res.status(400).json({ success: false, message: 'Vui lòng nhập đầy đủ thông tin' });
+
+    const [users] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
+    if (users.length === 0) return res.status(401).json({ success: false, message: 'Email hoặc mật khẩu không chính xác' });
+
+    const user = users[0];
+    const isMatch = await bcrypt.compare(password, user.password || user.password_hash);
+    if (!isMatch) return res.status(401).json({ success: false, message: 'Email hoặc mật khẩu không chính xác' });
+
+    const token = jwt.sign(
+      { id: user.id, email: user.email, role_id: user.role_id },
+      process.env.JWT_SECRET || 'secretkey_default',
+      { expiresIn: '1d' }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: 'Đăng nhập thành công',
+      token,
+      user: { id: user.id, email: user.email, full_name: user.full_name, role_id: user.role_id }
+    });
+  } catch (error) {
+    console.error('Lỗi khi đăng nhập:', error);
+    return res.status(500).json({ success: false, message: 'Lỗi server: ' + error.message });
+  }
+};
+
 module.exports = {
+  login,
   forgotPassword,
   resetPassword
 };
