@@ -1,7 +1,8 @@
 
+import MainLayout from './MainLayout.jsx'
 import { useState } from 'react'
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
-import ForgotPassword from './ForgotPassword' // Import component Quên mật khẩu vừa tạo
+import ForgotPassword from './ForgotPassword'
 import Page403 from './pages/Errors/Page403'
 import Page404 from './pages/Errors/Page404'
 import heroImg from './assets/hero.png'
@@ -131,19 +132,16 @@ function Home() {
     </>
   )
 }
-
-// Component App chính điều hướng Route
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<MainLayout />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/403" element={<Page403 />} />
-<Route path="*" element={<Page404 />} />
+        <Route path="*" element={<Page404 />} />
       </Routes>
     </BrowserRouter>
   )
 }
-
 export default App
