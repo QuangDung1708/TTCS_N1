@@ -73,9 +73,8 @@ const login = async (req, res) => {
       });
     }
 
-    // So sánh mật khẩu (hỗ trợ cả password_hash và password)
-    const passwordInDb = user.password_hash || user.password;
-    const isMatch = await bcrypt.compare(password, passwordInDb);
+    // So sánh mật khẩu
+    const isMatch = await bcrypt.compare(password, user.password_hash);
 
     if (!isMatch) {
       // SAI MẬT KHẨU: Tăng số lần nhập sai lên 1
@@ -163,7 +162,7 @@ const forgotPassword = async (req, res) => {
   }
 };
 
-// 4. API Đặt lại mật khẩu
+// 4. API Đặt lại mật khẩu (ĐÃ SỬA CÂU QUERY CHUẨN ĐÊ BÀI)
 const resetPassword = async (req, res) => {
   try {
     const { token, newPassword } = req.body;
@@ -183,9 +182,10 @@ const resetPassword = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(newPassword, salt);
 
+    // ĐÃ SỬA: Chỉ UPDATE cột password_hash và gán mảng [hashedPassword, users[0].id]
     await pool.query(
-      'UPDATE users SET password_hash = ?, password = ?, reset_token = NULL, reset_token_expires = NULL, failed_attempts = 0, lock_until = NULL WHERE id = ?',
-      [hashedPassword, hashedPassword, users[0].id]
+      'UPDATE users SET password_hash = ?, reset_token = NULL, reset_token_expires = NULL, failed_attempts = 0, lock_until = NULL WHERE id = ?',
+      [hashedPassword, users[0].id]
     );
 
     return res.status(200).json({ success: true, message: 'Đặt lại mật khẩu thành công' });
