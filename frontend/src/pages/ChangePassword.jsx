@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import axiosClient from '../utils/axiosClient';
 
 export default function ChangePassword() {
   const navigate = useNavigate();
@@ -39,40 +40,25 @@ export default function ChangePassword() {
     setLoading(true);
 
     try {
-      // Lấy token đăng nhập từ localStorage
-      const token = localStorage.getItem('crm_token');
-
-      // Gọi API PUT /api/users/change-password
-      const response = await fetch('/api/users/change-password', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          oldPassword: oldPassword,
-          newPassword: newPassword,
-        }),
+      // Gọi API qua axiosClient (tự động đính kèm Token trong Interceptor)
+      const response = await axiosClient.put('/users/change-password', {
+        oldPassword: oldPassword,
+        newPassword: newPassword,
       });
 
-      const data = await response.json();
+      setMessage('Đổi mật khẩu thành công. Hệ thống sẽ đăng xuất.');
+      
+      // Xóa token khỏi localStorage để đăng xuất an toàn
+      localStorage.removeItem('crm_token');
 
-      if (response.ok) {
-        setMessage('Đổi mật khẩu thành công. Hệ thống sẽ đăng xuất.');
-        
-        // Xóa token khỏi localStorage để đăng xuất an toàn
-        localStorage.removeItem('crm_token');
-
-        // Tự động chuyển hướng về /login sau 2 giây
-        setTimeout(() => {
-          navigate('/login');
-        }, 2000);
-      } else {
-        setError(data.message || 'Mật khẩu hiện tại không đúng hoặc có lỗi xảy ra.');
-      }
+      // Tự động chuyển hướng về /login sau 2 giây
+      setTimeout(() => {
+        navigate('/login');
+      }, 2000);
     } catch (err) {
       console.error(err);
-      setError('Đã xảy ra lỗi kết nối, vui lòng thử lại.');
+      // axiosClient ném lỗi vào catch khi HTTP status >= 400
+      setError(err.response?.data?.message || 'Mật khẩu hiện tại không đúng hoặc có lỗi xảy ra.');
     } finally {
       setLoading(false);
     }
