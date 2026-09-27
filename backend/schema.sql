@@ -18,6 +18,13 @@ CREATE TABLE IF NOT EXISTS users (
     full_name VARCHAR(100) NOT NULL,
     role_id INT,
     group_id INT,
+feature/s1-01-be-db-users
+
+    failed_attempts INT DEFAULT 0,
+    lock_until DATETIME DEFAULT NULL,
+    reset_token VARCHAR(255) DEFAULT NULL,
+    reset_token_expiry DATETIME DEFAULT NULL,
+develop
     FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE SET NULL,
     FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE SET NULL
 );
