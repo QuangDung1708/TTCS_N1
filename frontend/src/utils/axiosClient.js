@@ -38,6 +38,7 @@ axiosClient.interceptors.response.use(
       // 3. Chuyển hướng về trang login
       window.location.href = '/login';
     }
+
     // Bắt lỗi 403 (Không đủ quyền truy cập)
     if (error.response && error.response.status === 403) {
       window.location.href = '/403';
