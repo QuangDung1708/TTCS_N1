@@ -90,7 +90,7 @@ function MainLayout() {
 
           <Typography.Text>
             {userInfo
-              ? `${userInfo.email} - ${userInfo.role_name}`
+              ? `${userInfo?.email} - ${userInfo.role_name}`
               : 'Chưa đăng nhập'}
           </Typography.Text>
         </Header>
@@ -107,7 +107,7 @@ function MainLayout() {
           {userInfo && (
             <div>
               <p>ID: {userInfo.id}</p>
-              <p>Email: {userInfo.email}</p>
+              <p>Email: {userInfo?.email}</p>
               <p>Role: {userInfo.role_name}</p>
               <p>Group ID: {userInfo.group_id}</p>
             </div>
