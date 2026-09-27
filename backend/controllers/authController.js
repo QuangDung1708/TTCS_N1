@@ -3,7 +3,7 @@ const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
- 
+
 // 1. Hàm gửi Email đặt lại mật khẩu
 const sendResetEmail = async (toEmail, resetLink) => {
   let transporter;
@@ -27,7 +27,7 @@ const sendResetEmail = async (toEmail, resetLink) => {
       }
     });
   }
- 
+
   const mailOptions = {
     from: `"Hệ thống Hỗ trợ" <${process.env.EMAIL_USER || 'no-reply@system.com'}>`,
     to: toEmail,
@@ -41,13 +41,13 @@ const sendResetEmail = async (toEmail, resetLink) => {
       </div>
     `
   };
- 
+
   const info = await transporter.sendMail(mailOptions);
   if (!process.env.EMAIL_USER) {
     console.log('Xem trước email test:', nodemailer.getTestMessageUrl(info));
   }
 };
- 
+
 // 2. API Đăng nhập (Có kiểm tra khóa tài khoản 15 phút do Brute-force)
 const login = async (req, res) => {
   try {
@@ -55,16 +55,16 @@ const login = async (req, res) => {
     if (!email || !password) {
       return res.status(400).json({ success: false, message: 'Vui lòng nhập đầy đủ email và mật khẩu' });
     }
- 
+
     // Tìm người dùng theo email
     const [users] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
     if (users.length === 0) {
       return res.status(401).json({ success: false, message: 'Sai email hoặc mật khẩu' });
     }
- 
+
     const user = users[0];
     const currentTime = new Date();
- 
+
     // KIỂM TRA KHÓA TÀI KHOẢN: Nếu lock_until > thời gian hiện tại -> Chặn 403
     if (user.lock_until && new Date(user.lock_until) > currentTime) {
       return res.status(403).json({
@@ -72,41 +72,41 @@ const login = async (req, res) => {
         message: 'Tài khoản bị khóa 15 phút do nhập sai mật khẩu quá 5 lần!'
       });
     }
- 
+
     // So sánh mật khẩu
-    const isMatch = await bcrypt.compare(password, user.password_hash);
- 
+    const isMatch = await bcrypt.compare(password, user.password_hash || user.password);
+
     if (!isMatch) {
       // SAI MẬT KHẨU: Tăng số lần nhập sai lên 1
       let failedAttempts = (user.failed_attempts || 0) + 1;
       let lockUntil = null;
- 
+
       // Nếu sai đủ 5 lần -> Đặt thời gian khóa 15 phút
       if (failedAttempts >= 5) {
         lockUntil = new Date(currentTime.getTime() + 15 * 60 * 1000);
       }
- 
+
       await pool.query(
         'UPDATE users SET failed_attempts = ?, lock_until = ? WHERE id = ?',
         [failedAttempts, lockUntil, user.id]
       );
- 
+
       return res.status(401).json({ success: false, message: 'Sai email hoặc mật khẩu' });
     }
- 
+
     // ĐĂNG NHẬP ĐÚNG: Reset số lần nhập sai = 0 và lock_until = NULL
     await pool.query(
       'UPDATE users SET failed_attempts = 0, lock_until = NULL WHERE id = ?',
       [user.id]
     );
- 
+
     // Cấp Token JWT
     const token = jwt.sign(
       { id: user.id, email: user.email, role_id: user.role_id },
       process.env.JWT_SECRET || 'secret_key',
       { expiresIn: '1d' }
     );
- 
+
     return res.status(200).json({
       success: true,
       message: 'Đăng nhập thành công',
@@ -119,13 +119,13 @@ const login = async (req, res) => {
         group_id: user.group_id
       }
     });
- 
+
   } catch (error) {
     console.error('Lỗi Login:', error);
     return res.status(500).json({ success: false, message: 'Lỗi server: ' + error.message });
   }
 };
- 
+
 // 3. API Quên mật khẩu (Chuẩn theo yêu cầu task S1-03)
 const forgotPassword = async (req, res) => {
   try {
@@ -133,10 +133,9 @@ const forgotPassword = async (req, res) => {
     if (!email) {
       return res.status(400).json({ success: false, message: 'Vui lòng cung cấp email' });
     }
- 
+
     const [users] = await pool.query('SELECT id, email FROM users WHERE email = ?', [email]);
     
-    // Nguyên tắc bảo mật: Nếu không thấy user vẫn trả về HTTP 200 báo thông báo chung
     if (users.length === 0) {
       return res.status(200).json({
         success: true,
@@ -145,29 +144,23 @@ const forgotPassword = async (req, res) => {
     }
 
     const user = users[0];
- 
+
     const resetToken = crypto.randomBytes(32).toString('hex');
-    // Đặt hiệu lực 30 phút theo yêu cầu đề bài
     const resetTokenExpiry = new Date(Date.now() + 30 * 60 * 1000);
- 
-    // Lưu token và reset_token_expiry vào DB
+
     await pool.query(
       'UPDATE users SET reset_token = ?, reset_token_expiry = ? WHERE id = ?',
       [resetToken, resetTokenExpiry, user.id]
     );
- 
+
     const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
     const resetLink = `${clientUrl}/reset-password?token=${resetToken}`;
- 
-    // Console.log ra Terminal để FE dễ lấy test
+
     console.log('==================================================');
     console.log('👉 LINK KHÔI PHỤC MẬT KHẨU (GỬI CHO EMAIL ' + email + '):');
     console.log(resetLink);
     console.log('==================================================');
 
-    // Tạm tắt dòng gửi email thật để không bị lỗi kết nối mạng (Timeout)
-    // await sendResetEmail(email, resetLink);
- 
     return res.status(200).json({
       success: true,
       message: 'Nếu email tồn tại, link khôi phục đã được gửi'
@@ -177,7 +170,7 @@ const forgotPassword = async (req, res) => {
     return res.status(500).json({ success: false, message: 'Lỗi server: ' + error.message });
   }
 };
- 
+
 // 4. API Đặt lại mật khẩu (Chuẩn theo yêu cầu task S1-03)
 const resetPassword = async (req, res) => {
   try {
@@ -185,35 +178,71 @@ const resetPassword = async (req, res) => {
     if (!token || !newPassword) {
       return res.status(400).json({ success: false, message: 'Vui lòng cung cấp token và mật khẩu mới' });
     }
- 
-    // Kiểm tra reset_token khớp và reset_token_expiry > thời gian hiện tại
+
     const [users] = await pool.query(
       'SELECT id FROM users WHERE reset_token = ? AND reset_token_expiry > NOW()',
       [token]
     );
- 
+
     if (users.length === 0) {
       return res.status(400).json({ success: false, message: 'Link đã hết hạn hoặc không hợp lệ' });
     }
- 
+
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(newPassword, salt);
- 
-    // Cập nhật mật khẩu mới, xóa token và thời hạn về NULL
+
     await pool.query(
       'UPDATE users SET password_hash = ?, reset_token = NULL, reset_token_expiry = NULL, failed_attempts = 0, lock_until = NULL WHERE id = ?',
       [hashedPassword, users[0].id]
     );
- 
+
     return res.status(200).json({ success: true, message: 'Đặt lại mật khẩu thành công' });
   } catch (error) {
     console.error('Lỗi Reset Password:', error);
     return res.status(500).json({ success: false, message: 'Lỗi server: ' + error.message });
   }
 };
- 
+
+// 5. API Tự đổi mật khẩu cá nhân (Ticket S1-04: Lấy ID từ req.user.id)
+const changePassword = async (req, res) => {
+  try {
+    const userId = req.user.id; // Lấy ID từ token người dùng đang đăng nhập
+    const { oldPassword, newPassword } = req.body;
+
+    if (!oldPassword || !newPassword) {
+      return res.status(400).json({ success: false, message: 'Vui lòng nhập đầy đủ mật khẩu cũ và mật khẩu mới' });
+    }
+
+    // Lấy thông tin user từ DB
+    const [users] = await pool.query('SELECT * FROM users WHERE id = ?', [userId]);
+    if (users.length === 0) {
+      return res.status(404).json({ success: false, message: 'Người dùng không tồn tại' });
+    }
+
+    const user = users[0];
+
+    // Kiểm tra mật khẩu cũ
+    const isMatch = await bcrypt.compare(oldPassword, user.password_hash || user.password);
+    if (!isMatch) {
+      return res.status(400).json({ success: false, message: 'Mật khẩu cũ không chính xác' });
+    }
+
+    // Mã hóa mật khẩu mới và cập nhật CSDL
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    await pool.query('UPDATE users SET password_hash = ? WHERE id = ?', [hashedPassword, userId]);
+
+    return res.status(200).json({ success: true, message: 'Đổi mật khẩu thành công' });
+  } catch (error) {
+    console.error('Lỗi Change Password:', error);
+    return res.status(500).json({ success: false, message: 'Lỗi server: ' + error.message });
+  }
+};
+
 module.exports = {
   login,
   forgotPassword,
-  resetPassword
+  resetPassword,
+  changePassword
 };
