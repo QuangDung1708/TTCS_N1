@@ -1,3 +1,13 @@
+feature/S1-03-fe-reset-password-ui
+import MainLayout from './MainLayout.jsx'
+import { useState } from 'react'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+// Import các trang mới
+import ForgotPassword from './ForgotPassword' 
+import ResetPassword from './pages/ResetPassword'
+import Page403 from './pages/Errors/Page403'
+import Page404 from './pages/Errors/Page404'
+
 import React from 'react';
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import MainLayout from './MainLayout.jsx';
@@ -54,16 +64,24 @@ function Home() {
     </>
   );
 }
+ develop
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<UserManagement />} />
+ feature/S1-03-fe-reset-password-ui
+        <Route path="/" element={<MainLayout />} />
+        {/* Đã thêm 2 route mật khẩu vào đúng cấu trúc */}
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        
+<Route path="/" element={<UserManagement />} />
         <Route path="/crm-dashboard" element={<MainLayout />} />
         <Route path="/users" element={<UserManagement />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+ develop
         <Route path="/403" element={<Page403 />} />
         <Route path="/404" element={<Page404 />} />
         <Route path="*" element={<Page404 />} />
@@ -72,4 +90,8 @@ function App() {
   );
 }
 
+ feature/S1-03-fe-reset-password-ui
+export default App
+
 export default App;
+ develop
