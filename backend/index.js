@@ -1,24 +1,23 @@
 const express = require('express');
 const cors = require('cors');
-require('dotenv').config(); // Đọc các biến từ file .env (như Bính vừa setup)
+require('dotenv').config();
+
+const userRoutes = require('./routes/userRoutes');
+const authRoutes = require('./routes/authRoutes');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5001;
 
-// Khai báo Middleware
+// Middleware cấu hình
 app.use(cors());
-app.use(express.json()); // Giúp Backend đọc được dữ liệu JSON từ Frontend gửi lên
+app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Khởi tạo một Route cơ bản để test
-app.get('/api/v1', (req, res) => {
-    res.json({
-        status: "success",
-        message: "Hệ thống Backend CRM đang hoạt động!"
-    });
-});
+// Đăng ký route User
+app.use('/api/users', userRoutes);
+app.use('/api/auth', authRoutes);
 
-// Lắng nghe các kết nối
+// Lắng nghe cổng kết nối
 app.listen(PORT, () => {
-    console.log(`🚀 Server đang chạy tại cổng http://localhost:${PORT}`);
+  console.log(`🚀 Server đang chạy tại cổng http://localhost:${PORT}`);
 });
