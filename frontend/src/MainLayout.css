@@ -1,0 +1,50 @@
+/* Sidebar */
+.crm-sider {
+  z-index: 1001;
+}
+
+/* Nút Hamburger mặc định ẩn */
+.hamburger-button {
+  display: none;
+}
+
+/* Overlay mặc định ẩn */
+.sidebar-overlay {
+  display: none;
+}
+
+/* Màn hình điện thoại */
+@media (max-width: 768px) {
+  .hamburger-button {
+    display: block;
+    font-size: 24px;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+  }
+
+  .crm-sider {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    height: 100vh !important;
+    z-index: 1001;
+  }
+
+  .crm-sider .ant-menu-item {
+    min-height: 44px;
+    line-height: 44px;
+  }
+
+  .sidebar-overlay {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 1000;
+  }
+}
