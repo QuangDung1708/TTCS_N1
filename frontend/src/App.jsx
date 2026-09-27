@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
-import ForgotPassword from './ForgotPassword'
-import ResetPassword from './ResetPassword'
+import ForgotPassword from './ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 
 import heroImg from './assets/hero.png'
 import reactLogo from './assets/react.svg'
@@ -50,8 +50,8 @@ function Home() {
           Count is {count}
         </button>
 
-        {/* Nút chuyển nhanh sang trang Quên mật khẩu để kiểm thử */}
-        <div style={{ marginTop: '20px' }}>
+        {/* Nút chuyển nhanh sang các trang để kiểm thử */}
+        <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <Link
             to="/forgot-password"
             style={{
@@ -60,6 +60,16 @@ function Home() {
             }}
           >
             👉 Đi tới trang Quên Mật Khẩu
+          </Link>
+
+          <Link
+            to="/reset-password?token=XYZ123"
+            style={{
+              color: '#10b981',
+              fontWeight: 'bold'
+            }}
+          >
+            👉 Đi tới trang Đặt Lại Mật Khẩu (Link có Token mẫu)
           </Link>
         </div>
       </section>
