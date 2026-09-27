@@ -1,6 +1,12 @@
+ feature/S1-04-be-change-password
+const bcrypt = require('bcrypt');
+const db = require('../db');
+
+// Controller: Lấy danh sách users có phân trang và tìm kiếm
+
 ﻿const bcrypt = require("bcrypt");
 const db = require("../db");
-
+ develop
 const getUsers = async (req, res) => {
   try {
     const page = parseInt(req.query.page, 10) || 1;
@@ -8,7 +14,11 @@ const getUsers = async (req, res) => {
     const search = req.query.search ? req.query.search.trim() : "";
     const offset = (page - 1) * limit;
 
+feature/S1-04-be-change-password
+    let whereClause = '';
+
     let whereClause = "";
+develop
     const queryParams = [];
 
     if (search) {
@@ -16,11 +26,17 @@ const getUsers = async (req, res) => {
       queryParams.push(`%${search}%`, `%${search}%`);
     }
 
+ feature/S1-04-be-change-password
+
+develop
     const countSql = `SELECT COUNT(*) AS total FROM users ${whereClause}`;
     const [countResult] = await db.query(countSql, queryParams);
     const totalRecords = countResult[0].total;
     const totalPages = Math.ceil(totalRecords / limit) || 1;
 
+ feature/S1-04-be-change-password
+    // 2. Lấy danh sách users tối giản (không dùng created_at)
+develop
     const dataSql = `
       SELECT id, email, full_name, role_id
       FROM users
@@ -30,7 +46,8 @@ const getUsers = async (req, res) => {
     `;
 
     const [users] = await db.query(dataSql, [...queryParams, limit, offset]);
-
+feature/S1-04-be-change-password
+ develop
     return res.status(200).json({
       success: true,
       message: "Lay danh sach thanh cong",
@@ -41,29 +58,50 @@ const getUsers = async (req, res) => {
         current_page: page
       }
     });
+ feature/S1-04-be-change-password
+ develop
   } catch (error) {
     console.error("Loi khi lay danh sach user:", error);
     return res.status(500).json({ success: false, message: "Loi may chu noi bo: " + error.message });
   }
 };
 
+ feature/S1-04-be-change-password
+// Controller xử lý tạo tài khoản người dùng
+ develop
 const createUser = async (req, res) => {
   try {
     const { email, full_name, password, phone, role_id, group_id } = req.body;
 
+ feature/S1-04-be-change-password
+
+develop
     if (!email || !full_name) {
       return res.status(400).json({ success: false, message: "Vui long cung cap day du email va ho ten" });
     }
+feature/S1-04-be-change-password
+    // 2. Kiểm tra trùng email trong CSDL
+    const [existingUsers] = await db.query(
+      'SELECT id FROM users WHERE email = ? LIMIT 1',
+      [email]
+    );
 
     const [existingUsers] = await db.query("SELECT id FROM users WHERE email = ? LIMIT 1", [email]);
+ develop
     if (existingUsers.length > 0) {
       return res.status(400).json({ success: false, message: "Email nay da duoc su dung" });
     }
+feature/S1-04-be-change-password
+    // 3. Đặt mật khẩu và băm bằng bcrypt
+    const rawPassword = password || '123456aA@';
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(rawPassword, saltRounds);
+
 
     const rawPassword = password || "123456aA@";
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(rawPassword, saltRounds);
-
+ develop
     const insertSql = `
       INSERT INTO users (email, full_name, password, phone, role_id, group_id)
       VALUES (?, ?, ?, ?, ?, ?)
@@ -77,9 +115,13 @@ const createUser = async (req, res) => {
       role_id || null,
       group_id || null
     ]);
+ feature/S1-04-be-change-password
+    // 5. In console thông báo
+    console.log(`Đã tạo tài khoản cho ${email} với mật khẩu: ${rawPassword}`);
+
 
     console.log(`Da tao tai khoan cho ${email} voi mat khau: ${rawPassword}`);
-
+ develop
     return res.status(201).json({
       success: true,
       message: "Tao tai khoan nguoi dung moi thanh cong",
@@ -91,6 +133,9 @@ const createUser = async (req, res) => {
         group_id: group_id || null
       }
     });
+feature/S1-04-be-change-password
+
+develop
   } catch (error) {
     console.error("Loi khi tao user:", error);
     return res.status(500).json({ success: false, message: "Loi may chu noi bo: " + error.message });
