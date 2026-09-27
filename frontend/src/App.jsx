@@ -1,16 +1,12 @@
 
 import MainLayout from './MainLayout.jsx'
 import { useState } from 'react'
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
- feature/S1-03-fe-reset-password-ui
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom' 
 import ForgotPassword from './ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 
-
-import ForgotPassword from './ForgotPassword'
 import Page403 from './pages/Errors/Page403'
 import Page404 from './pages/Errors/Page404'
- develop
 import heroImg from './assets/hero.png'
 import reactLogo from './assets/react.svg'
 import viteLogo from './assets/vite.svg'
@@ -223,7 +219,6 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
- feature/S1-03-fe-reset-password-ui
         <Route path="/" element={<Home />} />
 
         <Route
@@ -236,11 +231,8 @@ function App() {
           element={<ResetPassword />}
         />
 
-        <Route path="/" element={<MainLayout />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/403" element={<Page403 />} />
         <Route path="*" element={<Page404 />} />
- develop
       </Routes>
     </BrowserRouter>
   )
