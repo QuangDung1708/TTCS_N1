@@ -2,7 +2,7 @@ import React from 'react';
 import { Dropdown, Avatar, Space, message, Layout } from 'antd';
 import { UserOutlined, LogoutOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import axiosClient from '../utils/axiosClient';
 
 const { Header: AntHeader } = Layout;
 
@@ -11,24 +11,14 @@ const Header = () => {
 
   // Hàm xử lý sự kiện đăng xuất
   const handleLogout = async () => {
-    const token = localStorage.getItem('crm_token');
-
     try {
-      // Gọi API Logout kèm token ở Header
-      await axios.post(
-        '/api/logout',
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      // Gọi API Logout thông qua axiosClient (tự động đính kèm token)
+      await axiosClient.post('/logout');
       message.success('Đăng xuất thành công!');
     } catch (error) {
       console.error('Lỗi khi gọi API logout:', error);
     } finally {
-      // Quan trọng: Bất kể API thành công hay lỗi, luôn xóa token và về trang /login
+      // Bất kể API thành công hay lỗi, luôn xóa token và chuyển hướng về /login
       localStorage.removeItem('crm_token');
       navigate('/login');
     }
@@ -40,7 +30,7 @@ const Header = () => {
       key: 'logout',
       label: 'Đăng xuất',
       icon: <LogoutOutlined />,
-      danger: true, // Màu đỏ nổi bật cho nút đăng xuất
+      danger: true,
       onClick: handleLogout,
     },
   ];
