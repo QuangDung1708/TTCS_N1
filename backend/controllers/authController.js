@@ -57,7 +57,14 @@ const login = async (req, res) => {
     }
 
     // Tìm người dùng theo email
-    const [users] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
+    // 1. Sửa câu query: JOIN bảng users với bảng roles để lấy cột role_name
+    const loginQuery = `
+      SELECT u.*, r.role_name 
+      FROM users u 
+      LEFT JOIN roles r ON u.role_id = r.id 
+      WHERE u.email = ?
+    `;
+    const [users] = await pool.query(loginQuery, [email]);
     if (users.length === 0) {
       return res.status(401).json({ success: false, message: 'Sai email hoặc mật khẩu' });
     }
@@ -101,9 +108,15 @@ const login = async (req, res) => {
     );
 
     // Cấp Token JWT
+    // 2. Ký token: Truyền thêm trường 'role' vào payload
     const token = jwt.sign(
-      { id: user.id, email: user.email, role_id: user.role_id },
-      process.env.JWT_SECRET || 'secret_key',
+      { 
+        id: user.id, 
+        email: user.email, 
+        role_id: user.role_id,
+        role: user.role_name // <-- ĐÂY LÀ DÒNG FIX LỖI QUAN TRỌNG NHẤT
+      }, 
+      process.env.JWT_SECRET || 'secretkey_default', 
       { expiresIn: '1d' }
     );
 
@@ -111,12 +124,12 @@ const login = async (req, res) => {
       success: true,
       message: 'Đăng nhập thành công',
       token,
-      user: {
-        id: user.id,
-        email: user.email,
-        full_name: user.full_name,
+      user: { 
+        id: user.id, 
+        email: user.email, 
+        full_name: user.full_name, 
         role_id: user.role_id,
-        group_id: user.group_id
+        role: user.role_name // Bổ sung cho Frontend
       }
     });
 
