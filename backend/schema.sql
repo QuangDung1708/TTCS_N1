@@ -20,6 +20,8 @@ CREATE TABLE IF NOT EXISTS users (
     group_id INT,
     failed_attempts INT DEFAULT 0,
     lock_until DATETIME DEFAULT NULL,
+    reset_token VARCHAR(255) DEFAULT NULL,
+    reset_token_expiry DATETIME DEFAULT NULL,
     FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE SET NULL,
     FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE SET NULL
 );
