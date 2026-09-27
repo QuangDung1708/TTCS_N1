@@ -1,3 +1,9 @@
+ feature/S1-07-fe-error-button
+import React from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import Page403 from './pages/Page403';
+import Page404 from './pages/Page404';
+
 
 import MainLayout from './MainLayout.jsx'
 import { useState } from 'react'
@@ -214,11 +220,15 @@ function Home() {
       <section id="spacer"></section>
     </>
   )
-}
+}develop
 function App() {
   return (
     <BrowserRouter>
       <Routes>
+feature/S1-07-fe-error-button
+        <Route path="/403" element={<Page403 />} />
+        <Route path="/404" element={<Page404 />} />
+
         <Route path="/" element={<Home />} />
 
         <Route
@@ -232,9 +242,15 @@ function App() {
         />
 
         <Route path="/403" element={<Page403 />} />
+develop
         <Route path="*" element={<Page404 />} />
       </Routes>
     </BrowserRouter>
-  )
+  );
 }
+ feature/S1-07-fe-error-button
+
+export default App;
+
 export default App
+ develop
