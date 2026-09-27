@@ -39,6 +39,10 @@ axiosClient.interceptors.response.use(
       window.location.href = '/login';
     }
 
+    // Bắt lỗi 403 (Không đủ quyền truy cập)
+    if (error.response && error.response.status === 403) {
+      window.location.href = '/403';
+    }
     return Promise.reject(error);
   }
 );
