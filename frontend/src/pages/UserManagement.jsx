@@ -1,123 +1,221 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Input, Select, Button, Space, Tag, Card, Typography } from 'antd';
-import { SearchOutlined, UserAddOutlined, EditOutlined, LockOutlined } from '@ant-design/icons';
+import { Table, Button, Space, Tag, Card, Typography, message } from 'antd';
+import { UserAddOutlined, EditOutlined, LockOutlined, UnlockOutlined } from '@ant-design/icons';
+import LockUserModal from './LockUserModal';
+import UserFormModal from './UserFormModal';
+import axiosClient from '../utils/axiosClient'; 
 
 const { Title } = Typography;
-const { Option } = Select;
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [search, setSearch] = useState('');
-  const [page, setPage] = useState(1);
+  const [isLockModalOpen, setIsLockModalOpen] = useState(false);
+  const [selectedUserToLock, setSelectedUserToLock] = useState(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
+
+  const fetchUsers = async () => {
+    setLoading(true);
+    try {
+      let serverList = [];
+      try {
+        const response = await axiosClient.get('/api/users');
+        const res = response?.data;
+        if (Array.isArray(res)) serverList = res;
+        else if (res?.data && Array.isArray(res.data)) serverList = res.data;
+        else if (res?.users && Array.isArray(res.users)) serverList = res.users;
+      } catch (err) {
+        console.log('Dùng dữ liệu cục bộ.');
+      }
+
+      const localData = JSON.parse(localStorage.getItem('app_users_list') || '[]');
+      const rawList = serverList.length > 0 ? serverList : localData;
+
+      const formattedData = rawList.map((user, index) => ({
+        ...user,
+        id: user.id || user._id || index + 1,
+        stt: index + 1,
+        displayName: user.name || user.fullName || user.username || user.hoTen || 'Chưa cập nhật',
+        displayEmail: user.email || user.mail || 'Chưa cập nhật',
+        displayRole: user.role || user.chucVu || 'Nhân viên',
+        displayGroup: user.group || user.department || 'Chưa phân nhóm',
+        status: user.status || 'Active',
+      }));
+
+      setUsers(formattedData);
+    } catch (error) {
+      console.error('Lỗi tải danh sách:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    setLoading(true);
-    setTimeout(() => {
-      setUsers([
-        { id: 1, stt: 1, name: 'Nguyễn Văn A', email: 'a.nguyen@company.com', role: 'Admin', group: 'Ban Giám Đốc', status: 'Active' },
-        { id: 2, stt: 2, name: 'Trần Thị B', email: 'b.tran@company.com', role: 'Trưởng nhóm', group: 'Phòng Kinh Doanh 1', status: 'Active' },
-        { id: 3, stt: 3, name: 'Lê Văn C', email: 'c.le@company.com', role: 'Nhân viên', group: 'Phòng Kinh Doanh 1', status: 'Inactive' },
-        { id: 4, stt: 4, name: 'Phạm Thị D', email: 'd.pham@company.com', role: 'Nhân viên', group: 'Phòng Kỹ Thuật', status: 'Active' },
-      ]);
-      setLoading(false);
-    }, 500);
-  }, [search, page]);
+    fetchUsers();
+  }, []);
+
+  const handleSaveUser = (values) => {
+    const localData = JSON.parse(localStorage.getItem('app_users_list') || '[]');
+    
+    if (editingUser) {
+      const updated = localData.map(u => {
+        if ((u.id || u._id) === (editingUser.id || editingUser._id)) {
+          return { ...u, ...values };
+        }
+        return u;
+      });
+      localStorage.setItem('app_users_list', JSON.stringify(updated));
+      message.success('Cập nhật thông tin nhân viên thành công!');
+    } else {
+      const userToSave = {
+        id: Date.now(),
+        status: 'Active',
+        ...values
+      };
+      const updated = [userToSave, ...localData];
+      localStorage.setItem('app_users_list', JSON.stringify(updated));
+      message.success('Thêm nhân viên mới thành công!');
+    }
+
+    setIsAddModalOpen(false);
+    setEditingUser(null);
+    fetchUsers();
+  };
+
+  const handleUnlockUser = (record) => {
+    const userId = record.id || record._id;
+    const localData = JSON.parse(localStorage.getItem('app_users_list') || '[]');
+    const updated = localData.map(u => {
+      if ((u.id || u._id) === userId) {
+        return { ...u, status: 'Active' };
+      }
+      return u;
+    });
+    localStorage.setItem('app_users_list', JSON.stringify(updated));
+    message.success(`Đã mở khóa tài khoản cho ${record.displayName} thành công!`);
+    fetchUsers();
+  };
 
   const columns = [
     { title: 'STT', dataIndex: 'stt', key: 'stt', align: 'center', width: 60 },
-    { title: 'Họ và tên', dataIndex: 'name', key: 'name', width: 180 },
-    { title: 'Email', dataIndex: 'email', key: 'email', width: 220 },
+    { title: 'Họ và tên', dataIndex: 'displayName', key: 'name', width: 160 },
+    { title: 'Email', dataIndex: 'displayEmail', key: 'email', width: 200 },
     { 
       title: 'Vai trò', 
-      dataIndex: 'role', 
+      dataIndex: 'displayRole', 
       key: 'role',
-      width: 150,
-      render: (role) => (
-        <Tag style={{ color: '#0050b3', background: '#e6f7ff', borderColor: '#91d5ff', fontWeight: 500 }}>
-          {role}
-        </Tag>
-      )
+      width: 130,
+      render: (role) => <Tag color="blue">{role}</Tag>
     },
-    { title: 'Nhóm', dataIndex: 'group', key: 'group', width: 200 },
+    { title: 'Nhóm', dataIndex: 'displayGroup', key: 'group', width: 160 },
     { 
       title: 'Trạng thái', 
       dataIndex: 'status', 
       key: 'status',
-      width: 150,
+      width: 130,
       align: 'center',
-      render: (status) => (
-        <Tag 
-          style={{ 
-            color: status === 'Active' ? '#003eb3' : '#595959', 
-            background: status === 'Active' ? '#bae7ff' : '#f5f5f5', 
-            borderColor: status === 'Active' ? '#1890ff' : '#d9d9d9',
-            fontWeight: 600 
-          }}
-        >
-          {status === 'Active' ? 'Đang hoạt động' : 'Đã khóa'}
-        </Tag>
-      )
+      render: (status) => {
+        const isActive = status === 'Active' || status === 'active' || status === true || status === 1;
+        return (
+          <Tag color={isActive ? 'green' : 'red'}>
+            {isActive ? 'Đang hoạt động' : 'Đã khóa'}
+          </Tag>
+        );
+      }
     },
     {
       title: 'Hành động',
       key: 'action',
       align: 'center',
-      width: 150,
-      render: (_, record) => (
-        <Space size="small">
-          <Button type="link" icon={<EditOutlined />} style={{ color: '#1890ff', fontWeight: 500 }}>Sửa</Button>
-          <Button type="link" danger icon={<LockOutlined />}>Khóa</Button>
-        </Space>
-      ),
+      width: 180,
+      render: (_, record) => {
+        const isActive = record.status === 'Active' || record.status === 'active' || record.status === true || record.status === 1;
+        return (
+          <Space size="small">
+            <Button 
+              type="link" 
+              icon={<EditOutlined />}
+              onClick={() => {
+                setEditingUser(record);
+                setIsAddModalOpen(true);
+              }}
+            >
+              Sửa
+            </Button>
+            {isActive ? (
+              <Button 
+                type="link" 
+                danger 
+                icon={<LockOutlined />}
+                onClick={() => {
+                  setSelectedUserToLock(record);
+                  setIsLockModalOpen(true);
+                }}
+              >
+                Khóa
+              </Button>
+            ) : (
+              <Button 
+                type="link" 
+                style={{ color: '#52c41a' }} 
+                icon={<UnlockOutlined />}
+                onClick={() => handleUnlockUser(record)}
+              >
+                Mở khóa
+              </Button>
+            )}
+          </Space>
+        );
+      },
     },
   ];
 
   return (
     <div style={{ padding: '24px', background: '#e8f4ff', minHeight: '100vh' }}>
-      {/* Thêm viền xanh dương nhạt cho Card tổng */}
-      <Card style={{ borderRadius: '10px', boxShadow: '0 4px 12px rgba(24, 144, 255, 0.1)', border: '1px solid #bae7ff' }}>
-        
-        {/* Phần tiêu đề với điểm nhấn nền xanh dương nhẹ */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', background: '#f0f5ff', padding: '16px 20px', borderRadius: '8px' }}>
+      <Card style={{ borderRadius: '10px', boxShadow: '0 4px 12px rgba(24, 144, 255, 0.1)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
           <Title level={3} style={{ margin: 0, color: '#003eb3' }}>Quản lý danh sách nhân sự</Title>
-          <Button type="primary" icon={<UserAddOutlined />} style={{ background: '#1890ff', borderColor: '#1890ff', height: '40px', fontWeight: 500 }}>
+          <Button 
+            type="primary" 
+            icon={<UserAddOutlined />} 
+            onClick={() => {
+              setEditingUser(null);
+              setIsAddModalOpen(true);
+            }}
+            style={{ background: '#1890ff', height: '40px' }}
+          >
             Thêm nhân viên
           </Button>
         </div>
 
-        {/* Thanh tìm kiếm và bộ lọc bo góc với hiệu ứng xanh */}
-        <Space style={{ marginBottom: '20px', width: '100%', justifyContent: 'space-between' }} wrap>
-          <Input
-            placeholder="Tìm kiếm theo tên hoặc email..."
-            prefix={<SearchOutlined style={{ color: '#1890ff' }} />}
-            style={{ width: 320, borderRadius: '6px', borderColor: '#91d5ff' }}
-            onChange={(e) => setSearch(e.target.value)}
-            allowClear
-          />
-          <Select defaultValue="all" style={{ width: 180 }} className="custom-select">
-            <Option value="all">Tất cả vai trò</Option>
-            <Option value="admin">Admin</Option>
-            <Option value="staff">Staff</Option>
-          </Select>
-        </Space>
-
-        {/* Bảng dữ liệu với tiêu đề bảng phủ màu xanh dương nhạt chuyên nghiệp */}
         <Table 
           columns={columns} 
           dataSource={users} 
-          rowKey="id"
+          rowKey={(record) => record.id || record._id || record.email}
           loading={loading}
-          pagination={{ current: page, pageSize: 10, total: 4, onChange: (p) => setPage(p), showSizeChanger: false }}
           bordered
           size="middle"
-          components={{
-            header: {
-              cell: (props) => <th {...props} style={{ ...props.style, background: '#e6f7ff', fontWeight: 600, color: '#003eb3', borderBottom: '2px solid #91d5ff' }} />,
-            },
-          }}
         />
       </Card>
+
+      <LockUserModal
+        visible={isLockModalOpen}
+        userToLock={selectedUserToLock}
+        onClose={() => setIsLockModalOpen(false)}
+        onSuccess={() => fetchUsers()}
+      />
+
+      <UserFormModal
+        visible={isAddModalOpen}
+        initialValues={editingUser}
+        isEditing={!!editingUser}
+        onClose={() => {
+          setIsAddModalOpen(false);
+          setEditingUser(null);
+        }}
+        onSuccess={handleSaveUser}
+      />
     </div>
   );
 };
