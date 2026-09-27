@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import axiosClient from '../utils/axiosClient';
 
 const ChangePassword = () => {
   const [oldPassword, setOldPassword] = useState('');
@@ -37,35 +37,17 @@ const ChangePassword = () => {
       return;
     }
 
-    // Lấy token đăng nhập hiện tại
-    const token = localStorage.getItem('crm_token');
-
-    if (!token) {
-      setError('Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại!');
-      return;
-    }
-
     setLoading(true);
 
     try {
-      // Gọi API đổi mật khẩu và gửi token trong header
-      await axios.put(
-        '/api/users/change-password',
-        {
-          oldPassword,
-          newPassword,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      // Gọi API đổi mật khẩu bằng axiosClient (Interceptor tự đính kèm token)
+      await axiosClient.put('/users/change-password', {
+        oldPassword,
+        newPassword,
+      });
 
       // Thông báo thành công
-      setSuccess(
-        'Đổi mật khẩu thành công. Hệ thống sẽ đăng xuất.'
-      );
+      setSuccess('Đổi mật khẩu thành công. Hệ thống sẽ đăng xuất.');
 
       // Xóa token đăng nhập hiện tại
       localStorage.removeItem('crm_token');
