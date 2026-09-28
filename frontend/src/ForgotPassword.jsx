@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import axios from 'axios'; // Mặc định dùng axios, hoặc thay bằng fetch/instance của dự án
+import axiosClient from '../utils/axiosClient';
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');
@@ -13,8 +13,8 @@ const ForgotPassword = () => {
     setMessage('');
 
     try {
-      // Gọi API POST /api/forgot-password
-      await axios.post('/api/forgot-password', { email });
+      // Gọi API gửi email quên mật khẩu qua axiosClient
+      await axiosClient.post('/forgot-password', { email });
     } catch (error) {
       // Dù API thành công hay thất bại, không báo lỗi chi tiết để bảo mật
       console.error(error);
