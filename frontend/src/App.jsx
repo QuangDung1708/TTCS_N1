@@ -1,27 +1,18 @@
-feature/S1-03-fe-reset-password-ui
-import MainLayout from './MainLayout.jsx'
-import { useState } from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
-// Import các trang mới
-import ForgotPassword from './ForgotPassword' 
-import ResetPassword from './pages/ResetPassword'
-import Page403 from './pages/Errors/Page403'
-import Page404 from './pages/Errors/Page404'
-
-import React from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
-import MainLayout from './MainLayout.jsx';
-import { useState } from 'react';
-import ForgotPassword from './ForgotPassword';
-import ResetPassword from './pages/ResetPassword';
+
 import Page403 from './pages/Errors/Page403';
 import Page404 from './pages/Errors/Page404';
+import ForgotPassword from './ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
+import Login from './pages/Login';
+
 import heroImg from './assets/hero.png';
 import reactLogo from './assets/react.svg';
 import viteLogo from './assets/vite.svg';
 import './App.css';
-import UserManagement from './pages/UserManagement';
 
+// Component giao diện mặc định ban đầu của Vite
 function Home() {
   const [count, setCount] = useState(0);
 
@@ -49,6 +40,7 @@ function Home() {
           Count is {count}
         </button>
 
+        {/* Nút chuyển nhanh sang các trang để kiểm thử */}
         <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <Link to="/forgot-password" style={{ color: '#646cff', fontWeight: 'bold' }}>
             👉 Đi tới trang Quên Mật Khẩu
@@ -60,38 +52,96 @@ function Home() {
       </section>
 
       <div className="ticks"></div>
-      <section id="next-steps"></section>
+
+      <section id="next-steps">
+        <div id="docs">
+          <svg className="icon" role="presentation" aria-hidden="true">
+            <use href="/icons.svg#documentation-icon"></use>
+          </svg>
+          <h2>Documentation</h2>
+          <p>Your questions, answered</p>
+          <ul>
+            <li>
+              <a href="https://vite.dev/" target="_blank" rel="noreferrer">
+                <img className="logo" src={viteLogo} alt="" />
+                Explore Vite
+              </a>
+            </li>
+            <li>
+              <a href="https://react.dev/" target="_blank" rel="noreferrer">
+                <img className="button-icon" src={reactLogo} alt="" />
+                Learn more
+              </a>
+            </li>
+          </ul>
+        </div>
+
+        <div id="social">
+          <svg className="icon" role="presentation" aria-hidden="true">
+            <use href="/icons.svg#social-icon"></use>
+          </svg>
+          <h2>Connect with us</h2>
+          <p>Join the Vite community</p>
+          <ul>
+            <li>
+              <a href="https://github.com/vitejs/vite" target="_blank" rel="noreferrer">
+                <svg className="button-icon" role="presentation" aria-hidden="true">
+                  <use href="/icons.svg#github-icon"></use>
+                </svg>
+                GitHub
+              </a>
+            </li>
+            <li>
+              <a href="https://chat.vite.dev/" target="_blank" rel="noreferrer">
+                <svg className="button-icon" role="presentation" aria-hidden="true">
+                  <use href="/icons.svg#discord-icon"></use>
+                </svg>
+                Discord
+              </a>
+            </li>
+            <li>
+              <a href="https://x.com/vite_js" target="_blank" rel="noreferrer">
+                <svg className="button-icon" role="presentation" aria-hidden="true">
+                  <use href="/icons.svg#x-icon"></use>
+                </svg>
+                X.com
+              </a>
+            </li>
+            <li>
+              <a href="https://bsky.app/profile/vite.dev" target="_blank" rel="noreferrer">
+                <svg className="button-icon" role="presentation" aria-hidden="true">
+                  <use href="/icons.svg#bluesky-icon"></use>
+                </svg>
+                Bluesky
+              </a>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <div className="ticks"></div>
+      <section id="spacer"></section>
     </>
   );
 }
- develop
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
- feature/S1-03-fe-reset-password-ui
-        <Route path="/" element={<MainLayout />} />
-        {/* Đã thêm 2 route mật khẩu vào đúng cấu trúc */}
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
-        
-<Route path="/" element={<UserManagement />} />
-        <Route path="/crm-dashboard" element={<MainLayout />} />
-        <Route path="/users" element={<UserManagement />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
- develop
         <Route path="/403" element={<Page403 />} />
         <Route path="/404" element={<Page404 />} />
+
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login />} />
+
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+
         <Route path="*" element={<Page404 />} />
       </Routes>
     </BrowserRouter>
   );
 }
 
- feature/S1-03-fe-reset-password-ui
-export default App
-
 export default App;
- develop
