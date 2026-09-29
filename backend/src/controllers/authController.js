@@ -1,6 +1,8 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../config/db');
+const crypto = require('crypto');
+const { sendResetEmail } = require('../utils/mailer');
 
 const login = async (req, res) => {
   const { email, password } = req.body;
@@ -112,4 +114,46 @@ const logout = async (req, res) => {
         res.status(500).json({ message: 'Lỗi server khi đăng xuất' });
     }
 };
-module.exports = { login, logout };
+const forgotPassword = async (req, res) => {
+    try {
+        const { email } = req.body;
+        if (!email) {
+            return res.status(400).json({ message: 'Vui lòng cung cấp email!' });
+        }
+
+        // 1. Kiểm tra user có tồn tại hay không
+        const [users] = await db.execute('SELECT id, email FROM users WHERE email = ?', [email]);
+        
+        // TIÊU CHÍ AC: Email không tồn tại vẫn trả về cùng thông điệp chung để bảo mật
+        const genericSuccessMessage = 'Nếu email của bạn tồn tại trong hệ thống, bạn sẽ nhận được liên kết đặt lại mật khẩu.';
+
+        if (users.length === 0) {
+            return res.status(200).json({ message: genericSuccessMessage });
+        }
+
+        // 2. Tạo token ngẫu nhiên bảo mật cao (64 ký tự hex)
+        const resetToken = crypto.randomBytes(32).toString('hex');
+
+        // 3. Thời hạn: Đúng 30 phút tính từ thời điểm hiện tại
+        const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
+
+        // 4. Lưu token vào bảng password_resets
+        await db.execute(
+            'INSERT INTO password_resets (email, token, expires_at, is_used) VALUES (?, ?, ?, 0)',
+            [email, resetToken, expiresAt]
+        );
+
+        // 5. Tạo link đặt lại mật khẩu dẫn về Frontend (port 5173)
+        const resetLink = `http://localhost:5173/reset-password?token=${resetToken}`;
+
+        // 6. Gửi Email (hoặc log ra console)
+        await sendResetEmail(email, resetLink);
+
+        return res.status(200).json({ message: genericSuccessMessage });
+
+    } catch (error) {
+        console.error('Lỗi Forgot Password:', error);
+        return res.status(500).json({ message: 'Lỗi server khi xử lý yêu cầu đặt lại mật khẩu.' });
+    }
+};
+module.exports = { login, logout, forgotPassword };
