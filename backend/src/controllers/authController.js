@@ -57,7 +57,7 @@ const login = async (req, res) => {
                 group_id: user.group_id,
                 data_scope: user.data_scope || 'OWN'
             },
-            process.env.JWT_SECRET,
+            process.env.JWT_SECRET || 'crm_jwt_secret_key_2026_super_secure',
             { expiresIn: '8h' }
         );
 

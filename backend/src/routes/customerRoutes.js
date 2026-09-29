@@ -4,11 +4,11 @@ const { verifyToken } = require('../middleware/authMiddleware');
 const { buildDataScope } = require('../middleware/rbacMiddleware');
 const { getCustomers, getCustomerById } = require('../controllers/customerController');
 
-// Mọi route khách hàng đều phải đăng nhập
+// Mọi route khách hàng đều phải xác thực token
 router.use(verifyToken);
 
-// Danh sách khách hàng (tự động lọc theo quyền)
-router.get('/', buildDataScope({ userField: 'created_by', groupField: 'group_id' }), getCustomers);
+// Lấy danh sách khách hàng (lọc theo phạm vi dữ liệu với tiền tố c.)
+router.get('/', buildDataScope({ userField: 'c.created_by', groupField: 'c.group_id' }), getCustomers);
 
 // Xem chi tiết khách hàng theo ID
 router.get('/:id', getCustomerById);
