@@ -98,3 +98,27 @@ export const updateUser = async (id, userData) => {
     if (!response.ok) throw new Error(data.message || 'Lỗi khi cập nhật tài khoản');
     return data;
 };
+// Lấy số khách hàng của nhân viên cần bàn giao
+export const fetchUserCustomerCount = async (userId) => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${BASE_URL}/users/${userId}/customers-count`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+    return response.json();
+};
+
+// Khóa tài khoản và bàn giao dữ liệu (S1-10)
+export const lockUserAccount = async (userId, receiverId, reason) => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${BASE_URL}/users/${userId}/lock`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ receiver_id: receiverId, reason })
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || 'Lỗi khi khóa tài khoản');
+    return data;
+};
