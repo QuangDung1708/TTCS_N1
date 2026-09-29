@@ -1,6 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import UserManagement from './UserManagement';
 import { login, changePassword, forgotPassword } from './api';
+import ErrorPage from './ErrorPage';
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -493,8 +495,10 @@ export default function App() {
       </header>
 
       {/* NỘI DUNG CHÍNH */}
+      {/* NỘI DUNG CHÍNH */}
+      {/* NỘI DUNG CHÍNH (Xử lý AC của S1-09: Không để màn hình trắng) */}
       <main style={{ flex: 1, padding: '16px' }}>
-        {activeTab === 'dashboard' ? (
+        {activeTab === 'dashboard' && (
           <div style={{
             display: 'flex',
             flexDirection: 'column',
@@ -510,10 +514,33 @@ export default function App() {
               Xin chào <strong>{user?.full_name}</strong> ({user?.role_name || (isAdmin ? 'Giám Đốc' : 'Nhân Viên')}) thuộc <strong>{user?.group_name || 'Ban Điều Hành'}</strong>.
             </p>
           </div>
-        ) : (
-          <div style={{ backgroundColor: '#ffffff', borderRadius: '8px', overflow: 'hidden' }}>
-            <UserManagement />
-          </div>
+        )}
+
+        {/* Khi người dùng vào tab Quản trị người dùng */}
+        {activeTab === 'users' && (
+          isAdmin ? (
+            <div style={{ backgroundColor: '#ffffff', borderRadius: '8px', overflow: 'hidden' }}>
+              <UserManagement />
+            </div>
+          ) : (
+            /* Hiển thị lỗi 403 nếu Sales cố ý truy cập tab Quản trị */
+            <ErrorPage
+              code={403}
+              title="Không Đủ Quyền Truy Cập"
+              message="Chức năng Quản lý người dùng chỉ dành riêng cho Quản trị viên (Admin) và Ban Giám Đốc."
+              onBackToDashboard={() => setActiveTab('dashboard')}
+            />
+          )
+        )}
+
+        {/* Bắt tất cả các tab lạ/không tồn tại (Lỗi 404) */}
+        {activeTab !== 'dashboard' && activeTab !== 'users' && (
+          <ErrorPage
+            code={404}
+            title="Đường Dẫn Không Hợp Lệ"
+            message="Chức năng bạn đang tìm kiếm không tồn tại trên hệ thống hoặc đang trong quá trình phát triển."
+            onBackToDashboard={() => setActiveTab('dashboard')}
+          />
         )}
       </main>
 

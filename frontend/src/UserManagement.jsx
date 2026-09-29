@@ -96,12 +96,19 @@ export default function UserManagement() {
         setShowEditModal(true);
     };
 
-    // Xử lý Cập nhật tài khoản
+   // Xử lý Cập nhật tài khoản (Đã thêm validate Subtask N1-110)
     const handleEditSubmit = async (e) => {
         e.preventDefault();
+
+        // Kiểm tra ràng buộc: Nếu chọn Trưởng nhóm (role_id = 2) thì bắt buộc phải chọn Nhóm
+        if (parseInt(editData.role_id) === 2 && !editData.group_id) {
+            showToast('error', 'Trưởng nhóm bắt buộc phải gắn với một Nhóm kinh doanh cụ thể!');
+            return;
+        }
+
         try {
             await updateUser(selectedUser.id, editData);
-            showToast('success', 'Cập nhật tài khoản thành công!');
+            showToast('success', 'Cập nhật tài khoản và phân quyền thành công!');
             setShowEditModal(false);
             loadUsers();
         } catch (err) {
