@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { fetchUsers, fetchUserMeta, createUser, updateUser } from './api';
+import { fetchUsers, fetchUserMeta, createUser, updateUser, fetchUserCustomerCount, lockUserAccount } from './api';
 
 export default function UserManagement() {
     const [users, setUsers] = useState([]);
@@ -23,6 +23,16 @@ export default function UserManagement() {
     const [formData, setFormData] = useState({ email: '', full_name: '', role_id: '', group_id: '' });
     const [editData, setEditData] = useState({ full_name: '', role_id: '', group_id: '', status: '' });
     const [notification, setNotification] = useState({ type: '', message: '' });
+
+    // Modal Khóa & Bàn giao (S1-10)
+    const [showLockModal, setShowLockModal] = useState(false);
+    const [userToLock, setUserToLock] = useState(null);
+    const [customerCount, setCustomerCount] = useState(0);
+    const [receiverId, setReceiverId] = useState('');
+    const [lockReason, setLockReason] = useState('Nhân viên nghỉ việc');
+    const [lockLoading, setLockLoading] = useState(false);  
+
+    
 
     // Tải danh mục Metadata (Roles & Groups)
     useEffect(() => {
@@ -113,6 +123,39 @@ export default function UserManagement() {
             loadUsers();
         } catch (err) {
             showToast('error', err.message);
+        }
+    };
+    // Mở modal khóa và tự động đếm số khách hàng nhân viên đang giữ
+    const openLockModal = async (user) => {
+        setUserToLock(user);
+        setReceiverId('');
+        setLockReason('Nhân sự nghỉ việc - Bàn giao khách hàng');
+        setShowLockModal(true);
+        try {
+            const res = await fetchUserCustomerCount(user.id);
+            setCustomerCount(res.total || 0);
+        } catch (e) {
+            setCustomerCount(0);
+        }
+    };
+
+    // Xác nhận khóa và chuyển toàn bộ khách hàng sang cho người mới
+    const handleLockSubmit = async (e) => {
+        e.preventDefault();
+        if (!receiverId) {
+            showToast('error', 'Vui lòng chọn nhân viên tiếp nhận bàn giao!');
+            return;
+        }
+        setLockLoading(true);
+        try {
+            const res = await lockUserAccount(userToLock.id, receiverId, lockReason);
+            showToast('success', res.message);
+            setShowLockModal(false);
+            loadUsers();
+        } catch (err) {
+            showToast('error', err.message);
+        } finally {
+            setLockLoading(false);
         }
     };
 
@@ -282,21 +325,41 @@ export default function UserManagement() {
                                             {u.status === 'ACTIVE' ? 'Hoạt động' : u.status === 'LOCKED' ? 'Bị khóa' : 'Ngừng'}
                                         </span>
                                     </td>
-                                    <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                                        <button
-                                            onClick={() => openEditModal(u)}
-                                            style={{
-                                                padding: '6px 12px',
-                                                backgroundColor: '#f1f5f9',
-                                                border: '1px solid #cbd5e1',
-                                                borderRadius: '4px',
-                                                cursor: 'pointer',
-                                                fontSize: '13px'
-                                            }}
-                                        >
-                                            Chỉnh sửa
-                                        </button>
-                                    </td>
+                                    <td style={{ padding: '12px 16px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+    <button
+        onClick={() => openEditModal(u)}
+        style={{
+            padding: '6px 12px',
+            backgroundColor: '#f1f5f9',
+            border: '1px solid #cbd5e1',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontSize: '13px',
+            marginRight: '6px'
+        }}
+    >
+        Chỉnh sửa
+    </button>
+
+    {/* Nút chỉ hiện khi tài khoản chưa bị khóa */}
+    {u.status !== 'LOCKED' && (
+        <button
+            onClick={() => openLockModal(u)}
+            style={{
+                padding: '6px 12px',
+                backgroundColor: '#fee2e2',
+                color: '#b91c1c',
+                border: '1px solid #fca5a5',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '13px',
+                fontWeight: '600'
+            }}
+        >
+            Khóa & Bàn Giao
+        </button>
+    )}
+</td>
                                 </tr>
                             ))
                         )}
@@ -492,6 +555,92 @@ export default function UserManagement() {
                                     style={{ padding: '8px 18px', background: '#0f172a', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: '600', cursor: 'pointer' }}
                                 >
                                     Lưu Thay Đổi
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal 3: Khóa Tài Khoản & Bàn Giao Dữ Liệu (S1-10 & N1-112) */}
+            {showLockModal && userToLock && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, padding: '16px'
+                }}>
+                    <div style={{ backgroundColor: '#fff', borderRadius: '10px', padding: '24px', width: '100%', maxWidth: '480px', color: '#0f172a' }}>
+                        <h3 style={{ margin: '0 0 12px 0', fontSize: '18px', color: '#dc2626' }}>
+                            🔒 Khóa Tài Khoản & Bàn Giao Dữ Liệu
+                        </h3>
+                        
+                        <p style={{ fontSize: '14px', color: '#475569', lineHeight: '1.5', margin: '0 0 16px 0' }}>
+                            Bạn đang chuẩn bị khóa tài khoản của <strong>{userToLock.full_name}</strong> ({userToLock.email}).
+                            Nhân viên này đang quản lý: <strong style={{ color: '#b91c1c' }}>{customerCount} khách hàng</strong>.
+                        </p>
+
+                        <div style={{ backgroundColor: '#fffbeb', border: '1px solid #fef3c7', padding: '12px', borderRadius: '6px', fontSize: '13px', color: '#92400e', marginBottom: '16px' }}>
+                            ⚠️ <strong>Quy định:</strong> Toàn bộ khách hàng của nhân sự này phải được bàn giao cho một nhân viên đang hoạt động để tránh thất lạc dữ liệu.
+                        </div>
+
+                        <form onSubmit={handleLockSubmit}>
+                            <div style={{ marginBottom: '14px' }}>
+                                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px' }}>
+                                    Chọn nhân viên tiếp nhận bàn giao *
+                                </label>
+                                <select
+                                    required
+                                    value={receiverId}
+                                    onChange={(e) => setReceiverId(e.target.value)}
+                                    style={{ width: '100%', padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box' }}
+                                >
+                                    <option value="">-- Chọn nhân viên tiếp nhận --</option>
+                                    {users
+                                        .filter(u => u.id !== userToLock.id && u.status === 'ACTIVE')
+                                        .map(u => (
+                                            <option key={u.id} value={u.id}>
+                                                {u.full_name} - {u.email} ({u.role_name})
+                                            </option>
+                                        ))
+                                    }
+                                </select>
+                            </div>
+
+                            <div style={{ marginBottom: '20px' }}>
+                                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px' }}>
+                                    Lý do khóa / Ghi chú bàn giao
+                                </label>
+                                <input
+                                    type="text"
+                                    value={lockReason}
+                                    onChange={(e) => setLockReason(e.target.value)}
+                                    placeholder="Nhân viên nghỉ việc..."
+                                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box' }}
+                                />
+                            </div>
+
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                                <button
+                                    type="button"
+                                    disabled={lockLoading}
+                                    onClick={() => setShowLockModal(false)}
+                                    style={{ padding: '8px 16px', background: '#f1f5f9', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
+                                >
+                                    Hủy
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={lockLoading}
+                                    style={{
+                                        padding: '8px 18px',
+                                        backgroundColor: '#dc2626',
+                                        color: '#fff',
+                                        border: 'none',
+                                        borderRadius: '6px',
+                                        fontWeight: 'bold',
+                                        cursor: lockLoading ? 'not-allowed' : 'pointer'
+                                    }}
+                                >
+                                    {lockLoading ? 'Đang xử lý...' : 'Xác Nhận Khóa & Bàn Giao'}
                                 </button>
                             </div>
                         </form>

@@ -1,31 +1,35 @@
 const express = require('express');
 const router = express.Router();
-const { verifyToken } = require('../middleware/authMiddleware');
-const { getUsers, createUser, updateUser, getMetadata } = require('../controllers/userController');
+const { verifyToken, requireAdmin } = require('../middleware/authMiddleware');
+const { 
+    getUsers, 
+    createUser, 
+    updateUser, 
+    getMetadata, 
+    lockAndHandoverUser, 
+    getUserCustomerCount 
+} = require('../controllers/userController');
 
-// Mọi route quản trị người dùng đều phải đăng nhập
+// Tất cả các route quản lý tài khoản đều yêu cầu xác thực đăng nhập
 router.use(verifyToken);
 
-// Middleware kiểm tra quyền Quản trị viên (Chỉ Admin / Giám đốc mới có quyền quản lý tài khoản)
-const requireAdmin = (req, res, next) => {
-    if (req.user.data_scope !== 'ALL' && req.user.role_id !== 1) {
-        return res.status(403).json({ 
-            message: 'Từ chối truy cập: Chỉ Quản trị viên hệ thống mới có quyền quản lý tài khoản!' 
-        });
-    }
-    next();
-};
+// 1. Lấy dữ liệu danh mục nhóm và vai trò
+router.get('/meta/options', requireAdmin, getMetadata);
 
-// Lấy danh mục roles và groups phục vụ dropdown trên giao diện
-router.get('/meta/options', getMetadata);
-
-// Lấy danh sách người dùng (Tìm kiếm, Lọc, Phân trang 20 dòng)
+// 2. Lấy danh sách nhân viên (có tìm kiếm, lọc, phân trang)
 router.get('/', requireAdmin, getUsers);
 
-// Tạo người dùng mới (Gửi mail mật khẩu tạm)
+// 3. Đếm số lượng khách hàng cần bàn giao của một nhân viên (S1-10)
+router.get('/:id/customers-count', requireAdmin, getUserCustomerCount);
+
+// 4. Tạo tài khoản người dùng mới (gửi mật khẩu tạm)
 router.post('/', requireAdmin, createUser);
 
-// Cập nhật thông tin / trạng thái người dùng
+// 5. Cập nhật thông tin / vai trò người dùng (S1-09)
 router.put('/:id', requireAdmin, updateUser);
+router.put('/:id/roles', requireAdmin, updateUser);
+
+// 6. Khóa tài khoản và chuyển giao dữ liệu khách hàng (S1-10 & N1-111)
+router.put('/:id/lock', requireAdmin, lockAndHandoverUser);
 
 module.exports = router;
