@@ -131,18 +131,46 @@ const createUser = async (req, res) => {
 };
 
 // ==========================================
-// 3. CẬP NHẬT TÀI KHOẢN (Sửa thông tin, vai trò, nhóm, trạng thái)
+// 3. CẬP NHẬT TÀI KHOẢN & VAI TRÒ (Subtask N1-109)
 // ==========================================
 const updateUser = async (req, res) => {
     try {
-        const { id } = req.params;
+        const targetUserId = parseInt(req.params.id);
+        const currentAdminId = req.user.id;
         const { full_name, role_id, group_id, status } = req.body;
 
-        const [users] = await db.execute('SELECT id FROM users WHERE id = ?', [id]);
+        // 1. Kiểm tra tài khoản tồn tại
+        const [users] = await db.execute('SELECT * FROM users WHERE id = ?', [targetUserId]);
         if (users.length === 0) {
             return res.status(404).json({ message: 'Không tìm thấy người dùng yêu cầu!' });
         }
+        const targetUser = users[0];
 
+        // 2. RÀNG BUỘC N1-109: Không cho phép Admin tự thu hồi quyền Admin của chính mình
+        if (currentAdminId === targetUserId) {
+            if (role_id && parseInt(role_id) !== targetUser.role_id) {
+                return res.status(400).json({
+                    message: 'Bảo mật: Bạn không thể tự thay đổi hoặc thu hồi quyền Quản trị viên của chính mình!'
+                });
+            }
+            if (status && status !== 'ACTIVE') {
+                return res.status(400).json({
+                    message: 'Bảo mật: Bạn không thể tự khóa tài khoản của chính mình!'
+                });
+            }
+        }
+
+        // 3. RÀNG BUỘC N1-109: Trưởng nhóm (role_id = 2) bắt buộc phải có Group ID
+        const finalRoleId = role_id !== undefined ? parseInt(role_id) : targetUser.role_id;
+        const finalGroupId = group_id !== undefined ? (group_id ? parseInt(group_id) : null) : targetUser.group_id;
+
+        if (finalRoleId === 2 && !finalGroupId) {
+            return res.status(400).json({
+                message: 'Ràng buộc nghiệp vụ: Tài khoản Trưởng nhóm bắt buộc phải thuộc về một nhóm kinh doanh cụ thể!'
+            });
+        }
+
+        // 4. Thực thi cập nhật
         const updateQuery = `
             UPDATE users 
             SET full_name = COALESCE(?, full_name),
@@ -154,12 +182,12 @@ const updateUser = async (req, res) => {
         await db.execute(updateQuery, [
             full_name || null,
             role_id || null,
-            group_id !== undefined ? (group_id || null) : null,
+            finalGroupId,
             status || null,
-            id
+            targetUserId
         ]);
 
-        return res.status(200).json({ message: 'Cập nhật thông tin tài khoản thành công!' });
+        return res.status(200).json({ message: 'Cập nhật thông tin và vai trò người dùng thành công!' });
     } catch (error) {
         console.error('Lỗi khi cập nhật người dùng:', error);
         return res.status(500).json({ message: 'Lỗi server khi cập nhật tài khoản!' });
