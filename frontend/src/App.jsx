@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import { Button, Form, Input, ConfigProvider, Typography, message } from 'antd';
+import { Button, Form, Input, ConfigProvider, Typography, message, Layout } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import axios from 'axios';
 
@@ -73,23 +73,99 @@ const Login = () => {
 };
 
 // ==========================================
-// COMPONENT 2: MÀN HÌNH DASHBOARD (Tạm thời)
+// COMPONENT 2: MÀN HÌNH DASHBOARD (Có Header + Logout API)
 // ==========================================
+const { Header, Content } = Layout;
+
 const Dashboard = () => {
   const navigate = useNavigate();
-  
-  // Nút đăng xuất test nhanh
-  const handleLogout = () => {
-    localStorage.clear(); // Xóa sạch token
-    navigate('/login');   // Đá về trang đăng nhập
+  const [logoutLoading, setLogoutLoading] = useState(false);
+  const [messageApi, contextHolder] = message.useMessage();
+
+  // Lấy thông tin user đã lưu trong localStorage
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+  const handleLogout = async () => {
+    setLogoutLoading(true);
+    const token = localStorage.getItem('token');
+
+    try {
+      if (token) {
+        // Gọi API Backend để đưa token vào Blacklist
+        await axios.post(
+          'http://localhost:5001/api/auth/logout',
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+      }
+      messageApi.success('Đăng xuất an toàn thành công!');
+    } catch (error) {
+      console.error('Lỗi khi gọi API logout:', error);
+      messageApi.warning('Đã kết thúc phiên trên máy.');
+    } finally {
+      // Dọn sạch dữ liệu ở client dù API trả lời thế nào
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      setLogoutLoading(false);
+
+      setTimeout(() => {
+        navigate('/login');
+      }, 500);
+    }
   };
 
   return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', backgroundColor: '#f0f2f5' }}>
-      <Title level={2}>Chào mừng bạn đến với Dashboard CRM!</Title>
-      <Text style={{ marginBottom: '20px' }}>Giao diện Dashboard chính thức sẽ được code ở Sprint sau.</Text>
-      <Button type="primary" danger onClick={handleLogout}>Đăng Xuất</Button>
-    </div>
+    <Layout style={{ minHeight: '100vh' }}>
+      {contextHolder}
+      {/* Header chuẩn tông Midnight Blue (#0f172a) */}
+      <Header
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          backgroundColor: '#0f172a',
+          padding: '0 24px',
+        }}
+      >
+        <div style={{ color: '#fff', fontSize: '18px', fontWeight: 'bold' }}>
+          HỆ THỐNG CRM
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <span style={{ color: '#cbd5e1' }}>
+            Xin chào, <strong>{user.full_name || 'Người dùng'}</strong>
+          </span>
+          <Button
+            type="primary"
+            danger
+            loading={logoutLoading}
+            onClick={handleLogout}
+          >
+            Đăng Xuất
+          </Button>
+        </div>
+      </Header>
+
+      <Content
+        style={{
+          padding: '40px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: '#f8fafc',
+        }}
+      >
+        <Title level={2}>Chào mừng bạn đến với Dashboard CRM!</Title>
+        <Text type="secondary">
+          Bạn đang đăng nhập với quyền: <strong>{user.role_id === 1 ? 'Quản trị viên (Admin)' : 'Nhân viên'}</strong>
+        </Text>
+      </Content>
+    </Layout>
   );
 };
 
