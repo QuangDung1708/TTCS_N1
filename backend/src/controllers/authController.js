@@ -4,6 +4,26 @@ const db = require('../config/db');
 
 const login = async (req, res) => {
   const { email, password } = req.body;
+  // ... code hàm login giữ nguyên ...
+
+const logout = async (req, res) => {
+    try {
+        // Lấy token từ header (bảo vệ ở Middleware đã check an toàn rồi)
+        const authHeader = req.headers.authorization;
+        const token = authHeader.split(' ')[1];
+
+        // Nhét token này vào danh sách đen
+        await db.execute('INSERT INTO token_blacklist (token) VALUES (?)', [token]);
+
+        res.status(200).json({ message: 'Đăng xuất thành công!' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Lỗi server khi đăng xuất' });
+    }
+};
+
+// Nhớ xuất (export) thêm hàm logout ra nhé
+module.exports = { login, logout };
 
   try {
     // 1. Tìm user theo email
@@ -76,5 +96,20 @@ const login = async (req, res) => {
     res.status(500).json({ message: 'Lỗi hệ thống, vui lòng thử lại sau!' });
   }
 };
+// Hàm xử lý đăng xuất
+const logout = async (req, res) => {
+    try {
+        // Lấy token từ header
+        const authHeader = req.headers.authorization;
+        const token = authHeader.split(' ')[1];
 
-module.exports = { login };
+        // Nhét token này vào danh sách đen
+        await db.execute('INSERT INTO token_blacklist (token) VALUES (?)', [token]);
+
+        res.status(200).json({ message: 'Đăng xuất thành công!' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Lỗi server khi đăng xuất' });
+    }
+};
+module.exports = { login, logout };
