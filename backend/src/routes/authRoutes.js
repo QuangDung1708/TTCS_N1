@@ -1,12 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const { login, logout } = require('../controllers/authController');
+const { login, logout, forgotPassword, resetPassword } = require('../controllers/authController');
 const { verifyToken } = require('../middleware/authMiddleware');
 
-// Route Đăng nhập (ai cũng vào được)
 router.post('/login', login);
-
-// Route Đăng xuất (Phải qua ải verifyToken mới được vào hàm logout)
 router.post('/logout', verifyToken, logout);
+router.post('/forgot-password', forgotPassword);
+router.post('/reset-password', resetPassword);
 
 module.exports = router;
