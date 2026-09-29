@@ -156,4 +156,53 @@ const forgotPassword = async (req, res) => {
         return res.status(500).json({ message: 'Lỗi server khi xử lý yêu cầu đặt lại mật khẩu.' });
     }
 };
-module.exports = { login, logout, forgotPassword };
+
+// ... các hàm login, logout, forgotPassword giữ nguyên ...
+
+const resetPassword = async (req, res) => {
+    try {
+        const { token, newPassword } = req.body;
+
+        if (!token || !newPassword) {
+            return res.status(400).json({ message: 'Vui lòng cung cấp đầy đủ thông tin!' });
+        }
+
+        // 1. Kiểm tra token có tồn tại, chưa dùng và còn hạn không
+        const [records] = await db.execute(
+            'SELECT * FROM password_resets WHERE token = ? AND is_used = 0 AND expires_at > NOW()',
+            [token]
+        );
+
+        if (records.length === 0) {
+            return res.status(400).json({ 
+                message: 'Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn (quá 30 phút)!' 
+            });
+        }
+
+        const resetRecord = records[0];
+
+        // 2. Băm mật khẩu mới
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+        // 3. Cập nhật mật khẩu mới vào bảng users, reset luôn số lần đăng nhập sai
+        await db.execute(
+            'UPDATE users SET password = ?, failed_login_attempts = 0, lock_until = NULL WHERE email = ?',
+            [hashedPassword, resetRecord.email]
+        );
+
+        // 4. Đánh dấu token này ĐÃ SỬ DỤNG (chỉ dùng được 1 lần)
+        await db.execute(
+            'UPDATE password_resets SET is_used = 1 WHERE id = ?',
+            [resetRecord.id]
+        );
+
+        return res.status(200).json({ message: 'Đặt lại mật khẩu thành công! Bạn có thể đăng nhập ngay.' });
+
+    } catch (error) {
+        console.error('Lỗi Reset Password:', error);
+        return res.status(500).json({ message: 'Lỗi server khi đặt lại mật khẩu.' });
+    }
+};
+
+module.exports = { login, logout, forgotPassword, resetPassword };

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Routes, Route, Navigate, useNavigate, Link } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { Button, Form, Input, ConfigProvider, Typography, message, Layout } from 'antd';
 import { UserOutlined, LockOutlined, MailOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 import api from './api';
@@ -215,6 +215,102 @@ const Dashboard = () => {
     </Layout>
   );
 };
+// ==========================================
+// COMPONENT: MÀN HÌNH ĐẶT LẠI MẬT KHẨU (N1-93)
+// ==========================================
+const ResetPassword = () => {
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get('token'); // Lấy token từ URL (?token=...)
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [messageApi, contextHolder] = message.useMessage();
+
+  const onFinish = async (values) => {
+    if (!token) {
+      messageApi.error('Mã xác thực không hợp lệ hoặc bị thiếu!');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await api.post('/auth/reset-password', {
+        token,
+        newPassword: values.password,
+      });
+
+      messageApi.success(response.data.message);
+      setTimeout(() => {
+        navigate('/login');
+      }, 1500);
+    } catch (error) {
+      if (error.response) {
+        messageApi.error(error.response.data.message);
+      } else {
+        messageApi.error('Lỗi mạng: Không thể kết nối máy chủ!');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <ConfigProvider theme={themeConfig}>
+      {contextHolder}
+      <div style={{ height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#0f172a' }}>
+        <div style={{ width: '420px', padding: '40px', backgroundColor: '#ffffff', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)' }}>
+          <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+            <Title level={2} style={{ color: '#0f172a', margin: 0 }}>Mật khẩu mới</Title>
+            <Text type="secondary">Nhập mật khẩu mới cho tài khoản của bạn</Text>
+          </div>
+
+          <Form name="reset_form" onFinish={onFinish} layout="vertical" size="large">
+            <Form.Item
+              name="password"
+              rules={[
+                { required: true, message: 'Vui lòng nhập mật khẩu mới!' },
+                { min: 6, message: 'Mật khẩu phải từ 6 ký tự trở lên!' },
+              ]}
+              hasFeedback
+            >
+              <Input.Password prefix={<LockOutlined />} placeholder="Mật khẩu mới" />
+            </Form.Item>
+
+            <Form.Item
+              name="confirmPassword"
+              dependencies={['password']}
+              hasFeedback
+              rules={[
+                { required: true, message: 'Vui lòng xác nhận mật khẩu!' },
+                ({ getFieldValue }) => ({
+                  validator(_, value) {
+                    if (!value || getFieldValue('password') === value) {
+                      return Promise.resolve();
+                    }
+                    return Promise.reject(new Error('Mật khẩu xác nhận không khớp!'));
+                  },
+                }),
+              ]}
+            >
+              <Input.Password prefix={<LockOutlined />} placeholder="Nhập lại mật khẩu mới" />
+            </Form.Item>
+
+            <Form.Item style={{ marginTop: '24px', marginBottom: '16px' }}>
+              <Button type="primary" htmlType="submit" loading={loading} style={{ width: '100%', fontWeight: 'bold' }}>
+                LƯU MẬT KHẨU
+              </Button>
+            </Form.Item>
+          </Form>
+
+          <div style={{ textAlign: 'center' }}>
+            <Link to="/login" style={{ color: '#64748b' }}>
+              Quay lại Đăng nhập
+            </Link>
+          </div>
+        </div>
+      </div>
+    </ConfigProvider>
+  );
+};
 
 // ==========================================
 // 5. ĐIỀU TUYẾN CHÍNH
@@ -233,6 +329,7 @@ const App = () => {
           </ProtectedRoute>
         }
       />
+      <Route path="/reset-password" element={<ResetPassword />} />
     </Routes>
   );
 };
