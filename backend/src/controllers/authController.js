@@ -157,8 +157,6 @@ const forgotPassword = async (req, res) => {
     }
 };
 
-// ... các hàm login, logout, forgotPassword giữ nguyên ...
-
 const resetPassword = async (req, res) => {
     try {
         const { token, newPassword } = req.body;
@@ -204,5 +202,65 @@ const resetPassword = async (req, res) => {
         return res.status(500).json({ message: 'Lỗi server khi đặt lại mật khẩu.' });
     }
 };
+// ==========================================
+// ĐỔI MẬT KHẨU KHI ĐANG ĐĂNG NHẬP (Subtask N1-95)
+// ==========================================
+const changePassword = async (req, res) => {
+    try {
+        const userId = req.user.id; // Lấy từ verifyToken middleware
+        const { currentPassword, newPassword } = req.body;
 
-module.exports = { login, logout, forgotPassword, resetPassword };
+        // 1. Kiểm tra đầu vào
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({ message: 'Vui lòng nhập mật khẩu hiện tại và mật khẩu mới!' });
+        }
+
+        // 2. Validate tiêu chí AC: Tối thiểu 8 ký tự, gồm cả chữ và số
+        const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
+        if (!passwordRegex.test(newPassword)) {
+            return res.status(400).json({ 
+                message: 'Mật khẩu mới phải có tối thiểu 8 ký tự, bao gồm cả chữ và số!' 
+            });
+        }
+
+        // 3. Lấy thông tin user hiện tại trong CSDL
+        const [users] = await db.execute('SELECT * FROM users WHERE id = ?', [userId]);
+        if (users.length === 0) {
+            return res.status(404).json({ message: 'Không tìm thấy người dùng!' });
+        }
+
+        const user = users[0];
+
+        // 4. Kiểm tra mật khẩu hiện tại
+        const isMatch = await bcrypt.compare(currentPassword, user.password);
+        if (!isMatch) {
+            return res.status(400).json({ message: 'Mật khẩu hiện tại không chính xác!' });
+        }
+
+        // 5. Kiểm tra mật khẩu mới không được trùng với mật khẩu cũ
+        const isSame = await bcrypt.compare(newPassword, user.password);
+        if (isSame) {
+            return res.status(400).json({ message: 'Mật khẩu mới không được trùng với mật khẩu hiện tại!' });
+        }
+
+        // 6. Băm mật khẩu mới và lưu vào CSDL
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(newPassword, salt);
+        await db.execute('UPDATE users SET password = ? WHERE id = ?', [hashedPassword, userId]);
+
+        // 7. Tiêu chí AC: Thu hồi phiên đăng nhập hiện tại đưa vào Blacklist (bắt đăng nhập lại)
+        const authHeader = req.headers.authorization;
+        const currentToken = authHeader.split(' ')[1];
+        await db.execute('INSERT INTO token_blacklist (token) VALUES (?)', [currentToken]);
+
+        return res.status(200).json({ 
+            message: 'Đổi mật khẩu thành công! Phiên đăng nhập đã được thu hồi, vui lòng đăng nhập lại.' 
+        });
+
+    } catch (error) {
+        console.error('Lỗi khi đổi mật khẩu:', error);
+        return res.status(500).json({ message: 'Lỗi server khi xử lý đổi mật khẩu!' });
+    }
+};
+
+module.exports = { login, logout, forgotPassword, resetPassword, changePassword };
