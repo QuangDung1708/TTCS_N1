@@ -3,6 +3,7 @@ const cors = require('cors');
 require('dotenv').config();
 
 const authRoutes = require('./src/routes/authRoutes');
+const customerRoutes = require('./src/routes/customerRoutes');
 
 const app = express();
 
@@ -12,6 +13,7 @@ app.use(express.json());
 
 // Khai báo các đường dẫn API
 app.use('/api/auth', authRoutes);
+app.use('/api/customers', customerRoutes);
 
 // Bật Server
 const PORT = process.env.PORT || 5001;
