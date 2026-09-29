@@ -15,9 +15,10 @@ const login = async (req, res) => {
         }
 
         const [users] = await db.execute(`
-            SELECT u.*, r.role_name, r.data_scope 
+            SELECT u.*, r.role_name, r.data_scope, g.name AS group_name
             FROM users u 
             JOIN roles r ON u.role_id = r.id 
+            LEFT JOIN \`groups\` g ON u.group_id = g.id
             WHERE u.email = ?
         `, [email]);
 
@@ -69,7 +70,9 @@ const login = async (req, res) => {
                 email: user.email,
                 full_name: user.full_name,
                 role_id: user.role_id,
+                role_name: user.role_name,
                 group_id: user.group_id,
+                group_name: user.group_name || 'Ban Giám Đốc',
                 data_scope: user.data_scope
             }
         });
