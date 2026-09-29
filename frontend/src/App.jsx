@@ -1,15 +1,20 @@
 import React, { useState } from 'react';
 import { Routes, Route, Navigate, useNavigate, Link, useSearchParams } from 'react-router-dom';
-import { Button, Form, Input, ConfigProvider, Typography, message, Layout } from 'antd';
-import { UserOutlined, LockOutlined, MailOutlined, ArrowLeftOutlined } from '@ant-design/icons';
+import { Button, Form, Input, ConfigProvider, Typography, message, Layout, Modal, Space } from 'antd';
+import {
+  UserOutlined,
+  LockOutlined,
+  MailOutlined,
+  ArrowLeftOutlined,
+  KeyOutlined,
+  SettingOutlined,
+} from '@ant-design/icons';
 import api from './api';
-
-message.config({ maxCount: 1 });
 
 const { Title, Text } = Typography;
 const { Header, Content } = Layout;
 
-// Theme màu chuẩn hệ thống
+// Cấu hình bảng màu chuẩn giao diện
 const themeConfig = {
   token: {
     colorPrimary: '#ff6b00',
@@ -18,7 +23,7 @@ const themeConfig = {
 };
 
 // ==========================================
-// 1. PROTECTED ROUTE
+// 1. COMPONENT BẢO VỆ TUYẾN ĐƯỜNG (PROTECTED ROUTE)
 // ==========================================
 const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('token');
@@ -29,7 +34,7 @@ const ProtectedRoute = ({ children }) => {
 };
 
 // ==========================================
-// 2. MÀN HÌNH ĐĂNG NHẬP (Bổ sung nút Quên mật khẩu)
+// 2. MÀN HÌNH ĐĂNG NHẬP
 // ==========================================
 const Login = () => {
   const [loading, setLoading] = useState(false);
@@ -64,23 +69,49 @@ const Login = () => {
   return (
     <ConfigProvider theme={themeConfig}>
       {contextHolder}
-      <div style={{ height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#0f172a' }}>
-        <div style={{ width: '400px', padding: '40px', backgroundColor: '#ffffff', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)' }}>
+      <div
+        style={{
+          height: '100vh',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          backgroundColor: '#0f172a',
+        }}
+      >
+        <div
+          style={{
+            width: '400px',
+            padding: '40px',
+            backgroundColor: '#ffffff',
+            borderRadius: '12px',
+            boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
+          }}
+        >
           <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-            <Title level={2} style={{ color: '#0f172a', margin: 0 }}>HỆ THỐNG CRM</Title>
+            <Title level={2} style={{ color: '#0f172a', margin: 0 }}>
+              HỆ THỐNG CRM
+            </Title>
             <Text type="secondary">Vui lòng đăng nhập để tiếp tục</Text>
           </div>
 
           <Form name="login_form" onFinish={onFinish} layout="vertical" size="large">
-            <Form.Item name="email" rules={[{ required: true, message: 'Vui lòng nhập Email công ty!' }, { type: 'email', message: 'Email không đúng định dạng!' }]}>
+            <Form.Item
+              name="email"
+              rules={[
+                { required: true, message: 'Vui lòng nhập Email công ty!' },
+                { type: 'email', message: 'Email không đúng định dạng!' },
+              ]}
+            >
               <Input prefix={<UserOutlined />} placeholder="Email công ty" />
             </Form.Item>
 
-            <Form.Item name="password" rules={[{ required: true, message: 'Vui lòng nhập Mật khẩu!' }]}>
+            <Form.Item
+              name="password"
+              rules={[{ required: true, message: 'Vui lòng nhập Mật khẩu!' }]}
+            >
               <Input.Password prefix={<LockOutlined />} placeholder="Mật khẩu" />
             </Form.Item>
 
-            {/* Link chuyển sang trang Quên mật khẩu */}
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '20px' }}>
               <Link to="/forgot-password" style={{ color: '#ff6b00', fontSize: '14px' }}>
                 Quên mật khẩu?
@@ -88,7 +119,12 @@ const Login = () => {
             </div>
 
             <Form.Item style={{ marginBottom: 0 }}>
-              <Button type="primary" htmlType="submit" loading={loading} style={{ width: '100%', fontWeight: 'bold' }}>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={loading}
+                style={{ width: '100%', fontWeight: 'bold' }}
+              >
                 ĐĂNG NHẬP
               </Button>
             </Form.Item>
@@ -127,10 +163,28 @@ const ForgotPassword = () => {
   return (
     <ConfigProvider theme={themeConfig}>
       {contextHolder}
-      <div style={{ height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#0f172a' }}>
-        <div style={{ width: '420px', padding: '40px', backgroundColor: '#ffffff', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)' }}>
+      <div
+        style={{
+          height: '100vh',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          backgroundColor: '#0f172a',
+        }}
+      >
+        <div
+          style={{
+            width: '420px',
+            padding: '40px',
+            backgroundColor: '#ffffff',
+            borderRadius: '12px',
+            boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
+          }}
+        >
           <div style={{ textAlign: 'center', marginBottom: '28px' }}>
-            <Title level={2} style={{ color: '#0f172a', margin: 0 }}>Khôi phục mật khẩu</Title>
+            <Title level={2} style={{ color: '#0f172a', margin: 0 }}>
+              Khôi phục mật khẩu
+            </Title>
             <Text type="secondary">Nhập email để nhận liên kết đặt lại mật khẩu</Text>
           </div>
 
@@ -147,7 +201,12 @@ const ForgotPassword = () => {
               </Form.Item>
 
               <Form.Item style={{ marginTop: '24px', marginBottom: '16px' }}>
-                <Button type="primary" htmlType="submit" loading={loading} style={{ width: '100%', fontWeight: 'bold' }}>
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  loading={loading}
+                  style={{ width: '100%', fontWeight: 'bold' }}
+                >
                   GỬI LIÊN KẾT
                 </Button>
               </Form.Item>
@@ -175,52 +234,11 @@ const ForgotPassword = () => {
 };
 
 // ==========================================
-// 4. MÀN HÌNH DASHBOARD
-// ==========================================
-const Dashboard = () => {
-  const navigate = useNavigate();
-  const [logoutLoading, setLogoutLoading] = useState(false);
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
-
-  const handleLogout = async () => {
-    setLogoutLoading(true);
-    try {
-      await api.post('/auth/logout');
-      message.success('Đăng xuất an toàn thành công!');
-    } catch (error) {
-      console.error(error);
-    } finally {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      setLogoutLoading(false);
-      navigate('/login');
-    }
-  };
-
-  return (
-    <Layout style={{ minHeight: '100vh' }}>
-      <Header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#0f172a', padding: '0 24px' }}>
-        <div style={{ color: '#fff', fontSize: '18px', fontWeight: 'bold' }}>HỆ THỐNG CRM</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <span style={{ color: '#cbd5e1' }}>Xin chào, <strong>{user.full_name || 'Người dùng'}</strong></span>
-          <Button type="primary" danger loading={logoutLoading} onClick={handleLogout}>Đăng Xuất</Button>
-        </div>
-      </Header>
-      <Content style={{ padding: '40px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f8fafc' }}>
-        <Title level={2}>Chào mừng bạn đến với Dashboard CRM!</Title>
-        <Text type="secondary">
-          Bạn đang đăng nhập với quyền: <strong>{user.role_id === 1 ? 'Quản trị viên (Admin)' : 'Nhân viên'}</strong>
-        </Text>
-      </Content>
-    </Layout>
-  );
-};
-// ==========================================
-// COMPONENT: MÀN HÌNH ĐẶT LẠI MẬT KHẨU (N1-93)
+// 4. MÀN HÌNH ĐẶT LẠI MẬT KHẨU (N1-93)
 // ==========================================
 const ResetPassword = () => {
   const [searchParams] = useSearchParams();
-  const token = searchParams.get('token'); // Lấy token từ URL (?token=...)
+  const token = searchParams.get('token');
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
@@ -256,10 +274,28 @@ const ResetPassword = () => {
   return (
     <ConfigProvider theme={themeConfig}>
       {contextHolder}
-      <div style={{ height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#0f172a' }}>
-        <div style={{ width: '420px', padding: '40px', backgroundColor: '#ffffff', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)' }}>
+      <div
+        style={{
+          height: '100vh',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          backgroundColor: '#0f172a',
+        }}
+      >
+        <div
+          style={{
+            width: '420px',
+            padding: '40px',
+            backgroundColor: '#ffffff',
+            borderRadius: '12px',
+            boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
+          }}
+        >
           <div style={{ textAlign: 'center', marginBottom: '28px' }}>
-            <Title level={2} style={{ color: '#0f172a', margin: 0 }}>Mật khẩu mới</Title>
+            <Title level={2} style={{ color: '#0f172a', margin: 0 }}>
+              Mật khẩu mới
+            </Title>
             <Text type="secondary">Nhập mật khẩu mới cho tài khoản của bạn</Text>
           </div>
 
@@ -295,7 +331,12 @@ const ResetPassword = () => {
             </Form.Item>
 
             <Form.Item style={{ marginTop: '24px', marginBottom: '16px' }}>
-              <Button type="primary" htmlType="submit" loading={loading} style={{ width: '100%', fontWeight: 'bold' }}>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={loading}
+                style={{ width: '100%', fontWeight: 'bold' }}
+              >
                 LƯU MẬT KHẨU
               </Button>
             </Form.Item>
@@ -313,7 +354,205 @@ const ResetPassword = () => {
 };
 
 // ==========================================
-// 5. ĐIỀU TUYẾN CHÍNH
+// 5. MÀN HÌNH DASHBOARD (Tích hợp Đổi mật khẩu - N1-96)
+// ==========================================
+const Dashboard = () => {
+  const navigate = useNavigate();
+  const [logoutLoading, setLogoutLoading] = useState(false);
+  const [changePasswordLoading, setChangePasswordLoading] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [passwordForm] = Form.useForm();
+  const [messageApi, contextHolder] = message.useMessage();
+
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+  const handleLogout = async () => {
+    setLogoutLoading(true);
+    try {
+      await api.post('/auth/logout');
+      message.success('Đăng xuất an toàn thành công!');
+    } catch (error) {
+      console.error(error);
+    } finally {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      setLogoutLoading(false);
+      navigate('/login');
+    }
+  };
+
+  const handleChangePassword = async (values) => {
+    setChangePasswordLoading(true);
+    try {
+      const response = await api.put('/auth/change-password', {
+        currentPassword: values.currentPassword,
+        newPassword: values.newPassword,
+      });
+
+      messageApi.success(response.data.message || 'Đổi mật khẩu thành công! Vui lòng đăng nhập lại.');
+      setIsModalOpen(false);
+      passwordForm.resetFields();
+
+      setTimeout(() => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        navigate('/login');
+      }, 1500);
+    } catch (error) {
+      if (error.response) {
+        messageApi.error(error.response.data.message);
+      } else {
+        messageApi.error('Lỗi kết nối máy chủ!');
+      }
+    } finally {
+      setChangePasswordLoading(false);
+    }
+  };
+
+  return (
+    <Layout style={{ minHeight: '100vh' }}>
+      {contextHolder}
+      <Header
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          backgroundColor: '#0f172a',
+          padding: '0 24px',
+        }}
+      >
+        <div style={{ color: '#fff', fontSize: '18px', fontWeight: 'bold' }}>
+          HỆ THỐNG CRM
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <span style={{ color: '#cbd5e1' }}>
+            Xin chào, <strong>{user.full_name || 'Người dùng'}</strong>
+          </span>
+
+          <Space>
+            <Button
+              icon={<SettingOutlined />}
+              onClick={() => setIsModalOpen(true)}
+              style={{ backgroundColor: '#1e293b', color: '#fff', borderColor: '#334155' }}
+            >
+              Đổi mật khẩu
+            </Button>
+
+            <Button type="primary" danger loading={logoutLoading} onClick={handleLogout}>
+              Đăng Xuất
+            </Button>
+          </Space>
+        </div>
+      </Header>
+
+      <Content
+        style={{
+          padding: '40px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: '#f8fafc',
+        }}
+      >
+        <Title level={2}>Chào mừng bạn đến với Dashboard CRM!</Title>
+        <Text type="secondary">
+          Bạn đang đăng nhập với quyền: <strong>{user.role_id === 1 ? 'Quản trị viên (Admin)' : 'Nhân viên'}</strong>
+        </Text>
+      </Content>
+
+      <Modal
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <KeyOutlined style={{ color: '#ff6b00' }} />
+            <span>Cài đặt cá nhân - Đổi mật khẩu</span>
+          </div>
+        }
+        open={isModalOpen}
+        onCancel={() => {
+          setIsModalOpen(false);
+          passwordForm.resetFields();
+        }}
+        footer={null}
+        destroyOnClose
+      >
+        <div style={{ padding: '16px 0' }}>
+          <Form
+            form={passwordForm}
+            layout="vertical"
+            onFinish={handleChangePassword}
+          >
+            <Form.Item
+              name="currentPassword"
+              label="Mật khẩu hiện tại"
+              rules={[{ required: true, message: 'Vui lòng nhập mật khẩu hiện tại!' }]}
+            >
+              <Input.Password prefix={<LockOutlined />} placeholder="Nhập mật khẩu đang dùng" />
+            </Form.Item>
+
+            <Form.Item
+              name="newPassword"
+              label="Mật khẩu mới"
+              rules={[
+                { required: true, message: 'Vui lòng nhập mật khẩu mới!' },
+                {
+                  pattern: /^(?=.*[A-Za-z])(?=.*\d).{8,}$/,
+                  message: 'Mật khẩu mới phải từ 8 ký tự trở lên, gồm cả chữ và số!',
+                },
+              ]}
+              hasFeedback
+            >
+              <Input.Password prefix={<LockOutlined />} placeholder="Tối thiểu 8 ký tự (chữ + số)" />
+            </Form.Item>
+
+            <Form.Item
+              name="confirmPassword"
+              label="Xác nhận mật khẩu mới"
+              dependencies={['newPassword']}
+              hasFeedback
+              rules={[
+                { required: true, message: 'Vui lòng xác nhận lại mật khẩu mới!' },
+                ({ getFieldValue }) => ({
+                  validator(_, value) {
+                    if (!value || getFieldValue('newPassword') === value) {
+                      return Promise.resolve();
+                    }
+                    return Promise.reject(new Error('Mật khẩu xác nhận không trùng khớp!'));
+                  },
+                }),
+              ]}
+            >
+              <Input.Password prefix={<LockOutlined />} placeholder="Nhập lại mật khẩu mới" />
+            </Form.Item>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '24px' }}>
+              <Button
+                onClick={() => {
+                  setIsModalOpen(false);
+                  passwordForm.resetFields();
+                }}
+              >
+                Hủy
+              </Button>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={changePasswordLoading}
+                style={{ backgroundColor: '#ff6b00', borderColor: '#ff6b00' }}
+              >
+                Lưu thay đổi
+              </Button>
+            </div>
+          </Form>
+        </div>
+      </Modal>
+    </Layout>
+  );
+};
+
+// ==========================================
+// 6. BỘ ĐIỀU TUYẾN CHÍNH
 // ==========================================
 const App = () => {
   return (
@@ -321,6 +560,7 @@ const App = () => {
       <Route path="/" element={<Navigate to="/login" replace />} />
       <Route path="/login" element={<Login />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route
         path="/dashboard"
         element={
@@ -329,7 +569,6 @@ const App = () => {
           </ProtectedRoute>
         }
       />
-      <Route path="/reset-password" element={<ResetPassword />} />
     </Routes>
   );
 };
