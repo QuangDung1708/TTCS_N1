@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const userRoutes = require('./src/routes/userRoutes');
 require('dotenv').config();
 
 const authRoutes = require('./src/routes/authRoutes');
@@ -16,6 +17,7 @@ app.use(express.json());
 // Khai báo các Routes API
 app.use('/api/auth', authRoutes);
 app.use('/api/customers', customerRoutes);
+app.use('/api/users', userRoutes);
 
 // Chỉ chạy app.listen khi KHÔNG ở chế độ kiểm thử (test)
 if (process.env.NODE_ENV !== 'test') {
