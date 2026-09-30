@@ -47,6 +47,17 @@ const login = async (req, res) => {
                 return res.status(400).json({ message: `Mật khẩu không chính xác! Bạn còn ${5 - newAttempts} lần thử.` });
             }
         }
+        if (user.status === 'LOCKED') {
+            return res.status(403).json({
+                message: 'Tài khoản này đã bị khóa do nhân viên nghỉ việc hoặc vi phạm chính sách. Vui lòng liên hệ Quản trị viên!'
+            });
+        }
+
+        if (user.status === 'INACTIVE') {
+            return res.status(403).json({
+                message: 'Tài khoản này hiện đang tạm ngừng hoạt động!'
+            });
+        }
 
         await db.execute('UPDATE users SET failed_login_attempts = 0, lock_until = NULL WHERE id = ?', [user.id]);
 
@@ -75,6 +86,7 @@ const login = async (req, res) => {
                 group_name: user.group_name || 'Ban Giám Đốc',
                 data_scope: user.data_scope
             }
+            
         });
     } catch (error) {
         console.error('Lỗi đăng nhập:', error);

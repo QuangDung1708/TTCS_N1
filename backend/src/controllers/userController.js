@@ -207,5 +207,87 @@ const getMetadata = async (req, res) => {
         return res.status(500).json({ message: 'Lỗi server khi lấy danh mục vai trò và nhóm!' });
     }
 };
+// ==========================================
+// 5. KHÓA TÀI KHOẢN & BÀN GIAO DỮ LIỆU (S1-10 & N1-111)
+// ==========================================
+const lockAndHandoverUser = async (req, res) => {
+    try {
+        const targetUserId = parseInt(req.params.id);
+        const adminId = req.user.id;
+        const { receiver_id, reason = 'Nhân sự nghỉ việc - Bàn giao khách hàng' } = req.body;
 
-module.exports = { getUsers, createUser, updateUser, getMetadata };
+        // 1. Không cho phép tự khóa chính mình
+        if (targetUserId === adminId) {
+            return res.status(400).json({ message: 'Bạn không thể tự khóa tài khoản của chính mình!' });
+        }
+
+        // 2. Kiểm tra người nhận
+        if (!receiver_id) {
+            return res.status(400).json({ message: 'Bắt buộc phải chọn nhân viên tiếp nhận bàn giao!' });
+        }
+
+        const receiverId = parseInt(receiver_id);
+        if (targetUserId === receiverId) {
+            return res.status(400).json({ message: 'Người tiếp nhận không thể trùng với người bị khóa!' });
+        }
+
+        // 3. Kiểm tra người nhận có đang ACTIVE không
+        const [receiverRows] = await db.execute('SELECT id, full_name, group_id, status FROM users WHERE id = ?', [receiverId]);
+        if (receiverRows.length === 0 || receiverRows[0].status !== 'ACTIVE') {
+            return res.status(400).json({ message: 'Nhân viên tiếp nhận không hợp lệ hoặc đang bị khóa!' });
+        }
+        const receiver = receiverRows[0];
+
+        // 4. Kiểm tra số lượng khách hàng (nếu bảng customers tồn tại)
+        let customerCount = 0;
+        try {
+            const [custResult] = await db.execute('SELECT COUNT(*) as total FROM customers WHERE assigned_to = ?', [targetUserId]);
+            customerCount = custResult[0].total;
+
+            if (customerCount > 0) {
+                await db.execute(
+                    'UPDATE customers SET assigned_to = ?, group_id = COALESCE(?, group_id) WHERE assigned_to = ?',
+                    [receiverId, receiver.group_id, targetUserId]
+                );
+            }
+        } catch (tableErr) {
+            // Nếu bảng customers chưa có cột assigned_to thì bỏ qua chuyển khách hàng
+            console.log('Bỏ qua chuyển khách hàng vì cấu trúc bảng:', tableErr.message);
+        }
+
+        // 5. Cập nhật trạng thái người dùng thành LOCKED
+        await db.execute('UPDATE users SET status = "LOCKED" WHERE id = ?', [targetUserId]);
+
+        // 6. Ghi nhật ký bàn giao (handover_logs)
+        try {
+            await db.execute(
+                'INSERT INTO handover_logs (from_user_id, to_user_id, admin_id, customers_transferred, reason) VALUES (?, ?, ?, ?, ?)',
+                [targetUserId, receiverId, adminId, customerCount, reason]
+            );
+        } catch (logErr) {
+            console.log('Chưa tạo bảng handover_logs hoặc lỗi ghi log:', logErr.message);
+        }
+
+        return res.status(200).json({
+            message: `Khóa tài khoản thành công! Đã bàn giao dữ liệu sang cho ${receiver.full_name}.`,
+            transferredCustomers: customerCount
+        });
+
+    } catch (error) {
+        console.error('Chi tiết lỗi khóa tài khoản tại Terminal:', error);
+        return res.status(500).json({ message: 'Lỗi server trong quá trình bàn giao và khóa tài khoản!' });
+    }
+};
+
+// Đếm nhanh số khách hàng của 1 user để hiển thị trước lên Modal cảnh báo
+const getUserCustomerCount = async (req, res) => {
+    try {
+        const userId = req.params.id;
+        const [result] = await db.execute('SELECT COUNT(*) as total FROM customers WHERE assigned_to = ?', [userId]);
+        return res.status(200).json({ total: result[0].total });
+    } catch (error) {
+        return res.status(500).json({ message: 'Lỗi khi lấy thông tin khách hàng!' });
+    }
+};
+
+module.exports = { getUsers, createUser, updateUser, getMetadata, lockAndHandoverUser, getUserCustomerCount };
