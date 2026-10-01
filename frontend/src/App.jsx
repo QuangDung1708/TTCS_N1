@@ -3,8 +3,9 @@ import React, { useState, useEffect } from 'react';
 import UserManagement from './UserManagement';
 import { login, changePassword, forgotPassword } from './api';
 import ErrorPage from './ErrorPage';
-
+import MyProfile from './pages/MyProfile';
 export default function App() {
+  
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('token') || '');
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -475,7 +476,24 @@ export default function App() {
                 👥 Quản Lý Người Dùng
               </button>
             )}
-
+<button
+  onClick={() => {
+    setActiveTab('profile')
+    setMobileMenuOpen(false)
+  }}
+  style={{
+    textAlign: 'left',
+    padding: '10px 14px',
+    borderRadius: '6px',
+    border: 'none',
+    backgroundColor: activeTab === 'profile' ? '#ff6b00' : '#0f172a',
+    color: '#fff',
+    fontWeight: '600',
+    cursor: 'pointer'
+  }}
+>
+  👤 Hồ sơ cá nhân
+</button>
             <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
               <button
                 onClick={() => { setShowPasswordModal(true); setMobileMenuOpen(false); }}
@@ -532,9 +550,20 @@ export default function App() {
             />
           )
         )}
-
+{activeTab === 'profile' && (
+  <div
+    style={{
+      backgroundColor: '#ffffff',
+      borderRadius: '8px',
+      overflow: 'hidden',
+    }}
+  >
+    <MyProfile />
+  </div>
+)}
         {/* Bắt tất cả các tab lạ/không tồn tại (Lỗi 404) */}
-        {activeTab !== 'dashboard' && activeTab !== 'users' && (
+        {activeTab !== 'dashboard' && activeTab !== 'users' && activeTab !== 'profile' (
+  
           <ErrorPage
             code={404}
             title="Đường Dẫn Không Hợp Lệ"
