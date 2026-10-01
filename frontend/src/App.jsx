@@ -7,6 +7,7 @@ import heroImg from './assets/hero.png'
 import reactLogo from './assets/react.svg'
 import viteLogo from './assets/vite.svg'
 import './App.css'
+import MyProfile from './pages/MyProfile.jsx'
 
 // Component giao diện mặc định ban đầu của Vite
 function Home() {
@@ -131,6 +132,14 @@ function Home() {
   )
 }
 function App() {
-  return <MainLayout />
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<MainLayout />} />
+        <Route path="/my-profile" element={<MyProfile />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+      </Routes>
+    </BrowserRouter>
+  )
 }
 export default App
