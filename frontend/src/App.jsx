@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import UserManagement from './UserManagement';
-import { login, changePassword, forgotPassword } from './api';
+import { login, changePassword, forgotPassword } from './api/api';
 import ErrorPage from './ErrorPage';
 
 export default function App() {
