@@ -1,16 +1,22 @@
 const express = require('express');
 const cors = require('cors');
-require('dotenv').config(); // Đọc các biến từ file .env (như Bính vừa setup)
+require('dotenv').config(); // Đưa dotenv lên trên cùng
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Khai báo các Route
+const auditRoutes = require('./routes/auditRoutes');
+
 // Khai báo Middleware
 app.use(cors());
-app.use(express.json()); // Giúp Backend đọc được dữ liệu JSON từ Frontend gửi lên
+app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Khởi tạo một Route cơ bản để test
+// Sử dụng route audit-logs
+app.use('/api/audit-logs', auditRoutes);
+
+// Route test cơ bản
 app.get('/api/v1', (req, res) => {
     res.json({
         status: "success",
