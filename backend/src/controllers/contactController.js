@@ -25,6 +25,21 @@ const createContact = async (req, res) => {
         }
 
         const primaryValue = is_primary ? 1 : 0;
+        // Kiểm tra định dạng Email
+if (email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        return res.status(400).json({ message: 'Email người liên hệ không hợp lệ!' });
+    }
+}
+
+// Kiểm tra định dạng Số điện thoại Việt Nam
+if (phone) {
+    const phoneRegex = /(84|0[3|5|7|8|9])+([0-9]{8})\b/;
+    if (!phoneRegex.test(phone)) {
+        return res.status(400).json({ message: 'Số điện thoại phải gồm 10 chữ số hợp lệ!' });
+    }
+}
 
         // Nếu đặt người này là đầu mối chính, reset các liên hệ khác của khách hàng về 0
         if (primaryValue === 1) {

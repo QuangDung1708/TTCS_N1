@@ -38,6 +38,12 @@ export default function CustomerContactsModal({ customer, customerList = [], onC
     const [transferContactTarget, setTransferContactTarget] = useState(null);
     const [targetCustomerId, setTargetCustomerId] = useState('');
     const [transferReason, setTransferReason] = useState('');
+    const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+    const userRole = currentUser.role || currentUser.role_code || '';  
+    const roleStr = String(currentUser.role || currentUser.role_name || currentUser.role_code || '').toLowerCase();
+// Xác định nếu là nhân viên kinh doanh (Sales):
+    const isSales = roleStr.includes('sale') || currentUser.role_id === 3;
+    
 
     // Tải danh sách liên hệ
     const fetchContacts = async () => {
@@ -73,37 +79,106 @@ export default function CustomerContactsModal({ customer, customerList = [], onC
     };
 
     // Chọn để sửa
-    const handleEditClick = (contact) => {
-        setIsEditing(true);
-        setEditingContactId(contact.id);
+   const handleEditClick = (c) => {
+        if (typeof setIsEditing === 'function') setIsEditing(true);
         setFormData({
-            name: contact.name,
-            title: contact.title || '',
-            email: contact.email || '',
-            phone: contact.phone || '',
-            buying_role: contact.buying_role,
-            is_primary: Boolean(contact.is_primary)
+            id: c.id, // Bắt buộc phải có dòng này để biết đang sửa ID nào
+            name: c.name || '',
+            title: c.title || '',
+            email: c.email || '',
+            phone: c.phone || '',
+            buying_role: c.buying_role || 'INFLUENCER',
+            is_primary: Boolean(c.is_primary)
         });
     };
 
     // Lưu liên hệ (Thêm hoặc Cập nhật)
-    const handleSaveContact = async (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        setErrorMsg('');
-        setSuccessMsg('');
+
+        // 1. Kiểm tra Email hợp lệ (phải có dạng abc@def.xyz)
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (formData.email && !emailRegex.test(formData.email.trim())) {
+            alert('⚠️ Email không đúng định dạng (Ví dụ: ten@fpt.com hoặc ten@gmail.com)');
+            return;
+        }
+
+        // 2. Kiểm tra Số điện thoại Việt Nam (10 chữ số, bắt đầu bằng 03, 05, 07, 08, 09)
+        const phoneRegex = /(84|0[3|5|7|8|9])+([0-9]{8})\b/;
+        if (formData.phone && !phoneRegex.test(formData.phone.trim())) {
+            alert('⚠️ Số điện thoại không hợp lệ! Vui lòng nhập đúng 10 số (Ví dụ: 0912345678)');
+            return;
+        }
+
+        // Tiếp tục xử lý createContact / updateContact...
+    };
+    const handleSaveContact = async (e) => {
+        if (e) e.preventDefault();
+
+        // 1. Kiểm tra họ tên bắt buộc
+        if (!formData.name || !formData.name.trim()) {
+            alert('⚠️ Vui lòng nhập họ tên người liên hệ!');
+            return;
+        }
+
+        // 2. Kiểm tra định dạng Email
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (formData.email && !emailRegex.test(formData.email.trim())) {
+            alert('⚠️ Email không đúng định dạng (Ví dụ: ten@fpt.com hoặc ten@gmail.com)');
+            return;
+        }
+
+        // 3. Kiểm tra Số điện thoại Việt Nam (10 số)
+        const phoneRegex = /(84|0[3|5|7|8|9])+([0-9]{8})\b/;
+        if (formData.phone && !phoneRegex.test(formData.phone.trim())) {
+            alert('⚠️ Số điện thoại không hợp lệ! Vui lòng nhập đúng 10 số (Ví dụ: 0912345678)');
+            return;
+        }
 
         try {
-            if (isEditing) {
-                await updateContact(editingContactId, formData);
-                setSuccessMsg('Đã cập nhật người liên hệ thành công!');
-            } else {
-                await createContact(customer.id, formData);
-                setSuccessMsg('Đã thêm người liên hệ mới thành công!');
-            }
-            resetForm();
-            fetchContacts();
+            const token = localStorage.getItem('token');
+            
+            // Lấy ID liên hệ đang sửa từ formData
+            const contactId = formData.id || (typeof editingId !== 'undefined' ? editingId : null);
+            const isEditMode = Boolean(isEditing);
+
+            const endpoint = isEditMode && contactId
+                ? `http://localhost:5001/api/contacts/${contactId}` 
+                : `http://localhost:5001/api/contacts`;
+            const method = isEditMode ? 'PUT' : 'POST';
+
+            const payload = {
+                customer_id: customer.id,
+                name: formData.name.trim(),
+                title: formData.title || '',
+                email: formData.email ? formData.email.trim() : '',
+                phone: formData.phone ? formData.phone.trim() : '',
+                buying_role: formData.buying_role || 'INFLUENCER',
+                is_primary: formData.is_primary ? 1 : 0
+            };
+
+            const res = await fetch(endpoint, {
+                method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || 'Lỗi khi lưu dữ liệu!');
+
+            alert(isEditMode ? '✅ Cập nhật người liên hệ thành công!' : '✅ Thêm người liên hệ thành công!');
+            
+            // Đưa form về trạng thái ban đầu
+            if (typeof setIsEditing === 'function') setIsEditing(false);
+            setFormData({ name: '', title: '', email: '', phone: '', buying_role: 'INFLUENCER', is_primary: false });
+            
+            // Tải lại danh sách
+            if (typeof fetchContacts === 'function') fetchContacts();
         } catch (err) {
-            setErrorMsg(err.message);
+            alert('❌ ' + err.message);
         }
     };
 
@@ -172,7 +247,7 @@ export default function CustomerContactsModal({ customer, customerList = [], onC
                 {successMsg && <div style={{ margin: '12px 0', padding: '8px 12px', background: '#dafbe1', color: '#1a7f37', borderRadius: '4px', fontSize: '13px' }}>{successMsg}</div>}
 
                 {/* Form Thêm / Chỉnh sửa */}
-                <form onSubmit={handleSaveContact} style={{ background: '#21262d', padding: '16px', borderRadius: '6px', margin: '16px 0', border: '1px solid #30363d' }}>
+                <form onSubmit={handleSubmit}   style={{ background: '#21262d', padding: '16px', borderRadius: '6px', margin: '16px 0', border: '1px solid #30363d' }}>
                     <div style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '12px', color: '#58a6ff' }}>
                         {isEditing ? '✏️ Cập nhật thông tin người liên hệ' : '➕ Thêm người liên hệ mới'}
                     </div>
@@ -249,12 +324,21 @@ export default function CustomerContactsModal({ customer, customerList = [], onC
                                     Hủy
                                 </button>
                             )}
-                            <button 
-                                type="submit"
-                                style={{ padding: '6px 16px', background: '#238636', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer' }}
-                            >
-                                {isEditing ? 'Cập nhật' : 'Thêm liên hệ'}
-                            </button>
+                           <button
+  type="button"
+  onClick={handleSaveContact}
+  style={{
+    padding: '6px 16px',
+    background: '#238636',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    fontWeight: '600'
+  }}
+>
+  {isEditing ? 'Cập nhật' : 'Thêm liên hệ'}
+</button>
                         </div>
                     </div>
                 </form>
@@ -327,32 +411,38 @@ export default function CustomerContactsModal({ customer, customerList = [], onC
                                                     <span style={{ color: '#6e7681' }}>Liên hệ phụ</span>
                                                 )}
                                             </td>
-                                            <td style={{ padding: '10px', textAlign: 'center' }}>
-                                                <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
-                                                    <button 
-                                                        onClick={() => handleEditClick(c)}
-                                                        style={{ padding: '4px 8px', background: '#1f6feb', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
-                                                    >
-                                                        Sửa
-                                                    </button>
-                                                    <button 
-                                                        onClick={() => {
-                                                            setTransferContactTarget(c);
-                                                            setShowTransferModal(true);
-                                                        }}
-                                                        title="Chuyển sang công ty khác (AC 4)"
-                                                        style={{ padding: '4px 8px', background: '#8957e5', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
-                                                    >
-                                                        Chuyển cty
-                                                    </button>
-                                                    <button 
-                                                        onClick={() => handleDeleteContact(c.id, c.name)}
-                                                        style={{ padding: '4px 8px', background: '#da3633', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
-                                                    >
-                                                        Xóa
-                                                    </button>
-                                                </div>
-                                            </td>
+                                           <td style={{ padding: '10px', textAlign: 'center' }}>
+  <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
+    {/* Nút Sửa: Ai cũng thấy */}
+    <button
+      type="button"
+      onClick={() => handleEditClick(c)}
+      style={{ padding: '4px 8px', backgroundColor: '#0969da', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+    >
+      Sửa
+    </button>
+
+    {/* Chỉ Trưởng nhóm hoặc Admin mới thấy, role Sales bị ẩn hoàn toàn */}
+    {!isSales && (
+      <>
+        <button
+          type="button"
+          onClick={() => handleOpenTransfer(c)}
+          style={{ padding: '4px 8px', backgroundColor: '#8250df', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+        >
+          Chuyển cty
+        </button>
+        <button
+          type="button"
+          onClick={() => handleDelete(c.id)}
+          style={{ padding: '4px 8px', backgroundColor: '#cf222e', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+        >
+          Xóa
+        </button>
+      </>
+    )}
+  </div>
+</td>
                                         </tr>
                                     ))}
                                 </tbody>
