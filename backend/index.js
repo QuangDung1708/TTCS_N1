@@ -5,7 +5,7 @@ require('dotenv').config();
 
 const authRoutes = require('./src/routes/authRoutes');
 const customerRoutes = require('./src/routes/customerRoutes');
-
+const productRoutes = require('./src/routes/productRoutes');
 const app = express();
 
 // Khai báo PORT ở đầu để tránh lỗi TDZ (Temporal Dead Zone)
@@ -18,7 +18,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/customers', customerRoutes);
 app.use('/api/users', userRoutes);
-
+app.use('/api/products', productRoutes);
 // Chỉ chạy app.listen khi KHÔNG ở chế độ kiểm thử (test)
 if (process.env.NODE_ENV !== 'test') {
   app.listen(PORT, () => {

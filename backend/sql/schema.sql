@@ -36,7 +36,25 @@ CREATE TABLE users (
     FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE SET NULL,
     FOREIGN KEY (group_id) REFERENCES groups_table(id) ON DELETE SET NULL
 );
+-- Bảng quản lý Danh mục sản phẩm & Dịch vụ (Task N1-118)
+CREATE TABLE products (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    code VARCHAR(50) NOT NULL UNIQUE COMMENT 'Mã sản phẩm',
+    name VARCHAR(255) NOT NULL COMMENT 'Tên sản phẩm / dịch vụ',
+    type ENUM('ONE_TIME', 'SUBSCRIPTION') NOT NULL DEFAULT 'ONE_TIME' COMMENT 'Loại: Sản phẩm 1 lần hoặc Dịch vụ thuê bao',
+    unit VARCHAR(50) NOT NULL COMMENT 'Đơn vị tính (Chiếc, Tháng, Gói,...)',
+    list_price DECIMAL(15, 2) NOT NULL COMMENT 'Giá niêm yết',
+    floor_price DECIMAL(15, 2) NOT NULL COMMENT 'Giá sàn (dùng để xác định duyệt chiết khấu)',
+    cost_price DECIMAL(15, 2) NULL COMMENT 'Giá vốn (Chỉ Giám đốc kinh doanh xem/sửa)',
+    status ENUM('ACTIVE', 'INACTIVE') NOT NULL DEFAULT 'ACTIVE' COMMENT 'Trạng thái (ACTIVE: Đang bán, INACTIVE: Ngừng kinh doanh)',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
 
+-- Thêm dữ liệu mẫu cho bảng products để test API
+INSERT INTO products (code, name, type, unit, list_price, floor_price, cost_price, status) VALUES
+('SP001', 'Phần mềm CRM Dùng 1 Lần', 'ONE_TIME', 'Bộ', 10000000.00, 8000000.00, 5000000.00, 'ACTIVE'),
+('SP002', 'Gói Thuê Bao Server Hàng Tháng', 'SUBSCRIPTION', 'Tháng', 2000000.00, 1500000.00, 1000000.00, 'ACTIVE');
 -- 4. Chèn dữ liệu mẫu (Seed) để lát nữa test API
 INSERT INTO roles (role_name, description) VALUES ('Admin', 'Quản trị viên'), ('Employee', 'Nhân viên');
 -- Mật khẩu mẫu dưới đây là chuỗi đã được mã hóa (bcrypt) của chữ: 123456aA@
