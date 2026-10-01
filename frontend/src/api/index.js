@@ -174,3 +174,78 @@ export const executeUserImport = async (usersToImport) => {
     if (!response.ok) throw new Error(data.message || 'Lỗi khi thực thi nhập dữ liệu!');
     return data;
 };
+
+// ==========================================
+// S2-02: API QUẢN LÝ NGƯỜI LIÊN HỆ (CONTACTS)
+// ==========================================
+
+// 1. Lấy danh sách người liên hệ của khách hàng
+export const getContactsByCustomer = async (customerId) => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${BASE_URL}/contacts/customer/${customerId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || 'Lỗi khi tải danh sách người liên hệ!');
+    return data;
+};
+
+// 2. Thêm mới người liên hệ
+export const createContact = async (customerId, contactData) => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${BASE_URL}/contacts/customer/${customerId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(contactData)
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || 'Lỗi khi thêm người liên hệ!');
+    return data;
+};
+
+// 3. Cập nhật người liên hệ
+export const updateContact = async (contactId, contactData) => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${BASE_URL}/contacts/${contactId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(contactData)
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || 'Lỗi khi cập nhật người liên hệ!');
+    return data;
+};
+
+// 4. Chuyển người liên hệ sang khách hàng/công ty khác (kèm lý do)
+export const transferContact = async (contactId, targetCustomerId, transferReason) => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${BASE_URL}/contacts/${contactId}/transfer`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ targetCustomerId, transferReason })
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || 'Lỗi khi chuyển đổi công ty!');
+    return data;
+};
+
+// 5. Xóa người liên hệ
+export const deleteContact = async (contactId) => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${BASE_URL}/contacts/${contactId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || 'Lỗi khi xóa người liên hệ!');
+    return data;
+};

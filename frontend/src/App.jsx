@@ -1,8 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
 import UserManagement from './UserManagement';
-import { login, changePassword, forgotPassword } from './api/api';
+import { login, changePassword, forgotPassword } from './api';
 import ErrorPage from './ErrorPage';
+import CustomerManagement from './CustomerManagement';
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -356,6 +357,23 @@ export default function App() {
                   👥 Quản Lý Người Dùng
                 </button>
               )}
+              <button
+                onClick={() => setActiveTab('customers')}
+                style={{
+                  backgroundColor: activeTab === 'customers' ? '#ff6b00' : 'transparent',
+                   color: '#fff',
+                   border: 'none',
+                  padding: '8px 16px',
+                  borderRadius: '6px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+  }}
+>
+  🏢 Quản Lý Khách Hàng
+</button>
             </nav>
           </div>
 
@@ -515,7 +533,8 @@ export default function App() {
             </p>
           </div>
         )}
-
+        
+        {activeTab === 'customers' && <CustomerManagement />}
         {/* Khi người dùng vào tab Quản trị người dùng */}
         {activeTab === 'users' && (
           isAdmin ? (

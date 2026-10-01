@@ -18,7 +18,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/customers', customerRoutes);
 app.use('/api/users', userRoutes);
-
+app.use('/api/contacts', require('./src/routes/contactRoutes'));
 // Chỉ chạy app.listen khi KHÔNG ở chế độ kiểm thử (test)
 if (process.env.NODE_ENV !== 'test') {
   app.listen(PORT, () => {
