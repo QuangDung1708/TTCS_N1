@@ -122,3 +122,55 @@ export const lockUserAccount = async (userId, receiverId, reason) => {
     if (!response.ok) throw new Error(data.message || 'Lỗi khi khóa tài khoản');
     return data;
 };
+// ==========================================
+// S2-01: CÁC HÀM IMPORT NGƯỜI DÙNG BẰNG EXCEL
+// ==========================================
+
+// 1. Tải tệp Excel mẫu chuẩn
+export const downloadUserTemplate = async () => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${BASE_URL}/users/import/template`, {
+        headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!response.ok) throw new Error('Không thể tải file mẫu!');
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'Mau_Import_Nhan_Su.xlsx';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+};
+
+// 2. Tải file Excel lên để xem trước và kiểm tra lỗi từng dòng
+export const previewUserExcel = async (file) => {
+    const token = localStorage.getItem('token');
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch(`${BASE_URL}/users/import/preview`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || 'Lỗi khi đọc file Excel!');
+    return data;
+};
+
+// 3. Thực thi nhập các dòng hợp lệ vào cơ sở dữ liệu
+export const executeUserImport = async (usersToImport) => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${BASE_URL}/users/import/execute`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ usersToImport })
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || 'Lỗi khi thực thi nhập dữ liệu!');
+    return data;
+};

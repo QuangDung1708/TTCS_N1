@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { fetchUsers, fetchUserMeta, createUser, updateUser, fetchUserCustomerCount, lockUserAccount } from './api';
+import { fetchUsers, fetchUserMeta, createUser, updateUser, fetchUserCustomerCount, lockUserAccount, downloadUserTemplate,  previewUserExcel, executeUserImport } from './api/api';
 
 export default function UserManagement() {
     const [users, setUsers] = useState([]);
@@ -32,6 +32,13 @@ export default function UserManagement() {
     const [lockReason, setLockReason] = useState('Nhân viên nghỉ việc');
     const [lockLoading, setLockLoading] = useState(false);  
 
+    // State cho tính năng S2-01: Import Excel
+    const [showImportModal, setShowImportModal] = useState(false);
+    const [importFile, setImportFile] = useState(null);
+    const [previewResult, setPreviewResult] = useState(null);
+    const [importLoading, setImportLoading] = useState(false);
+    const [importError, setImportError] = useState('');
+    const [importSuccessMsg, setImportSuccessMsg] = useState('');
     
 
     // Tải danh mục Metadata (Roles & Groups)
@@ -159,6 +166,66 @@ export default function UserManagement() {
         }
     };
 
+    // Tải file Excel mẫu
+const handleDownloadTemplate = async () => {
+    try {
+        await downloadUserTemplate();
+    } catch (err) {
+        alert(err.message || 'Lỗi tải tệp mẫu');
+    }
+};
+
+// Chọn file và gọi API preview kiểm tra lỗi
+const handleFileSelect = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setImportFile(file);
+    setImportError('');
+    setImportSuccessMsg('');
+    setImportLoading(true);
+
+    try {
+        const data = await previewUserExcel(file);
+        setPreviewResult(data);
+    } catch (err) {
+        setImportError(err.message || 'Lỗi khi kiểm tra file Excel');
+        setPreviewResult(null);
+    } finally {
+        setImportLoading(false);
+    }
+};
+
+// Nhập các dòng hợp lệ vào cơ sở dữ liệu
+const handleConfirmImport = async () => {
+    if (!previewResult || !previewResult.validRows || previewResult.validRows.length === 0) {
+        alert('Không có dòng hợp lệ nào để nhập!');
+        return;
+    }
+
+    setImportLoading(true);
+    setImportError('');
+    try {
+        const res = await executeUserImport(previewResult.validRows);
+        setImportSuccessMsg(res.message);
+        // Tải lại danh sách người dùng sau khi nhập thành công
+        if (typeof fetchUsers === 'function') fetchUsers();
+    } catch (err) {
+        setImportError(err.message || 'Lỗi khi thực thi nhập');
+    } finally {
+        setImportLoading(false);
+    }
+};
+
+// Đóng modal và reset trạng thái
+const handleCloseImportModal = () => {
+    setShowImportModal(false);
+    setImportFile(null);
+    setPreviewResult(null);
+    setImportError('');
+    setImportSuccessMsg('');
+};
+
     return (
         <div style={{ padding: '24px', maxWidth: '1280px', margin: '0 auto', fontFamily: 'system-ui, sans-serif' }}>
             {/* Thanh tiêu đề */}
@@ -186,6 +253,24 @@ export default function UserManagement() {
                     + Tạo Tài Khoản Mới
                 </button>
             </div>
+
+            <button
+    onClick={() => setShowImportModal(true)}
+    style={{
+        padding: '8px 16px',
+        backgroundColor: '#107c41',
+        color: '#fff',
+        border: 'none',
+        borderRadius: '4px',
+        cursor: 'pointer',
+        fontWeight: 'bold',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px'
+    }}
+>
+    📊 Nhập từ Excel
+</button>
 
             {/* Thông báo thông tin (Toast/Alert) */}
             {notification.message && (
@@ -647,6 +732,161 @@ export default function UserManagement() {
                     </div>
                 </div>
             )}
+
+            {/* MODAL IMPORT EXCEL - USER STORY S2-01 */}
+{showImportModal && (
+    <div style={{
+        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+        backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex',
+        alignItems: 'center', justifyContent: 'center', zIndex: 1000
+    }}>
+        <div style={{
+            backgroundColor: '#1f1f2e', color: '#fff', borderRadius: '8px',
+            padding: '24px', width: '90%', maxWidth: '850px', maxHeight: '90vh',
+            overflowY: 'auto', border: '1px solid #333'
+        }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <h3 style={{ margin: 0, fontSize: '18px' }}>Nhập danh sách người dùng từ Excel</h3>
+                <button 
+                    onClick={handleCloseImportModal}
+                    style={{ background: 'none', border: 'none', color: '#aaa', fontSize: '20px', cursor: 'pointer' }}
+                >
+                    ✕
+                </button>
+            </div>
+
+            {/* Khu vực tải mẫu và chọn file */}
+            <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', alignItems: 'center' }}>
+                <button
+                    onClick={handleDownloadTemplate}
+                    style={{
+                        padding: '8px 14px', backgroundColor: '#2a2a3d', color: '#4da6ff',
+                        border: '1px solid #4da6ff', borderRadius: '4px', cursor: 'pointer'
+                    }}
+                >
+                    ⬇ Tải file mẫu (.xlsx)
+                </button>
+                <input 
+                    type="file" 
+                    accept=".xlsx, .xls" 
+                    onChange={handleFileSelect}
+                    style={{ color: '#ccc' }}
+                />
+            </div>
+
+            {/* Thông báo lỗi / trạng thái */}
+            {importLoading && <p style={{ color: '#ffcc00' }}>Đang xử lý dữ liệu...</p>}
+            {importError && (
+                <div style={{ padding: '10px', backgroundColor: 'rgba(255, 77, 79, 0.2)', color: '#ff4d4f', borderRadius: '4px', marginBottom: '16px' }}>
+                    {importError}
+                </div>
+            )}
+            {importSuccessMsg && (
+                <div style={{ padding: '10px', backgroundColor: 'rgba(82, 196, 26, 0.2)', color: '#52c41a', borderRadius: '4px', marginBottom: '16px' }}>
+                    {importSuccessMsg}
+                </div>
+            )}
+
+            {/* Bảng Preview kết quả */}
+            {previewResult && (
+                <div style={{ marginBottom: '20px' }}>
+                    <div style={{ display: 'flex', gap: '16px', marginBottom: '12px' }}>
+                        <span style={{ color: '#aaa' }}>Tổng số dòng: <strong>{previewResult.totalRows}</strong></span>
+                        <span style={{ color: '#52c41a' }}>Hợp lệ: <strong>{previewResult.validCount}</strong></span>
+                        <span style={{ color: '#ff4d4f' }}>Lỗi (sẽ bỏ qua): <strong>{previewResult.errorCount}</strong></span>
+                    </div>
+
+                    {/* Danh sách các dòng bị lỗi */}
+                    {previewResult.errorRows.length > 0 && (
+                        <div style={{ marginBottom: '16px' }}>
+                            <h4 style={{ color: '#ff4d4f', margin: '8px 0', fontSize: '14px' }}>Dòng không hợp lệ:</h4>
+                            <div style={{ maxHeight: '160px', overflowY: 'auto', border: '1px solid #444', borderRadius: '4px' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                                    <thead>
+                                        <tr style={{ backgroundColor: '#2d1b1b', textAlign: 'left' }}>
+                                            <th style={{ padding: '8px', borderBottom: '1px solid #444' }}>Dòng</th>
+                                            <th style={{ padding: '8px', borderBottom: '1px solid #444' }}>Họ tên</th>
+                                            <th style={{ padding: '8px', borderBottom: '1px solid #444' }}>Email</th>
+                                            <th style={{ padding: '8px', borderBottom: '1px solid #444' }}>Lý do lỗi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {previewResult.errorRows.map((row, idx) => (
+                                            <tr key={idx} style={{ borderBottom: '1px solid #333' }}>
+                                                <td style={{ padding: '8px' }}>{row.rowNumber}</td>
+                                                <td style={{ padding: '8px' }}>{row.full_name || '—'}</td>
+                                                <td style={{ padding: '8px' }}>{row.email || '—'}</td>
+                                                <td style={{ padding: '8px', color: '#ff7875' }}>{row.errors}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Danh sách các dòng hợp lệ */}
+                    {previewResult.validRows.length > 0 && (
+                        <div>
+                            <h4 style={{ color: '#52c41a', margin: '8px 0', fontSize: '14px' }}>Dòng hợp lệ sẵn sàng nhập:</h4>
+                            <div style={{ maxHeight: '160px', overflowY: 'auto', border: '1px solid #444', borderRadius: '4px' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                                    <thead>
+                                        <tr style={{ backgroundColor: '#1b2d1b', textAlign: 'left' }}>
+                                            <th style={{ padding: '8px', borderBottom: '1px solid #444' }}>Dòng</th>
+                                            <th style={{ padding: '8px', borderBottom: '1px solid #444' }}>Họ tên</th>
+                                            <th style={{ padding: '8px', borderBottom: '1px solid #444' }}>Email</th>
+                                            <th style={{ padding: '8px', borderBottom: '1px solid #444' }}>Vai trò</th>
+                                            <th style={{ padding: '8px', borderBottom: '1px solid #444' }}>Nhóm</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {previewResult.validRows.map((row, idx) => (
+                                            <tr key={idx} style={{ borderBottom: '1px solid #333' }}>
+                                                <td style={{ padding: '8px' }}>{row.rowNumber}</td>
+                                                <td style={{ padding: '8px' }}>{row.full_name}</td>
+                                                <td style={{ padding: '8px' }}>{row.email}</td>
+                                                <td style={{ padding: '8px' }}>{row.role_name}</td>
+                                                <td style={{ padding: '8px' }}>{row.group_name || '—'}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Nút hành động */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '20px' }}>
+                <button
+                    onClick={handleCloseImportModal}
+                    style={{
+                        padding: '8px 16px', backgroundColor: '#333', color: '#fff',
+                        border: 'none', borderRadius: '4px', cursor: 'pointer'
+                    }}
+                >
+                    Đóng
+                </button>
+                <button
+                    onClick={handleConfirmImport}
+                    disabled={!previewResult || previewResult.validCount === 0 || importLoading}
+                    style={{
+                        padding: '8px 18px',
+                        backgroundColor: (!previewResult || previewResult.validCount === 0 || importLoading) ? '#555' : '#1890ff',
+                        color: '#fff', border: 'none', borderRadius: '4px',
+                        cursor: (!previewResult || previewResult.validCount === 0 || importLoading) ? 'not-allowed' : 'pointer',
+                        fontWeight: 'bold'
+                    }}
+                >
+                    {importLoading ? 'Đang nhập...' : `Xác nhận nhập (${previewResult ? previewResult.validCount : 0} dòng)`}
+                </button>
+            </div>
+        </div>
+    </div>
+)}
+
         </div>
     );
 }
