@@ -7,6 +7,8 @@ const authRoutes = require('./src/routes/authRoutes');
 const customerRoutes = require('./src/routes/customerRoutes');
 const productRoutes = require('./src/routes/productRoutes');
 const categoryRoutes = require('./src/routes/categoryRoutes');
+const groupRoutes = require('./src/routes/groupRoutes');     // MỚI
+const regionRoutes = require('./src/routes/regionRoutes');   // MỚI
 const app = express();
 
 // Khai báo PORT ở đầu để tránh lỗi TDZ (Temporal Dead Zone)
@@ -21,6 +23,9 @@ app.use('/api/customers', customerRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/products', productRoutes);
+app.use('/api/groups', groupRoutes);     // MỚI
+app.use('/api/regions', regionRoutes);   // MỚI
+
 // Chỉ chạy app.listen khi KHÔNG ở chế độ kiểm thử (test)
 if (process.env.NODE_ENV !== 'test') {
   app.listen(PORT, () => {

@@ -40,6 +40,7 @@ const verifyToken = async (req, res, next) => {
 
         next();
     } catch (error) {
+        console.error('verifyToken loi:', error.message);
         return res.status(403).json({ message: 'Mã xác thực không hợp lệ hoặc đã hết hạn!' });
     }
 };
