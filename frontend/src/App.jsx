@@ -4,11 +4,14 @@ import UserManagement from './UserManagement';
 import { login, changePassword, forgotPassword } from './api';
 import ErrorPage from './ErrorPage';
 import CommonCategoryManagement from './CommonCategoryManagement';
+import ProductFormModal from './ProductFormModal';
+
 export default function App() {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('token') || '');
   const [activeTab, setActiveTab] = useState('dashboard');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showProductModal, setShowProductModal] = useState(false);
 
   // Form Đăng Nhập
   const [loginData, setLoginData] = useState({ email: '', password: '' });
@@ -356,7 +359,7 @@ export default function App() {
                   👥 Quản Lý Người Dùng
                 </button>
               )}
-              <button
+             <button
   onClick={() => {
     setActiveTab('categories')
     setMobileMenuOpen(false)
@@ -374,6 +377,22 @@ export default function App() {
   }}
 >
   📋 Quản Lý Danh mục
+</button>
+
+<button
+  onClick={() => setShowProductModal(true)}
+  style={{
+    textAlign: 'left',
+    padding: '10px 14px',
+    borderRadius: '6px',
+    border: 'none',
+    backgroundColor: 'transparent',
+    color: '#94a3b8',
+    fontWeight: '600',
+    cursor: 'pointer',
+  }}
+>
+  📦 Quản Lý Sản Phẩm
 </button>
             </nav>
           </div>
@@ -573,7 +592,15 @@ export default function App() {
           />
         )}
       </main>
-
+<ProductFormModal
+  open={showProductModal}
+  product={null}
+  onCancel={() => setShowProductModal(false)}
+  onSubmit={(values) => {
+    console.log('Thông tin sản phẩm:', values);
+    setShowProductModal(false);
+  }}
+/>
       {/* Modal Đổi mật khẩu */}
       {showPasswordModal && (
         <div style={{
