@@ -19,6 +19,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/customers', customerRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/contacts', require('./src/routes/contactRoutes'));
+app.use('/api/audit-logs', require('./src/routes/auditLogRoutes'));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));// Chỉ chạy app.listen khi KHÔNG ở chế độ kiểm thử (test)
 if (process.env.NODE_ENV !== 'test') {
   app.listen(PORT, () => {

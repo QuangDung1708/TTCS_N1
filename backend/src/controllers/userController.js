@@ -6,6 +6,7 @@ const xlsx = require('xlsx');
 const sharp = require('sharp');
 const path = require('path');
 const fs = require('fs');
+const { logAudit } = require('../utils/auditLogger');
 
 // ==========================================
 // 1. LẤY DANH SÁCH NGƯỜI DÙNG (Phân trang mặc định 20, Tìm kiếm, Lọc)
@@ -190,12 +191,34 @@ const updateUser = async (req, res) => {
             status || null,
             targetUserId
         ]);
+        // [S2-04] Tự động ghi nhật ký thay đổi dữ liệu người dùng/vai trò
+        await logAudit({
+            userId: req.user.id,
+            userName: req.user.full_name || req.user.name,
+            action: 'UPDATE_USER_ROLE',
+            targetType: 'USER',
+            targetId: targetUserId,
+            oldValue: {
+                full_name: targetUser.full_name,
+                role_id: targetUser.role_id,
+                group_id: targetUser.group_id,
+                status: targetUser.status
+            },
+            newValue: {
+                full_name: full_name || targetUser.full_name,
+                role_id: finalRoleId || targetUser.role_id,
+                group_id: finalGroupId,
+                status: status || targetUser.status
+            }
+        });
+
 
         return res.status(200).json({ message: 'Cập nhật thông tin và vai trò người dùng thành công!' });
     } catch (error) {
         console.error('Lỗi khi cập nhật người dùng:', error);
         return res.status(500).json({ message: 'Lỗi server khi cập nhật tài khoản!' });
     }
+
 };
 
 // ==========================================
