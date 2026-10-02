@@ -9,6 +9,7 @@ import AvatarUploadModal from './AvatarUploadModal';
 import ProductManagement from './ProductManagement';
 import SalesOrgTree from './SalesOrgTree';
 import CategoryManagement from './CategoryManagement';
+import CustomFieldSettings from './CustomFieldSettings';
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -445,6 +446,18 @@ const [showAvatarModal, setShowAvatarModal] = useState(false);
 >
      Danh Mục Bán Hàng
 </button>
+<button 
+    onClick={() => setActiveTab('custom-fields')} 
+    style={{ 
+        padding: '8px 16px',
+        backgroundColor: activeTab === 'custom-fields' ? '#238636' : 'transparent',
+        color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer',
+        fontWeight: activeTab === 'custom-fields' ? 'bold' : 'normal',
+        whiteSpace: 'nowrap'
+    }}
+>
+     Trường Tùy Biến
+</button>
             </nav>
           </div>
                   {/* Modal Tải Lên Ảnh Đại Diện (S2-03) */}
@@ -665,6 +678,7 @@ const [showAvatarModal, setShowAvatarModal] = useState(false);
         {activeTab === 'products' && <ProductManagement />}
         {activeTab === 'org_tree' && <SalesOrgTree />}
         {activeTab === 'categories' && <CategoryManagement />}
+        {activeTab === 'custom-fields' && <CustomFieldSettings />}
 
         {activeTab === 'users' && (
           isAdmin ? (
@@ -683,7 +697,7 @@ const [showAvatarModal, setShowAvatarModal] = useState(false);
         )}
 
         {/* Bắt tất cả các tab lạ/không tồn tại (Lỗi 404) */}
-{!['dashboard', 'customers', 'products', 'org-tree', 'categories'].includes(activeTab) && (
+{!['dashboard', 'customers', 'products', 'org-tree', 'categories', 'custom-fields'].includes(activeTab) && (
       <ErrorPage
         code={404}
         title="Đường Dẫn Không Hợp Lệ"
