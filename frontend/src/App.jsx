@@ -4,17 +4,30 @@ import UserManagement from './UserManagement';
 import { login, changePassword, forgotPassword } from './api';
 import ErrorPage from './ErrorPage';
 import CustomerManagement from './CustomerManagement';
+import AuditLogManagement from './AuditLogManagement';
+import AvatarUploadModal from './AvatarUploadModal';
+import ProductManagement from './ProductManagement';
+import SalesOrgTree from './SalesOrgTree';
+import CategoryManagement from './CategoryManagement';
 
 export default function App() {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('token') || '');
   const [activeTab, setActiveTab] = useState('dashboard');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+        return JSON.parse(localStorage.getItem('user') || '{}');
+    } catch {
+        return {};
+    }
+});
+const [showAvatarModal, setShowAvatarModal] = useState(false);
 
   // Form Đăng Nhập
   const [loginData, setLoginData] = useState({ email: '', password: '' });
   const [loginError, setLoginError] = useState('');
-  const [loginLoading, setLoginLoading] = useState(false);
+  const [loginLoading, setLoginLoading] = useState(false);  
 
   // Modal Quên Mật Khẩu
   const [showForgotModal, setShowForgotModal] = useState(false);
@@ -336,7 +349,7 @@ export default function App() {
                   color: activeTab === 'dashboard' ? '#fff' : '#94a3b8'
                 }}
               >
-                📊 Tổng Quan
+                 Tổng Quan
               </button>
 
               {/* Tiêu chí AC: Menu ẩn/hiện đúng theo quyền */}
@@ -354,7 +367,7 @@ export default function App() {
                     color: activeTab === 'users' ? '#fff' : '#94a3b8'
                   }}
                 >
-                  👥 Quản Lý Người Dùng
+                   Quản Lý Người Dùng
                 </button>
               )}
               <button
@@ -372,10 +385,77 @@ export default function App() {
                   gap: '6px'
   }}
 >
-  🏢 Quản Lý Khách Hàng
+  Quản Lý Khách Hàng
+</button>
+{currentUser?.role_id === 1 && (
+                        <button
+                            onClick={() => setActiveTab('audit_logs')}
+                            style={{
+                                padding: '8px 12px',
+                                backgroundColor: activeTab === 'audit_logs' ? '#238636' : 'transparent',
+                                color: '#fff',
+                                border: 'none',
+                                borderRadius: '6px',
+                                cursor: 'pointer'
+                            }}
+                        >
+                             Nhật Ký Hệ Thống
+                        </button>
+                    )}
+                    <button
+    onClick={() => setActiveTab('products')}
+    style={{
+        padding: '8px 12px',
+        backgroundColor: activeTab === 'products' ? '#238636' : 'transparent',
+        color: '#fff',
+        border: 'none',
+        borderRadius: '6px',
+        cursor: 'pointer'
+    }}
+>
+     Bảng Giá Sản Phẩm
+</button>
+{isAdmin && (
+    <button
+        onClick={() => setActiveTab('org_tree')}
+        style={{
+            padding: '8px 12px',
+            backgroundColor: activeTab === 'org_tree' ? '#238636' : 'transparent',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer'
+        }}
+    >
+         Cây Tổ Chức
+    </button>
+)}
+<button 
+    onClick={() => setActiveTab('categories')} 
+    style={{ 
+        padding: '8px 16px',
+        backgroundColor: activeTab === 'categories' ? '#238636' : 'transparent',
+        color: '#fff',
+        border: 'none',
+        borderRadius: '6px',
+        cursor: 'pointer',
+        fontWeight: activeTab === 'categories' ? 'bold' : 'normal',
+        fontSize: '14px'
+    }}
+>
+     Danh Mục Bán Hàng
 </button>
             </nav>
           </div>
+                  {/* Modal Tải Lên Ảnh Đại Diện (S2-03) */}
+<AvatarUploadModal
+    isOpen={showAvatarModal}
+    onClose={() => setShowAvatarModal(false)}
+    currentAvatar={currentUser?.avatar}
+    onUploadSuccess={(newAvatarUrl) => {
+        setCurrentUser(prev => ({ ...prev, avatar: newAvatarUrl }));
+    }}
+/>
 
           {/* User Profile & Actions */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
@@ -392,6 +472,54 @@ export default function App() {
                 <span>{user?.group_name || 'Ban Điều Hành'}</span>
               </div>
             </div>
+            {/* Avatar tròn click để đổi ảnh */}
+<div 
+    onClick={() => setShowAvatarModal(true)}
+    title="Nhấn để đổi ảnh đại diện"
+    style={{
+        width: '36px',
+        height: '36px',
+        borderRadius: '50%',
+        overflow: 'hidden',
+        border: '2px solid #30363d',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#21262d',
+        marginRight: '8px'
+    }}
+>
+    {currentUser?.avatar ? (
+<img 
+    src={
+        user?.avatar 
+            ? (user.avatar.startsWith('http') ? user.avatar : `http://localhost:5001${user.avatar.startsWith('/') ? '' : '/'}${user.avatar}`)
+            : `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || user?.name || 'Admin')}&background=1f6feb&color=fff`
+    } 
+    alt="Avatar"
+    onError={(e) => {
+        // Nếu link ảnh bị lỗi / 404, tự động đổi sang avatar chữ cái theo tên người dùng
+        e.currentTarget.onerror = null;
+        e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || user?.name || 'Admin')}&background=1f6feb&color=fff`;
+    }}
+    style={{
+        width: '36px',
+        height: '36px',
+        minWidth: '36px',
+        minHeight: '36px',
+        borderRadius: '50%',
+        objectFit: 'cover',
+        aspectRatio: '1/1',
+        flexShrink: 0,
+        display: 'block',
+        border: '1.5px solid #30363d'
+    }}
+/>
+    ) : (
+        <span style={{ fontSize: '18px' }}>👤</span>
+    )}
+</div>
 
             {/* Nút thao tác trên Desktop */}
             <div className="desktop-only" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -473,7 +601,7 @@ export default function App() {
                 cursor: 'pointer'
               }}
             >
-              📊 Tổng Quan
+               Tổng Quan
             </button>
 
             {isAdmin && (
@@ -490,7 +618,7 @@ export default function App() {
                   cursor: 'pointer'
                 }}
               >
-                👥 Quản Lý Người Dùng
+                 Quản Lý Người Dùng
               </button>
             )}
 
@@ -499,7 +627,7 @@ export default function App() {
                 onClick={() => { setShowPasswordModal(true); setMobileMenuOpen(false); }}
                 style={{ flex: 1, padding: '8px', backgroundColor: '#334155', border: 'none', borderRadius: '6px', color: '#fff', fontSize: '12px', cursor: 'pointer' }}
               >
-                ⚙ Đổi mật khẩu
+                 Đổi mật khẩu
               </button>
               <button
                 onClick={handleLogout}
@@ -513,8 +641,6 @@ export default function App() {
       </header>
 
       {/* NỘI DUNG CHÍNH */}
-      {/* NỘI DUNG CHÍNH */}
-      {/* NỘI DUNG CHÍNH (Xử lý AC của S1-09: Không để màn hình trắng) */}
       <main style={{ flex: 1, padding: '16px' }}>
         {activeTab === 'dashboard' && (
           <div style={{
@@ -535,7 +661,11 @@ export default function App() {
         )}
         
         {activeTab === 'customers' && <CustomerManagement />}
-        {/* Khi người dùng vào tab Quản trị người dùng */}
+        {activeTab === 'audit_logs' && <AuditLogManagement />}
+        {activeTab === 'products' && <ProductManagement />}
+        {activeTab === 'org_tree' && <SalesOrgTree />}
+        {activeTab === 'categories' && <CategoryManagement />}
+
         {activeTab === 'users' && (
           isAdmin ? (
             <div style={{ backgroundColor: '#ffffff', borderRadius: '8px', overflow: 'hidden' }}>
@@ -553,14 +683,14 @@ export default function App() {
         )}
 
         {/* Bắt tất cả các tab lạ/không tồn tại (Lỗi 404) */}
-        {activeTab !== 'dashboard' && activeTab !== 'users' && (
-          <ErrorPage
-            code={404}
-            title="Đường Dẫn Không Hợp Lệ"
-            message="Chức năng bạn đang tìm kiếm không tồn tại trên hệ thống hoặc đang trong quá trình phát triển."
-            onBackToDashboard={() => setActiveTab('dashboard')}
-          />
-        )}
+{!['dashboard', 'customers', 'products', 'org-tree', 'categories'].includes(activeTab) && (
+      <ErrorPage
+        code={404}
+        title="Đường Dẫn Không Hợp Lệ"
+        message="Chức năng bạn đang tìm kiếm không tồn tại trên hệ thống hoặc đang trong quá trình phát triển."
+        onBackToDashboard={() => setActiveTab('dashboard')}
+    />
+)}
       </main>
 
       {/* Modal Đổi mật khẩu */}
