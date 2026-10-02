@@ -7,6 +7,7 @@ const authRoutes = require('./src/routes/authRoutes');
 const customerRoutes = require('./src/routes/customerRoutes');
 const path = require('path');
 const app = express();
+const categoryRoutes = require('./src/routes/categoryRoutes');
 
 // Khai báo PORT ở đầu để tránh lỗi TDZ (Temporal Dead Zone)
 const PORT = process.env.PORT || 5001;
@@ -23,6 +24,7 @@ app.use('/api/audit-logs', require('./src/routes/auditLogRoutes'));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api/products', require('./src/routes/productRoutes'));
 app.use('/api/groups', require('./src/routes/groupRoutes'));
+app.use('/api/categories', categoryRoutes);
 if (process.env.NODE_ENV !== 'test') {
   app.listen(PORT, () => {
     console.log(` Server Backend đang chạy mượt mà tại cổng ${PORT}`);
