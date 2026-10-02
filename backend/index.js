@@ -20,8 +20,9 @@ app.use('/api/customers', customerRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/contacts', require('./src/routes/contactRoutes'));
 app.use('/api/audit-logs', require('./src/routes/auditLogRoutes'));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));// Chỉ chạy app.listen khi KHÔNG ở chế độ kiểm thử (test)
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api/products', require('./src/routes/productRoutes'));
+app.use('/api/groups', require('./src/routes/groupRoutes'));
 if (process.env.NODE_ENV !== 'test') {
   app.listen(PORT, () => {
     console.log(` Server Backend đang chạy mượt mà tại cổng ${PORT}`);
