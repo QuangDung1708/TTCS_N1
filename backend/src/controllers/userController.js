@@ -3,6 +3,9 @@ const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const { sendWelcomeEmail } = require('../utils/mailer');
 const xlsx = require('xlsx');
+const sharp = require('sharp');
+const path = require('path');
+const fs = require('fs');
 
 // ==========================================
 // 1. LẤY DANH SÁCH NGƯỜI DÙNG (Phân trang mặc định 20, Tìm kiếm, Lọc)
@@ -456,6 +459,46 @@ const executeImportUsers = async (req, res) => {
     });
 };
 
+const uploadAvatar = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ message: 'Vui lòng chọn ảnh để tải lên!' });
+        }
+
+        const userId = req.user.id;
+        const uploadDir = path.join(__dirname, '../../uploads/avatars');    
+
+        // Tạo thư mục nếu chưa có
+        if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true });
+        }
+
+        const fileName = `avatar-${userId}-${Date.now()}.png`;
+        const filePath = path.join(uploadDir, fileName);
+
+        // Cắt ảnh vuông chính giữa 200x200 bằng sharp
+        await sharp(req.file.buffer)
+            .resize(200, 200, {
+                fit: 'cover',
+                position: 'center'
+            })
+            .toFormat('png')
+            .toFile(filePath);
+
+        const avatarUrl = `/uploads/avatars/${fileName}`;
+
+        // Lưu đường dẫn avatar vào CSDL
+        await db.execute('UPDATE users SET avatar = ? WHERE id = ?', [avatarUrl, userId]);
+
+        return res.status(200).json({
+            message: 'Tải lên ảnh đại diện thành công!',
+            avatar: avatarUrl
+        });
+    } catch (error) {
+        console.error('Lỗi upload avatar:', error);
+        return res.status(500).json({ message: 'Không thể xử lý ảnh đại diện!' });
+    }
+};
 module.exports = {
     getUsers,
     createUser,
@@ -465,5 +508,6 @@ module.exports = {
     getUserCustomerCount,
     downloadTemplate,
     previewImportUsers,
-    executeImportUsers
+    executeImportUsers,
+    uploadAvatar
 };

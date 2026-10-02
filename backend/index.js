@@ -5,7 +5,7 @@ require('dotenv').config();
 
 const authRoutes = require('./src/routes/authRoutes');
 const customerRoutes = require('./src/routes/customerRoutes');
-
+const path = require('path');
 const app = express();
 
 // Khai báo PORT ở đầu để tránh lỗi TDZ (Temporal Dead Zone)
@@ -19,7 +19,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/customers', customerRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/contacts', require('./src/routes/contactRoutes'));
-// Chỉ chạy app.listen khi KHÔNG ở chế độ kiểm thử (test)
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));// Chỉ chạy app.listen khi KHÔNG ở chế độ kiểm thử (test)
 if (process.env.NODE_ENV !== 'test') {
   app.listen(PORT, () => {
     console.log(` Server Backend đang chạy mượt mà tại cổng ${PORT}`);
