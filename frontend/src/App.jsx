@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import UserManagement from './UserManagement';
 import { login, changePassword, forgotPassword } from './api';
 import ErrorPage from './ErrorPage';
+import CommonCategoryManagement from './CommonCategoryManagement';
 import ProductFormModal from './ProductFormModal';
 
 export default function App() {
@@ -358,7 +359,27 @@ export default function App() {
                   👥 Quản Lý Người Dùng
                 </button>
               )}
-              <button
+             <button
+  onClick={() => {
+    setActiveTab('categories')
+    setMobileMenuOpen(false)
+  }}
+  style={{
+    width: '100%',
+    textAlign: 'left',
+    padding: '10px 14px',
+    borderRadius: '6px',
+    border: 'none',
+    backgroundColor: activeTab === 'categories' ? '#ff6b00' : 'transparent',
+    color: activeTab === 'categories' ? '#fff' : '#94a3b8',
+    fontWeight: '600',
+    cursor: 'pointer',
+  }}
+>
+  📋 Quản Lý Danh mục
+</button>
+
+<button
   onClick={() => setShowProductModal(true)}
   style={{
     textAlign: 'left',
@@ -368,7 +389,7 @@ export default function App() {
     backgroundColor: 'transparent',
     color: '#94a3b8',
     fontWeight: '600',
-    cursor: 'pointer'
+    cursor: 'pointer',
   }}
 >
   📦 Quản Lý Sản Phẩm
@@ -535,6 +556,7 @@ export default function App() {
 
         {/* Khi người dùng vào tab Quản trị người dùng */}
         {activeTab === 'users' && (
+
           isAdmin ? (
             <div style={{ backgroundColor: '#ffffff', borderRadius: '8px', overflow: 'hidden' }}>
               <UserManagement />
@@ -549,9 +571,19 @@ export default function App() {
             />
           )
         )}
-
+{activeTab === 'categories' && (
+  <div
+    style={{
+      backgroundColor: '#ffffff',
+      borderRadius: '8px',
+      overflow: 'hidden',
+    }}
+  >
+    <CommonCategoryManagement />
+  </div>
+)}
         {/* Bắt tất cả các tab lạ/không tồn tại (Lỗi 404) */}
-        {activeTab !== 'dashboard' && activeTab !== 'users' && (
+        {activeTab !== 'dashboard' && activeTab !== 'users' && activeTab !== 'categories' && (
           <ErrorPage
             code={404}
             title="Đường Dẫn Không Hợp Lệ"
