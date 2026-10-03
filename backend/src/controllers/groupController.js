@@ -38,12 +38,27 @@ const getGroupTree = async (req, res) => {
             LEFT JOIN regions r ON g.region_id = r.id
             ORDER BY g.id
         `);
-        const map = new Map(rows.map((r) => [r.id, { ...r, children: [] }]));
-        const roots = [];
+                const map = new Map(rows.map((r) => [r.id, { ...r, children: [] }]));
+        let roots = [];
         for (const node of map.values()) {
             if (node.parent_id && map.has(node.parent_id)) map.get(node.parent_id).children.push(node);
             else roots.push(node);
         }
+
+        // Đệ quy cộng dồn số thành viên của cả nhánh
+        const sumMembers = (n) => {
+            n.total_member_count =
+                Number(n.member_count) + n.children.reduce((s, c) => s + sumMembers(c), 0);
+            return n.total_member_count;
+        };
+        roots.forEach(sumMembers);
+
+        // Phạm vi dữ liệu: ALL thấy toàn cây, vai trò khác chỉ thấy nhánh của nhóm mình
+        if (req.user && req.user.data_scope !== 'ALL') {
+            const own = req.user.group_id;
+            roots = own && map.has(own) ? [map.get(own)] : [];
+        }
+
         return res.status(200).json({ data: roots });
     } catch (error) {
         console.error('Lỗi lấy cây tổ chức:', error);
