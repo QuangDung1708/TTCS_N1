@@ -2,7 +2,8 @@ const express = require('express');
 const router = express.Router();
 const { verifyToken } = require('../middleware/authMiddleware');
 const { buildDataScope } = require('../middleware/rbacMiddleware');
-const { getCustomers, getCustomerById } = require('../controllers/customerController');
+const { getCustomers, getCustomerById, createCustomer } = require('../controllers/customerController');
+const customerController = require('../controllers/customerController');
 
 // Mọi route khách hàng đều phải xác thực token
 router.use(verifyToken);
@@ -12,5 +13,9 @@ router.get('/', buildDataScope({ userField: 'c.created_by', groupField: 'c.group
 
 // Xem chi tiết khách hàng theo ID
 router.get('/:id', getCustomerById);
+
+router.post('/', createCustomer);
+
+router.get('/export-excel', customerController.exportExcelCustomers);
 
 module.exports = router;
