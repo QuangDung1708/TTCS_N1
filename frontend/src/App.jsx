@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import UserManagement from './UserManagement';
 import { login, changePassword, forgotPassword } from './api';
 import ErrorPage from './ErrorPage';
+import WinLossCompetitorManagement from './WinLossCompetitorManagement';
 import ProductFormModal from './ProductFormModal';
 
 export default function App() {
@@ -373,6 +374,23 @@ export default function App() {
 >
   📦 Quản Lý Sản Phẩm
 </button>
+<button
+  onClick={() => setActiveTab('win-loss-competitor')}
+  style={{
+    textAlign: 'left',
+    padding: '10px 14px',
+    borderRadius: '6px',
+    border: 'none',
+    backgroundColor:
+      activeTab === 'win-loss-competitor' ? '#ff6b00' : 'transparent',
+    color:
+      activeTab === 'win-loss-competitor' ? '#fff' : '#94a3b8',
+    fontWeight: '600',
+    cursor: 'pointer',
+  }}
+>
+  🏆 Quản Lý Thắng/Thua & Đối thủ
+</button>
             </nav>
           </div>
 
@@ -492,7 +510,27 @@ export default function App() {
                 👥 Quản Lý Người Dùng
               </button>
             )}
-
+<button
+  onClick={() => {
+    setActiveTab('win-loss-competitor')
+    setMobileMenuOpen(false)
+  }}
+  style={{
+    width: '100%',
+    textAlign: 'left',
+    padding: '10px 14px',
+    borderRadius: '6px',
+    border: 'none',
+    backgroundColor:
+      activeTab === 'win-loss-competitor' ? '#ff6b00' : 'transparent',
+    color:
+      activeTab === 'win-loss-competitor' ? '#fff' : '#94a3b8',
+    fontWeight: '600',
+    cursor: 'pointer',
+  }}
+>
+  📊 Quản Lý Thắng/Thua & Đối thủ
+</button>
             <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
               <button
                 onClick={() => { setShowPasswordModal(true); setMobileMenuOpen(false); }}
@@ -549,9 +587,22 @@ export default function App() {
             />
           )
         )}
-
+{/* Quản lý Lý do Thắng/Thua & Đối thủ cạnh tranh */}
+{activeTab === 'win-loss-competitor' && (
+  <div
+    style={{
+      backgroundColor: '#ffffff',
+      borderRadius: '8px',
+      overflow: 'hidden',
+    }}
+  >
+    <WinLossCompetitorManagement />
+  </div>
+)}
         {/* Bắt tất cả các tab lạ/không tồn tại (Lỗi 404) */}
-        {activeTab !== 'dashboard' && activeTab !== 'users' && (
+         {activeTab !== 'dashboard' &&
+  activeTab !== 'users' &&
+  activeTab !== 'win-loss-competitor' && (
           <ErrorPage
             code={404}
             title="Đường Dẫn Không Hợp Lệ"
