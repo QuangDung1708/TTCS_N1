@@ -10,6 +10,7 @@ import ProductManagement from './ProductManagement';
 import SalesOrgTree from './SalesOrgTree';
 import CategoryManagement from './CategoryManagement';
 import CustomFieldSettings from './CustomFieldSettings';
+import PipelineConfigManagement from './PipelineConfigManagement';
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -458,6 +459,18 @@ const [showAvatarModal, setShowAvatarModal] = useState(false);
 >
      Trường Tùy Biến
 </button>
+<button 
+    onClick={() => setActiveTab('pipeline-config')} 
+    style={{ 
+        padding: '8px 16px',
+        backgroundColor: activeTab === 'pipeline-config' ? '#238636' : 'transparent',
+        color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer',
+        fontWeight: activeTab === 'pipeline-config' ? 'bold' : 'normal',
+        fontSize: '14px', whiteSpace: 'nowrap'
+    }}
+>
+    Cấu Hình Pipeline
+</button>
             </nav>
           </div>
                   {/* Modal Tải Lên Ảnh Đại Diện (S2-03) */}
@@ -679,6 +692,7 @@ const [showAvatarModal, setShowAvatarModal] = useState(false);
         {activeTab === 'org_tree' && <SalesOrgTree />}
         {activeTab === 'categories' && <CategoryManagement />}
         {activeTab === 'custom-fields' && <CustomFieldSettings />}
+        {activeTab === 'pipeline-config' && <PipelineConfigManagement />}
 
         {activeTab === 'users' && (
           isAdmin ? (

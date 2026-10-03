@@ -9,6 +9,7 @@ const path = require('path');
 const app = express();
 const categoryRoutes = require('./src/routes/categoryRoutes');
 const customFieldRoutes = require('./src/routes/customFieldRoutes');
+const pipelineStageRoutes = require('./src/routes/pipelineStageRoutes');
 
 // Khai báo PORT ở đầu để tránh lỗi TDZ (Temporal Dead Zone)
 const PORT = process.env.PORT || 5001;
@@ -27,6 +28,7 @@ app.use('/api/products', require('./src/routes/productRoutes'));
 app.use('/api/groups', require('./src/routes/groupRoutes'));
 app.use('/api/categories', categoryRoutes);
 app.use('/api/custom-fields', customFieldRoutes);
+app.use('/api/pipeline-stages', pipelineStageRoutes); 
 if (process.env.NODE_ENV !== 'test') {
   app.listen(PORT, () => {
     console.log(` Server Backend đang chạy mượt mà tại cổng ${PORT}`);
