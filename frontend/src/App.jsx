@@ -11,6 +11,7 @@ import SalesOrgTree from './SalesOrgTree';
 import CategoryManagement from './CategoryManagement';
 import CustomFieldSettings from './CustomFieldSettings';
 import PipelineConfigManagement from './PipelineConfigManagement';
+import DealReasonsAndCompetitors from './DealReasonsAndCompetitors';
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -471,6 +472,18 @@ const [showAvatarModal, setShowAvatarModal] = useState(false);
 >
     Cấu Hình Pipeline
 </button>
+<button 
+    onClick={() => setActiveTab('deal-reasons')} 
+    style={{ 
+        padding: '8px 16px',
+        backgroundColor: activeTab === 'deal-reasons' ? '#238636' : 'transparent',
+        color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer',
+        fontWeight: activeTab === 'deal-reasons' ? 'bold' : 'normal',
+        fontSize: '14px', whiteSpace: 'nowrap'
+    }}
+>
+     Lý Do & Đối Thủ
+</button>
             </nav>
           </div>
                   {/* Modal Tải Lên Ảnh Đại Diện (S2-03) */}
@@ -693,6 +706,7 @@ const [showAvatarModal, setShowAvatarModal] = useState(false);
         {activeTab === 'categories' && <CategoryManagement />}
         {activeTab === 'custom-fields' && <CustomFieldSettings />}
         {activeTab === 'pipeline-config' && <PipelineConfigManagement />}
+        {activeTab === 'deal-reasons' && <DealReasonsAndCompetitors />}
 
         {activeTab === 'users' && (
           isAdmin ? (
@@ -711,7 +725,7 @@ const [showAvatarModal, setShowAvatarModal] = useState(false);
         )}
 
         {/* Bắt tất cả các tab lạ/không tồn tại (Lỗi 404) */}
-{!['dashboard', 'customers', 'products', 'org-tree', 'categories', 'custom-fields'].includes(activeTab) && (
+{!['dashboard', 'customers', 'products', 'org-tree', 'categories', 'custom-fields', 'pipeline-config', 'deal-reasons'].includes(activeTab) && (
       <ErrorPage
         code={404}
         title="Đường Dẫn Không Hợp Lệ"
