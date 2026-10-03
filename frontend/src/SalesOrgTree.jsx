@@ -36,7 +36,7 @@ function TreeNode({ node, onAddChild, onEdit, onManageMembers, level = 0 }) {
                                 padding: '2px 8px', borderRadius: '12px', fontSize: '11px',
                                 backgroundColor: '#1f242c', border: '1px solid #388bfd', color: '#58a6ff'
                             }}>
-                                📍 {node.region || 'Toàn quốc'}
+                                 {node.region || 'Toàn quốc'}
                             </span>
                         </div>
                         <div style={{ fontSize: '12px', color: '#8b949e', marginTop: '4px' }}>
@@ -52,7 +52,7 @@ function TreeNode({ node, onAddChild, onEdit, onManageMembers, level = 0 }) {
                         onClick={() => onManageMembers(node)}
                         style={{ padding: '5px 10px', backgroundColor: '#21262d', color: '#c9d1d9', border: '1px solid #30363d', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
                     >
-                        👥 Nhân sự
+                         Nhân sự
                     </button>
                     <button
                         onClick={() => onAddChild(node)}
@@ -64,7 +64,7 @@ function TreeNode({ node, onAddChild, onEdit, onManageMembers, level = 0 }) {
                         onClick={() => onEdit(node)}
                         style={{ padding: '5px 10px', backgroundColor: '#21262d', color: '#8b949e', border: '1px solid #30363d', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
                     >
-                        ✏️ Sửa
+                         Sửa
                     </button>
                 </div>
             </div>

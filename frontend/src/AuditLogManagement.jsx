@@ -53,7 +53,7 @@ export default function AuditLogManagement() {
     return (
         <div style={{ padding: '24px', color: '#e6edf3', maxWidth: '1200px', margin: '0 auto' }}>
             <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '16px' }}>
-                📋 Nhật Ký Thay Đổi Dữ Liệu Nhạy Cảm (S2-04)
+                 Nhật Ký Thay Đổi Dữ Liệu Nhạy Cảm
             </h2>
 
             {/* Thanh Bộ Lọc Đa Tiêu Chí */}
@@ -107,7 +107,7 @@ export default function AuditLogManagement() {
                         color: '#8b949e', border: '1px solid #30363d', borderRadius: '6px', cursor: 'pointer'
                     }}
                 >
-                    🔄 Xóa bộ lọc
+                     Xóa bộ lọc
                 </button>
             </div>
 
@@ -156,7 +156,7 @@ export default function AuditLogManagement() {
                                                 border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px'
                                             }}
                                         >
-                                            🔍 Xem khác biệt (Diff)
+                                             Xem khác biệt (Diff)
                                         </button>
                                     </td>
                                 </tr>

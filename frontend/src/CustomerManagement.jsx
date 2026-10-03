@@ -128,7 +128,7 @@ const CustomerManagement = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <div>
                     <h2 style={{ margin: 0, fontSize: '22px', color: '#f0883e' }}>
-                        Quản Lý Khách Hàng & Người Liên Hệ (S2-02 / S2-07 / S2-08)
+                        Quản Lý Khách Hàng & Người Liên Hệ
                     </h2>
                     <p style={{ margin: '6px 0 0', color: '#8b949e', fontSize: '13px' }}>
                         Tự động tích hợp phân loại ngành nghề và các trường tùy biến động của doanh nghiệp
@@ -142,7 +142,7 @@ const CustomerManagement = () => {
                             border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold'
                         }}
                     >
-                        📥 Xuất Excel
+                         Xuất Excel
                     </button>
                     <button
                         onClick={() => setShowAddModal(true)}
@@ -151,7 +151,7 @@ const CustomerManagement = () => {
                             border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold'
                         }}
                     >
-                        ➕ Thêm Khách Hàng
+                         Thêm Khách Hàng
                     </button>
                     <button
                         onClick={fetchCustomers}
@@ -160,7 +160,7 @@ const CustomerManagement = () => {
                             border: '1px solid #30363d', borderRadius: '6px', cursor: 'pointer'
                         }}
                     >
-                        🔄 Làm mới
+                         Làm mới
                     </button>
                 </div>
             </div>
@@ -216,7 +216,7 @@ const CustomerManagement = () => {
                                             onClick={() => setSelectedCustomer(c)}
                                             style={{ padding: '5px 12px', backgroundColor: '#238636', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
                                         >
-                                            👥 Người liên hệ
+                                             Người liên hệ
                                         </button>
                                     </td>
                                 </tr>

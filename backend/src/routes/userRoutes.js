@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
+const userController = require('../controllers/userController');
 
 // Import middleware upload ảnh riêng để không đụng với Excel
 const avatarUpload = require('../middleware/uploadMiddleware');
@@ -22,7 +23,9 @@ const {
     downloadTemplate,
     previewImportUsers,
     executeImportUsers,
-    uploadAvatar
+    uploadAvatar,
+    updateProfile,
+    changePassword
 } = require('../controllers/userController');
 // Mọi route quản lý tài khoản đều yêu cầu đăng nhập
 router.use(verifyToken);
@@ -45,7 +48,10 @@ router.post('/avatar', (req, res, next) => {
         next();
     });
 }, uploadAvatar);
+router.put('/profile', updateProfile);
 
+router.get('/', userController.getUsers);
+router.put('/change-password', changePassword);
 // ==========================================
 // CÁC ROUTE QUẢN TRỊ TÀI KHOẢN KHÁC
 // ==========================================

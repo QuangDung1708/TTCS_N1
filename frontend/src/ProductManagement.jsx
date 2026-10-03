@@ -125,7 +125,7 @@ export default function ProductManagement() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                 <div>
                     <h2 style={{ fontSize: '20px', fontWeight: 'bold', margin: '0 0 4px 0' }}>
-                        📦 Danh Mục Sản Phẩm & Bảng Giá Chuẩn (S2-05)
+                         Danh Mục Sản Phẩm & Bảng Giá Chuẩn
                     </h2>
                     <span style={{ fontSize: '13px', color: '#8b949e' }}>
                         Mọi báo giá kinh doanh bắt buộc xuất phát từ bảng giá niêm yết này
@@ -185,7 +185,7 @@ export default function ProductManagement() {
                             <th style={{ padding: '12px' }}>ĐVT</th>
                             <th style={{ padding: '12px', textAlign: 'right' }}>Giá Niêm Yết</th>
                             <th style={{ padding: '12px', textAlign: 'right' }}>Giá Sàn (Floor)</th>
-                            {isDirector && <th style={{ padding: '12px', textAlign: 'right', color: '#e3b341' }}>🔒 Giá Vốn (Cost)</th>}
+                            {isDirector && <th style={{ padding: '12px', textAlign: 'right', color: '#e3b341' }}> Giá Vốn (Cost)</th>}
                             <th style={{ padding: '12px', textAlign: 'center' }}>Trạng Thái</th>
                             {isDirector && <th style={{ padding: '12px', textAlign: 'center' }}>Thao Tác</th>}
                         </tr>
@@ -236,7 +236,7 @@ export default function ProductManagement() {
                                                 onClick={() => handleOpenModal(p)}
                                                 style={{ padding: '4px 8px', marginRight: '6px', backgroundColor: '#21262d', color: '#c9d1d9', border: '1px solid #30363d', borderRadius: '4px', cursor: 'pointer' }}
                                             >
-                                                ✏️ Sửa
+                                                 Sửa
                                             </button>
                                             <button
                                                 onClick={() => handleToggleStatus(p.id)}

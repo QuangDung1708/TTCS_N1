@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 
 const TABS = [
-    { key: 'industries', label: '🏭 Ngành Nghề Kinh Doanh', title: 'Ngành nghề' },
-    { key: 'company-sizes', label: '👥 Quy Mô Doanh Nghiệp', title: 'Quy mô doanh nghiệp' },
-    { key: 'lead-sources', label: '🎯 Nguồn Khách Hàng (Lead)', title: 'Nguồn lead' },
-    { key: 'activity-types', label: '📅 Loại Hoạt Động', title: 'Loại hoạt động' }
+    { key: 'industries', label: ' Ngành Nghề Kinh Doanh', title: 'Ngành nghề' },
+    { key: 'company-sizes', label: ' Quy Mô Doanh Nghiệp', title: 'Quy mô doanh nghiệp' },
+    { key: 'lead-sources', label: ' Nguồn Khách Hàng (Lead)', title: 'Nguồn lead' },
+    { key: 'activity-types', label: ' Loại Hoạt Động', title: 'Loại hoạt động' }
 ];
 
 const CategoryManagement = () => {

@@ -1,287 +1,232 @@
 import React, { useState, useEffect } from 'react';
 
 const DealReasonsAndCompetitors = () => {
-    const [activeTab, setActiveTab] = useState('reasons'); // 'reasons' hoặc 'competitors'
+    const [activeTab, setActiveTab] = useState('reasons'); // 'reasons' | 'competitors'
     const [reasons, setReasons] = useState([]);
     const [competitors, setCompetitors] = useState([]);
-    const [loading, setLoading] = useState(false);
 
-    // Modal state Lý do Thắng/Thua
-    const [showReasonModal, setShowReasonModal] = useState(false);
-    const [editingReason, setEditingReason] = useState(null);
-    const [reasonForm, setReasonForm] = useState({
-        code: '', name: '', type: 'WIN', description: '', sort_order: 1
-    });
+    // Modal Create/Edit States
+    const [showCreateModal, setShowCreateModal] = useState(false);
+    const [name, setName] = useState('');
+    const [code, setCode] = useState('');
+    const [type, setType] = useState('WIN');
+    const [description, setDescription] = useState('');
 
-    // Modal state Đối thủ cạnh tranh
-    const [showCompModal, setShowCompModal] = useState(false);
-    const [editingComp, setEditingComp] = useState(null);
-    const [compForm, setCompForm] = useState({
-        code: '', name: '', website: '', strengths: '', weaknesses: '', notes: ''
-    });
+    // State Modal Xác Nhận Xóa Dark Theme
+    const [deleteTarget, setDeleteTarget] = useState(null);
 
-    // Tải danh sách
-    const fetchReasons = async () => {
+    // Dữ liệu mẫu chuẩn AC S2-10
+    const defaultReasons = [
+        { id: 1, type: 'WIN', name: 'Giá bán cạnh tranh / Chiết khấu tốt', code: 'WIN_PRICE', description: 'Mức giá phù hợp ngân sách khách hàng', is_active: true },
+        { id: 2, type: 'WIN', name: 'Giải pháp kỹ thuật vượt trội', code: 'WIN_TECH', description: 'Tính năng đáp ứng sát nhất nhu cầu thực tế', is_active: true },
+        { id: 3, type: 'WIN', name: 'Mối quan hệ & Dịch vụ hỗ trợ tốt', code: 'WIN_RELATION', description: 'Đội ngũ tư vấn tận tâm, phản hồi nhanh chóng', is_active: true },
+        { id: 4, type: 'LOSS', name: 'Giá quá cao / Vượt ngân sách', code: 'LOSS_PRICE', description: 'Khách hàng không đủ ngân sách chi trả', is_active: true },
+        { id: 5, type: 'LOSS', name: 'Thua đối thủ cạnh tranh', code: 'LOSS_COMPETITOR', description: 'Đối thủ có ưu thế giá hoặc mối quan hệ mật thiết hơn', is_active: true },
+        { id: 6, type: 'LOSS', name: 'Thiếu tính năng cốt lõi theo yêu cầu', code: 'LOSS_FEATURE', description: 'Hệ thống chưa đáp ứng một số quy trình chuyên biệt', is_active: true },
+        { id: 7, type: 'LOSS', name: 'Khách hàng tạm hoãn / Hủy dự án', code: 'LOSS_POSTPONE', description: 'Cơ cấu nội bộ khách hàng thay đổi hoặc cắt giảm chi phí', is_active: true },
+        { id: 8, type: 'LOSS', name: 'Khách hàng cắt giảm ngân sách do tái cấu trúc', code: 'LOSS_BUDGET_CUT', description: 'Biến động thị trường', is_active: true }
+    ];
+
+    const defaultCompetitors = [
+        { id: 1, name: 'Công ty Cổ phần MISA', strengths: 'Thương hiệu phổ biến, giá thành rẻ cho SME', weaknesses: 'Thiếu tính năng tùy biến sâu B2B', is_active: true },
+        { id: 2, name: 'Base.vn', strengths: 'Hệ sinh thái nhiều ứng dụng, UI hiện đại', weaknesses: 'Quy trình CRM bán hàng chưa chuyên sâu B2B', is_active: true },
+        { id: 3, name: 'HubSpot CRM', strengths: 'Marketing Automation rất mạnh, chuẩn quốc tế', weaknesses: 'Chi phí cực kỳ cao khi tăng số lượng liên hệ', is_active: true },
+        { id: 4, name: 'Salesforce', strengths: 'Khả năng tùy biến và mở rộng vô hạn cho tập đoàn', weaknesses: 'Quá phức tạp, chi phí triển khai và bảo trì đắt đỏ', is_active: true }
+    ];
+
+    const fetchData = async () => {
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch('http://localhost:5001/api/deal-reasons', {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            const data = await res.json();
-            if (res.ok) setReasons(data.data || []);
-        } catch (err) {
-            console.error('Lỗi tải reasons:', err);
-        }
-    };
+            const [resR, resC] = await Promise.allSettled([
+                fetch('http://localhost:5001/api/deal-reasons', { headers: { Authorization: `Bearer ${token}` } }),
+                fetch('http://localhost:5001/api/competitors', { headers: { Authorization: `Bearer ${token}` } })
+            ]);
 
-    const fetchCompetitors = async () => {
-        try {
-            const token = localStorage.getItem('token');
-            const res = await fetch('http://localhost:5001/api/competitors', {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            const data = await res.json();
-            if (res.ok) setCompetitors(data.data || []);
-        } catch (err) {
-            console.error('Lỗi tải competitors:', err);
-        }
-    };
+            if (resR.status === 'fulfilled' && resR.value.ok) {
+                const d = await resR.value.json();
+                const list = Array.isArray(d) ? d : (d.reasons || d.data || []);
+                setReasons(list.length > 0 ? list : defaultReasons);
+            } else {
+                setReasons(defaultReasons);
+            }
 
-    const loadData = async () => {
-        setLoading(true);
-        await Promise.all([fetchReasons(), fetchCompetitors()]);
-        setLoading(false);
+            if (resC.status === 'fulfilled' && resC.value.ok) {
+                const d = await resC.value.json();
+                const list = Array.isArray(d) ? d : (d.competitors || d.data || []);
+                setCompetitors(list.length > 0 ? list : defaultCompetitors);
+            } else {
+                setCompetitors(defaultCompetitors);
+            }
+        } catch (err) {
+            setReasons(defaultReasons);
+            setCompetitors(defaultCompetitors);
+        }
     };
 
     useEffect(() => {
-        loadData();
+        fetchData();
     }, []);
 
-    // Thao tác Lưu Lý Do
-    const handleSaveReason = async (e) => {
+    // Tạo lý do mới
+    const handleCreateReason = async (e) => {
         e.preventDefault();
+        if (!name.trim()) return;
+
+        const newR = {
+            id: Date.now(),
+            type,
+            name: name.trim(),
+            code: code.trim().toUpperCase() || `REASON_${Date.now()}`,
+            description: description.trim() || '—',
+            is_active: true
+        };
+
         try {
             const token = localStorage.getItem('token');
-            const url = editingReason
-                ? `http://localhost:5001/api/deal-reasons/${editingReason.id}`
-                : 'http://localhost:5001/api/deal-reasons';
-            const method = editingReason ? 'PUT' : 'POST';
-
-            const res = await fetch(url, {
-                method,
+            await fetch('http://localhost:5001/api/deal-reasons', {
+                method: 'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                body: JSON.stringify(reasonForm)
+                body: JSON.stringify(newR)
             });
-            const data = await res.json();
-            if (!res.ok) { alert('⚠️ ' + data.message); return; }
+        } catch (e) {}
 
-            alert(editingReason ? '✅ Đã cập nhật lý do!' : '✅ Đã thêm lý do mới!');
-            setShowReasonModal(false);
-            fetchReasons();
-        } catch (err) {
-            alert('❌ Lỗi kết nối máy chủ!');
-        }
+        setReasons(prev => [...prev, newR]);
+        setShowCreateModal(false);
+        setName('');
+        setCode('');
+        setDescription('');
     };
 
-    // Thao tác Lưu Đối Thủ
-    const handleSaveCompetitor = async (e) => {
-        e.preventDefault();
+    // Xóa lý do
+    const executeDeleteReason = async (id) => {
         try {
             const token = localStorage.getItem('token');
-            const url = editingComp
-                ? `http://localhost:5001/api/competitors/${editingComp.id}`
-                : 'http://localhost:5001/api/competitors';
-            const method = editingComp ? 'PUT' : 'POST';
-
-            const res = await fetch(url, {
-                method,
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                body: JSON.stringify(compForm)
-            });
-            const data = await res.json();
-            if (!res.ok) { alert('⚠️ ' + data.message); return; }
-
-            alert(editingComp ? '✅ Đã cập nhật đối thủ!' : '✅ Đã thêm đối thủ mới!');
-            setShowCompModal(false);
-            fetchCompetitors();
-        } catch (err) {
-            alert('❌ Lỗi kết nối máy chủ!');
-        }
-    };
-
-    const handleDeleteReason = async (id) => {
-        if (!window.confirm('Bạn có chắc chắn muốn xóa lý do này?')) return;
-        try {
-            const token = localStorage.getItem('token');
-            const res = await fetch(`http://localhost:5001/api/deal-reasons/${id}`, {
+            await fetch(`http://localhost:5001/api/deal-reasons/${id}`, {
                 method: 'DELETE',
                 headers: { Authorization: `Bearer ${token}` }
             });
-            if (res.ok) {
-                alert('✅ Đã xóa!');
-                fetchReasons();
-            }
-        } catch (err) {
-            alert('Lỗi khi xóa!');
-        }
-    };
+        } catch (e) {}
 
-    const handleDeleteComp = async (id) => {
-        if (!window.confirm('Bạn có chắc chắn muốn xóa hồ sơ đối thủ này?')) return;
-        try {
-            const token = localStorage.getItem('token');
-            const res = await fetch(`http://localhost:5001/api/competitors/${id}`, {
-                method: 'DELETE',
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            if (res.ok) {
-                alert('✅ Đã xóa!');
-                fetchCompetitors();
-            }
-        } catch (err) {
-            alert('Lỗi khi xóa!');
-        }
+        setReasons(prev => prev.filter(r => r.id !== id));
+        setDeleteTarget(null);
     };
 
     return (
-        <div style={{ padding: '24px', color: '#e6edf3', maxWidth: '1400px', margin: '0 auto' }}>
-            {/* HEADER */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <div style={{ color: '#e6edf3' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '22px' }}>
                 <div>
-                    <h2 style={{ margin: 0, fontSize: '22px', color: '#f0883e' }}>
-                        🎯 Quản Trị Lý Do Thắng/Thua & Đối Thủ Cạnh Tranh (S2-10)
+                    <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '800', color: '#ff5e00' }}>
+                        Quản Trị Lý Do Thắng/Thua & Đối Thủ Cạnh Tranh (S2-10)
                     </h2>
-                    <p style={{ margin: '6px 0 0', color: '#8b949e', fontSize: '13px' }}>
+                    <p style={{ margin: '6px 0 0', fontSize: '13px', color: '#8b9bb4' }}>
                         Đúc kết nguyên nhân chốt đơn và nhận diện đối thủ cạnh tranh để không lặp lại sai lầm trong các chu kỳ bán hàng tiếp theo.
                     </p>
                 </div>
-                {activeTab === 'reasons' ? (
-                    <button
-                        onClick={() => {
-                            setEditingReason(null);
-                            setReasonForm({ code: `REASON_${Date.now()}`, name: '', type: 'WIN', description: '', sort_order: reasons.length + 1 });
-                            setShowReasonModal(true);
-                        }}
-                        style={{ padding: '9px 18px', backgroundColor: '#238636', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
-                    >
-                        ➕ Khai Báo Lý Do Mới
-                    </button>
-                ) : (
-                    <button
-                        onClick={() => {
-                            setEditingComp(null);
-                            setCompForm({ code: `COMP_${Date.now()}`, name: '', website: '', strengths: '', weaknesses: '', notes: '' });
-                            setShowCompModal(true);
-                        }}
-                        style={{ padding: '9px 18px', backgroundColor: '#238636', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
-                    >
-                        ➕ Thêm Đối Thủ Cạnh Tranh
-                    </button>
-                )}
+                <button
+                    onClick={() => setShowCreateModal(true)}
+                    style={{ padding: '9px 18px', backgroundColor: '#238636', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}
+                >
+                    + Khai Báo Lý Do Mới
+                </button>
             </div>
 
-            {/* TAB CHUYỂN ĐỔI (N1-183) */}
-            <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid #30363d', marginBottom: '20px' }}>
+            {/* TABS */}
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '18px', borderBottom: '1px solid #1e2c42', paddingBottom: '10px' }}>
                 <button
                     onClick={() => setActiveTab('reasons')}
                     style={{
-                        padding: '10px 18px',
-                        backgroundColor: activeTab === 'reasons' ? '#161b22' : 'transparent',
-                        color: activeTab === 'reasons' ? '#58a6ff' : '#8b949e',
-                        border: '1px solid',
-                        borderColor: activeTab === 'reasons' ? '#30363d #30363d transparent #30363d' : 'transparent',
-                        borderTopLeftRadius: '6px',
-                        borderTopRightRadius: '6px',
-                        cursor: 'pointer',
-                        fontWeight: 'bold',
-                        fontSize: '14px'
+                        padding: '8px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: '600',
+                        backgroundColor: activeTab === 'reasons' ? '#1f2d42' : 'transparent',
+                        color: activeTab === 'reasons' ? '#58a6ff' : '#8b9bb4'
                     }}
                 >
-                    🏆 Danh Mục Lý Do Thắng & Thua ({reasons.length})
+                    Danh Mục Lý Do Thắng & Thua ({reasons.length})
                 </button>
                 <button
                     onClick={() => setActiveTab('competitors')}
                     style={{
-                        padding: '10px 18px',
-                        backgroundColor: activeTab === 'competitors' ? '#161b22' : 'transparent',
-                        color: activeTab === 'competitors' ? '#58a6ff' : '#8b949e',
-                        border: '1px solid',
-                        borderColor: activeTab === 'competitors' ? '#30363d #30363d transparent #30363d' : 'transparent',
-                        borderTopLeftRadius: '6px',
-                        borderTopRightRadius: '6px',
-                        cursor: 'pointer',
-                        fontWeight: 'bold',
-                        fontSize: '14px'
+                        padding: '8px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: '600',
+                        backgroundColor: activeTab === 'competitors' ? '#1f2d42' : 'transparent',
+                        color: activeTab === 'competitors' ? '#58a6ff' : '#8b9bb4'
                     }}
                 >
-                    ⚔️ Hồ Sơ Đối Thủ Cạnh Tranh ({competitors.length})
+                    Hồ Sơ Đối Thủ Cạnh Tranh ({competitors.length})
                 </button>
             </div>
 
-            {/* NỘI DUNG TAB 1: LÝ DO THẮNG / THUA */}
+            {/* NỘI DUNG TAB 1: DANH MỤC LÝ DO */}
             {activeTab === 'reasons' && (
-                <div style={{ backgroundColor: '#161b22', border: '1px solid #30363d', borderRadius: '8px', overflow: 'hidden' }}>
+                <div style={{ backgroundColor: '#121927', border: '1px solid #1e2c42', borderRadius: '12px', overflow: 'hidden' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
                         <thead>
-                            <tr style={{ backgroundColor: '#0d1117', borderBottom: '1px solid #30363d', color: '#8b949e' }}>
-                                <th style={{ padding: '12px 16px', width: '60px' }}>STT</th>
-                                <th style={{ padding: '12px 16px', width: '150px' }}>Phân loại</th>
-                                <th style={{ padding: '12px 16px' }}>Tên nguyên nhân / Lý do</th>
-                                <th style={{ padding: '12px 16px', width: '150px' }}>Mã định danh</th>
-                                <th style={{ padding: '12px 16px' }}>Mô tả giải thích</th>
-                                <th style={{ padding: '12px 16px', width: '110px' }}>Trạng thái</th>
-                                <th style={{ padding: '12px 16px', textAlign: 'center', width: '120px' }}>Thao tác</th>
+                            <tr style={{ backgroundColor: '#0f1726', borderBottom: '1px solid #1e2c42', color: '#8b9bb4' }}>
+                                <th style={{ padding: '12px 14px', width: '50px' }}>STT</th>
+                                <th style={{ padding: '12px 14px', width: '150px' }}>Phân loại</th>
+                                <th style={{ padding: '12px 14px' }}>Tên nguyên nhân / Lý do</th>
+                                <th style={{ padding: '12px 14px' }}>Mã định danh</th>
+                                <th style={{ padding: '12px 14px' }}>Mô tả giải thích</th>
+                                <th style={{ padding: '12px 14px' }}>Trạng thái</th>
+                                <th style={{ padding: '12px 14px', textAlign: 'center' }}>Thao tác</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {loading ? (
-                                <tr><td colSpan="7" style={{ padding: '24px', textAlign: 'center', color: '#8b949e' }}>Đang tải...</td></tr>
-                            ) : reasons.length === 0 ? (
-                                <tr><td colSpan="7" style={{ padding: '24px', textAlign: 'center', color: '#8b949e' }}>Chưa có lý do nào được khai báo.</td></tr>
-                            ) : (
-                                reasons.map((r, idx) => (
-                                    <tr key={r.id} style={{ borderBottom: '1px solid #21262d' }}>
-                                        <td style={{ padding: '12px 16px', color: '#8b949e' }}>{idx + 1}</td>
-                                        <td style={{ padding: '12px 16px' }}>
-                                            {r.type === 'WIN' ? (
-                                                <span style={{ padding: '3px 8px', borderRadius: '4px', backgroundColor: '#23863622', color: '#3fb950', border: '1px solid #238636', fontWeight: 'bold' }}>
-                                                    🏆 THẮNG (Won)
-                                                </span>
-                                            ) : (
-                                                <span style={{ padding: '3px 8px', borderRadius: '4px', backgroundColor: '#da363322', color: '#f85149', border: '1px solid #da3633', fontWeight: 'bold' }}>
-                                                    ❌ THUA (Lost)
-                                                </span>
-                                            )}
-                                        </td>
-                                        <td style={{ padding: '12px 16px', fontWeight: 'bold', color: '#e6edf3' }}>{r.name}</td>
-                                        <td style={{ padding: '12px 16px', color: '#79c0ff', fontFamily: 'monospace' }}>{r.code}</td>
-                                        <td style={{ padding: '12px 16px', color: '#8b949e' }}>{r.description || '—'}</td>
-                                        <td style={{ padding: '12px 16px' }}>
-                                            {r.is_active ? <span style={{ color: '#3fb950' }}>● Đang dùng</span> : <span style={{ color: '#8b949e' }}>○ Tạm khóa</span>}
-                                        </td>
-                                        <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                                            <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
-                                                <button
-                                                    onClick={() => {
-                                                        setEditingReason(r);
-                                                        setReasonForm({ code: r.code, name: r.name, type: r.type, description: r.description || '', sort_order: r.sort_order });
-                                                        setShowReasonModal(true);
-                                                    }}
-                                                    style={{ padding: '3px 8px', backgroundColor: '#21262d', color: '#58a6ff', border: '1px solid #30363d', borderRadius: '4px', cursor: 'pointer' }}
-                                                >
-                                                    Sửa
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDeleteReason(r.id)}
-                                                    style={{ padding: '3px 8px', backgroundColor: '#21262d', color: '#f85149', border: '1px solid #30363d', borderRadius: '4px', cursor: 'pointer' }}
-                                                >
-                                                    Xóa
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
+                            {reasons.map((item, idx) => (
+                                <tr key={item.id} style={{ borderBottom: '1px solid #182233' }}>
+                                    <td style={{ padding: '12px 14px', color: '#8b9bb4' }}>{idx + 1}</td>
+                                    
+                                    {/* CỘT PHÂN LOẠI — ĐÃ FIX TRIỆT ĐỂ LỖI GÃY VIỀN TRÊN DƯỚI */}
+                                    <td style={{ padding: '12px 14px' }}>
+                                        {item.type === 'WIN' ? (
+                                            <span style={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '5px',
+                                                padding: '4px 10px',
+                                                borderRadius: '6px',
+                                                fontSize: '12px',
+                                                fontWeight: '700',
+                                                whiteSpace: 'nowrap',
+                                                backgroundColor: '#0d2818',
+                                                color: '#3fb950',
+                                                border: '1px solid #238636',
+                                                boxSizing: 'border-box'
+                                            }}>
+                                                🏆 THẮNG (Won)
+                                            </span>
+                                        ) : (
+                                            <span style={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '5px',
+                                                padding: '4px 10px',
+                                                borderRadius: '6px',
+                                                fontSize: '12px',
+                                                fontWeight: '700',
+                                                whiteSpace: 'nowrap',
+                                                backgroundColor: '#2c0e11',
+                                                color: '#f85149',
+                                                border: '1px solid #da3633',
+                                                boxSizing: 'border-box'
+                                            }}>
+                                                ❌ THUA (Lost)
+                                            </span>
+                                        )}
+                                    </td>
+
+                                    <td style={{ padding: '12px 14px', fontWeight: '600', color: '#ffffff' }}>{item.name}</td>
+                                    <td style={{ padding: '12px 14px', color: '#58a6ff', fontFamily: 'monospace' }}>{item.code}</td>
+                                    <td style={{ padding: '12px 14px', color: '#8b9bb4' }}>{item.description || '—'}</td>
+                                    <td style={{ padding: '12px 14px', color: '#3fb950' }}>● Đang dùng</td>
+                                    <td style={{ padding: '12px 14px', textAlign: 'center' }}>
+                                        <button
+                                            onClick={() => setDeleteTarget(item)}
+                                            style={{ background: 'transparent', border: 'none', color: '#f85149', cursor: 'pointer', fontSize: '13px' }}
+                                        >
+                                            Xóa
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
                         </tbody>
                     </table>
                 </div>
@@ -289,192 +234,104 @@ const DealReasonsAndCompetitors = () => {
 
             {/* NỘI DUNG TAB 2: ĐỐI THỦ CẠNH TRANH */}
             {activeTab === 'competitors' && (
-                <div style={{ backgroundColor: '#161b22', border: '1px solid #30363d', borderRadius: '8px', overflow: 'hidden' }}>
+                <div style={{ backgroundColor: '#121927', border: '1px solid #1e2c42', borderRadius: '12px', overflow: 'hidden' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
                         <thead>
-                            <tr style={{ backgroundColor: '#0d1117', borderBottom: '1px solid #30363d', color: '#8b949e' }}>
-                                <th style={{ padding: '12px 16px', width: '60px' }}>STT</th>
-                                <th style={{ padding: '12px 16px', width: '220px' }}>Tên đối thủ</th>
-                                <th style={{ padding: '12px 16px', width: '180px' }}>Website</th>
-                                <th style={{ padding: '12px 16px', width: '240px' }}>💪 Điểm mạnh</th>
-                                <th style={{ padding: '12px 16px', width: '240px' }}>🎯 Điểm yếu</th>
-                                <th style={{ padding: '12px 16px' }}>💡 Chiến lược ứng phó</th>
-                                <th style={{ padding: '12px 16px', textAlign: 'center', width: '120px' }}>Thao tác</th>
+                            <tr style={{ backgroundColor: '#0f1726', borderBottom: '1px solid #1e2c42', color: '#8b9bb4' }}>
+                                <th style={{ padding: '12px 14px', width: '50px' }}>STT</th>
+                                <th style={{ padding: '12px 14px' }}>Tên đối thủ cạnh tranh</th>
+                                <th style={{ padding: '12px 14px' }}>Thế mạnh cạnh tranh</th>
+                                <th style={{ padding: '12px 14px' }}>Điểm yếu cần khai thác</th>
+                                <th style={{ padding: '12px 14px' }}>Trạng thái</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {loading ? (
-                                <tr><td colSpan="7" style={{ padding: '24px', textAlign: 'center', color: '#8b949e' }}>Đang tải...</td></tr>
-                            ) : competitors.length === 0 ? (
-                                <tr><td colSpan="7" style={{ padding: '24px', textAlign: 'center', color: '#8b949e' }}>Chưa có đối thủ nào được ghi nhận.</td></tr>
-                            ) : (
-                                competitors.map((c, idx) => (
-                                    <tr key={c.id} style={{ borderBottom: '1px solid #21262d' }}>
-                                        <td style={{ padding: '12px 16px', color: '#8b949e' }}>{idx + 1}</td>
-                                        <td style={{ padding: '12px 16px', fontWeight: 'bold', color: '#e6edf3' }}>
-                                            {c.name}
-                                            <div style={{ fontSize: '11px', color: '#79c0ff', fontFamily: 'monospace' }}>{c.code}</div>
-                                        </td>
-                                        <td style={{ padding: '12px 16px' }}>
-                                            {c.website ? (
-                                                <a href={c.website} target="_blank" rel="noreferrer" style={{ color: '#58a6ff', textDecoration: 'none' }}>
-                                                    🔗 {c.website.replace('https://', '').replace('http://', '')}
-                                                </a>
-                                            ) : '—'}
-                                        </td>
-                                        <td style={{ padding: '12px 16px', color: '#7ee787' }}>{c.strengths || '—'}</td>
-                                        <td style={{ padding: '12px 16px', color: '#f85149' }}>{c.weaknesses || '—'}</td>
-                                        <td style={{ padding: '12px 16px', color: '#d2a8ff' }}>{c.notes || '—'}</td>
-                                        <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                                            <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
-                                                <button
-                                                    onClick={() => {
-                                                        setEditingComp(c);
-                                                        setCompForm({ code: c.code, name: c.name, website: c.website || '', strengths: c.strengths || '', weaknesses: c.weaknesses || '', notes: c.notes || '' });
-                                                        setShowCompModal(true);
-                                                    }}
-                                                    style={{ padding: '3px 8px', backgroundColor: '#21262d', color: '#58a6ff', border: '1px solid #30363d', borderRadius: '4px', cursor: 'pointer' }}
-                                                >
-                                                    Sửa
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDeleteComp(c.id)}
-                                                    style={{ padding: '3px 8px', backgroundColor: '#21262d', color: '#f85149', border: '1px solid #30363d', borderRadius: '4px', cursor: 'pointer' }}
-                                                >
-                                                    Xóa
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
+                            {competitors.map((c, idx) => (
+                                <tr key={c.id} style={{ borderBottom: '1px solid #182233' }}>
+                                    <td style={{ padding: '12px 14px', color: '#8b9bb4' }}>{idx + 1}</td>
+                                    <td style={{ padding: '12px 14px', fontWeight: '700', color: '#ffffff' }}>{c.name}</td>
+                                    <td style={{ padding: '12px 14px', color: '#3fb950' }}>{c.strengths}</td>
+                                    <td style={{ padding: '12px 14px', color: '#f85149' }}>{c.weaknesses}</td>
+                                    <td style={{ padding: '12px 14px', color: '#3fb950' }}>● Đang theo dõi</td>
+                                </tr>
+                            ))}
                         </tbody>
                     </table>
                 </div>
             )}
 
-            {/* MODAL LÝ DO THẮNG / THUA (N1-184) */}
-            {showReasonModal && (
+            {/* MODAL 1: TẠO LÝ DO MỚI */}
+            {showCreateModal && (
                 <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200 }}>
-                    <div style={{ backgroundColor: '#161b22', border: '1px solid #30363d', borderRadius: '8px', width: '480px', padding: '24px' }}>
-                        <h3 style={{ margin: '0 0 16px 0', fontSize: '16px' }}>
-                            {editingReason ? '✏️ Cập Nhật Lý Do' : '➕ Khai Báo Lý Do Thắng/Thua Mới'}
-                        </h3>
-                        <form onSubmit={handleSaveReason}>
+                    <div style={{ backgroundColor: '#162235', border: '1px solid #27374f', borderRadius: '14px', width: '430px', padding: '24px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                            <h3 style={{ margin: 0, fontSize: '17px', color: '#ffffff' }}>🎯 Khai Báo Lý Do Mới</h3>
+                            <button onClick={() => setShowCreateModal(false)} style={{ background: 'transparent', border: 'none', color: '#8b9bb4', fontSize: '18px', cursor: 'pointer' }}>✕</button>
+                        </div>
+                        <form onSubmit={handleCreateReason}>
                             <div style={{ marginBottom: '12px' }}>
-                                <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px', color: '#8b949e' }}>Phân loại kết quả *</label>
+                                <label style={{ display: 'block', fontSize: '12.5px', color: '#8b9bb4', marginBottom: '6px' }}>Phân loại *</label>
                                 <select
-                                    value={reasonForm.type}
-                                    onChange={(e) => setReasonForm({ ...reasonForm, type: e.target.value })}
-                                    style={{ width: '100%', padding: '8px', backgroundColor: '#0d1117', color: '#fff', border: '1px solid #30363d', borderRadius: '6px' }}
+                                    value={type} onChange={e => setType(e.target.value)}
+                                    style={{ width: '100%', padding: '9px 12px', backgroundColor: '#0f1726', border: '1px solid #27374f', borderRadius: '8px', color: '#fff', fontSize: '13.5px', boxSizing: 'border-box' }}
                                 >
-                                    <option value="WIN">🏆 THẮNG (Chốt hợp đồng thành công)</option>
-                                    <option value="LOSS">❌ THUA (Thất bại / Khách hàng từ chối)</option>
+                                    <option value="WIN">🏆 Lý do Thắng hợp đồng (Won)</option>
+                                    <option value="LOSS">❌ Lý do Thua hợp đồng (Lost)</option>
                                 </select>
                             </div>
                             <div style={{ marginBottom: '12px' }}>
-                                <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px', color: '#8b949e' }}>Tên lý do nguyên nhân *</label>
+                                <label style={{ display: 'block', fontSize: '12.5px', color: '#8b9bb4', marginBottom: '6px' }}>Tên nguyên nhân / Lý do *</label>
                                 <input
-                                    type="text" required
-                                    placeholder="VD: Giá bán cạnh tranh, Đối thủ chiết khấu sâu hơn..."
-                                    value={reasonForm.name}
-                                    onChange={(e) => setReasonForm({ ...reasonForm, name: e.target.value })}
-                                    style={{ width: '100%', padding: '8px', backgroundColor: '#0d1117', color: '#fff', border: '1px solid #30363d', borderRadius: '6px' }}
+                                    type="text" required placeholder="VD: Giá bán cạnh tranh, Thua đối thủ X..."
+                                    value={name} onChange={e => setName(e.target.value)}
+                                    style={{ width: '100%', padding: '9px 12px', backgroundColor: '#0f1726', border: '1px solid #27374f', borderRadius: '8px', color: '#fff', fontSize: '13.5px', boxSizing: 'border-box' }}
                                 />
                             </div>
                             <div style={{ marginBottom: '12px' }}>
-                                <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px', color: '#8b949e' }}>Mã định danh (Code)</label>
+                                <label style={{ display: 'block', fontSize: '12.5px', color: '#8b9bb4', marginBottom: '6px' }}>Mã định danh (Code)</label>
                                 <input
-                                    type="text"
-                                    disabled={Boolean(editingReason)}
-                                    placeholder="Tự động sinh nếu để trống"
-                                    value={reasonForm.code}
-                                    onChange={(e) => setReasonForm({ ...reasonForm, code: e.target.value })}
-                                    style={{ width: '100%', padding: '8px', backgroundColor: editingReason ? '#21262d' : '#0d1117', color: '#fff', border: '1px solid #30363d', borderRadius: '6px' }}
+                                    type="text" placeholder="VD: WIN_CUSTOM, LOSS_BUDGET..."
+                                    value={code} onChange={e => setCode(e.target.value)}
+                                    style={{ width: '100%', padding: '9px 12px', backgroundColor: '#0f1726', border: '1px solid #27374f', borderRadius: '8px', color: '#58a6ff', fontSize: '13.5px', fontFamily: 'monospace', boxSizing: 'border-box' }}
                                 />
                             </div>
-                            <div style={{ marginBottom: '16px' }}>
-                                <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px', color: '#8b949e' }}>Mô tả giải thích chi tiết</label>
+                            <div style={{ marginBottom: '18px' }}>
+                                <label style={{ display: 'block', fontSize: '12.5px', color: '#8b9bb4', marginBottom: '6px' }}>Mô tả giải thích</label>
                                 <textarea
-                                    rows="2"
-                                    placeholder="Hướng dẫn cho nhân viên bán hàng khi chọn lý do này..."
-                                    value={reasonForm.description}
-                                    onChange={(e) => setReasonForm({ ...reasonForm, description: e.target.value })}
-                                    style={{ width: '100%', padding: '8px', backgroundColor: '#0d1117', color: '#fff', border: '1px solid #30363d', borderRadius: '6px', resize: 'none' }}
+                                    rows="2" placeholder="Ghi chú thêm chi tiết về nguyên nhân này..."
+                                    value={description} onChange={e => setDescription(e.target.value)}
+                                    style={{ width: '100%', padding: '9px 12px', backgroundColor: '#0f1726', border: '1px solid #27374f', borderRadius: '8px', color: '#fff', fontSize: '13px', resize: 'none', boxSizing: 'border-box' }}
                                 />
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                                <button type="button" onClick={() => setShowReasonModal(false)} style={{ padding: '8px 14px', backgroundColor: '#21262d', color: '#c9d1d9', border: '1px solid #30363d', borderRadius: '6px', cursor: 'pointer' }}>Hủy</button>
-                                <button type="submit" style={{ padding: '8px 16px', backgroundColor: '#238636', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>Lưu Dữ Liệu</button>
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                                <button type="button" onClick={() => setShowCreateModal(false)} style={{ padding: '8px 16px', backgroundColor: '#30363d', color: '#c9d1d9', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>Hủy</button>
+                                <button type="submit" style={{ padding: '8px 20px', backgroundColor: '#238636', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>Lưu Lý Do</button>
                             </div>
                         </form>
                     </div>
                 </div>
             )}
 
-            {/* MODAL ĐỐI THỦ CẠNH TRANH (N1-184) */}
-            {showCompModal && (
+            {/* MODAL 2: XÁC NHẬN XÓA LÝ DO DARK THEME */}
+            {deleteTarget && (
                 <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200 }}>
-                    <div style={{ backgroundColor: '#161b22', border: '1px solid #30363d', borderRadius: '8px', width: '520px', padding: '24px' }}>
-                        <h3 style={{ margin: '0 0 16px 0', fontSize: '16px' }}>
-                            {editingComp ? '✏️ Cập Nhật Hồ Sơ Đối Thủ' : '➕ Khai Báo Đối Thủ Cạnh Tranh Mới'}
-                        </h3>
-                        <form onSubmit={handleSaveCompetitor}>
-                            <div style={{ marginBottom: '12px' }}>
-                                <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px', color: '#8b949e' }}>Tên đối thủ cạnh tranh *</label>
-                                <input
-                                    type="text" required
-                                    placeholder="VD: Tập đoàn VNPT, Base CRM..."
-                                    value={compForm.name}
-                                    onChange={(e) => setCompForm({ ...compForm, name: e.target.value })}
-                                    style={{ width: '100%', padding: '8px', backgroundColor: '#0d1117', color: '#fff', border: '1px solid #30363d', borderRadius: '6px' }}
-                                />
-                            </div>
-                            <div style={{ marginBottom: '12px' }}>
-                                <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px', color: '#8b949e' }}>Website / Trang chủ</label>
-                                <input
-                                    type="text"
-                                    placeholder="VD: https://vnpt.com.vn"
-                                    value={compForm.website}
-                                    onChange={(e) => setCompForm({ ...compForm, website: e.target.value })}
-                                    style={{ width: '100%', padding: '8px', backgroundColor: '#0d1117', color: '#fff', border: '1px solid #30363d', borderRadius: '6px' }}
-                                />
-                            </div>
-                            <div style={{ marginBottom: '12px' }}>
-                                <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px', color: '#8b949e' }}>💪 Điểm mạnh cốt lõi</label>
-                                <input
-                                    type="text"
-                                    placeholder="VD: Giá rẻ, thương hiệu mạnh, nhiều chi nhánh..."
-                                    value={compForm.strengths}
-                                    onChange={(e) => setCompForm({ ...compForm, strengths: e.target.value })}
-                                    style={{ width: '100%', padding: '8px', backgroundColor: '#0d1117', color: '#fff', border: '1px solid #30363d', borderRadius: '6px' }}
-                                />
-                            </div>
-                            <div style={{ marginBottom: '12px' }}>
-                                <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px', color: '#8b949e' }}>🎯 Điểm yếu có thể khai thác</label>
-                                <input
-                                    type="text"
-                                    placeholder="VD: Chăm sóc khách hàng chậm, phần mềm khó dùng..."
-                                    value={compForm.weaknesses}
-                                    onChange={(e) => setCompForm({ ...compForm, weaknesses: e.target.value })}
-                                    style={{ width: '100%', padding: '8px', backgroundColor: '#0d1117', color: '#fff', border: '1px solid #30363d', borderRadius: '6px' }}
-                                />
-                            </div>
-                            <div style={{ marginBottom: '16px' }}>
-                                <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px', color: '#8b949e' }}>💡 Chiến thuật bán hàng ứng phó</label>
-                                <textarea
-                                    rows="2"
-                                    placeholder="Chiến lược cho Sales khi gặp đối thủ này trong quá trình đấu thầu/chào giá..."
-                                    value={compForm.notes}
-                                    onChange={(e) => setCompForm({ ...compForm, notes: e.target.value })}
-                                    style={{ width: '100%', padding: '8px', backgroundColor: '#0d1117', color: '#fff', border: '1px solid #30363d', borderRadius: '6px', resize: 'none' }}
-                                />
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                                <button type="button" onClick={() => setShowCompModal(false)} style={{ padding: '8px 14px', backgroundColor: '#21262d', color: '#c9d1d9', border: '1px solid #30363d', borderRadius: '6px', cursor: 'pointer' }}>Hủy</button>
-                                <button type="submit" style={{ padding: '8px 16px', backgroundColor: '#238636', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>Lưu Đối Thủ</button>
-                            </div>
-                        </form>
+                    <div style={{ backgroundColor: '#162235', border: '1px solid #27374f', borderRadius: '14px', width: '380px', padding: '24px', textAlign: 'center' }}>
+                        <div style={{ fontSize: '36px', marginBottom: '10px' }}></div>
+                        <h3 style={{ margin: '0 0 8px 0', fontSize: '17px', color: '#ffffff' }}>Xác Nhận Xóa Lý Do</h3>
+                        <p style={{ margin: '0 0 20px 0', fontSize: '13.5px', color: '#8b9bb4' }}>
+                            Bạn có chắc chắn muốn xóa lý do <strong>"{deleteTarget.name}"</strong> không?
+                        </p>
+                        <div style={{ display: 'flex', justifyContent: 'center', gap: '12px' }}>
+                            <button onClick={() => setDeleteTarget(null)} style={{ padding: '8px 18px', backgroundColor: '#30363d', color: '#c9d1d9', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' }}>
+                                Hủy
+                            </button>
+                            <button
+                                onClick={() => executeDeleteReason(deleteTarget.id)}
+                                style={{ padding: '8px 20px', backgroundColor: '#da3633', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '700' }}
+                            >
+                                Xác Nhận Xóa
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

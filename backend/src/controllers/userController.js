@@ -522,6 +522,85 @@ const uploadAvatar = async (req, res) => {
         return res.status(500).json({ message: 'Không thể xử lý ảnh đại diện!' });
     }
 };
+// Cập nhật thông tin cá nhân của chính user đang đăng nhập
+const updateProfile = async (req, res) => {
+    try {
+        const userId = req.user.id; // Lấy từ middleware verifyToken
+        const { name, phone, email_signature, avatar } = req.body;
+
+        if (!name || !name.trim()) {
+            return res.status(400).json({ message: 'Họ và tên không được để trống!' });
+        }
+
+        // Đổi `name = ?` thành `full_name = ?` theo đúng schema của bảng users
+        await db.execute(
+            `UPDATE users 
+             SET full_name = ?, phone = ?, email_signature = ?, avatar = ? 
+             WHERE id = ?`,
+            [name.trim(), phone || null, email_signature || null, avatar || null, userId]
+        );
+
+        // Lấy lại thông tin mới nhất và alias `full_name AS name` để đồng bộ với Frontend
+        const [rows] = await db.execute(
+            `SELECT u.*, u.full_name AS name, r.role_name, r.data_scope 
+             FROM users u 
+             LEFT JOIN roles r ON u.role_id = r.id 
+             WHERE u.id = ?`,
+            [userId]
+        );
+
+        return res.status(200).json({
+            message: 'Cập nhật thông tin hồ sơ thành công!',
+            user: rows[0]
+        });
+    } catch (error) {
+        console.error('Lỗi update profile:', error);
+        return res.status(500).json({ message: 'Lỗi server khi cập nhật hồ sơ!' });
+    }
+};
+
+// API Đổi mật khẩu kiểm tra mật khẩu hiện tại
+// API Đổi mật khẩu kiểm tra mật khẩu hiện tại
+const changePassword = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { oldPassword, newPassword } = req.body;
+
+        if (!oldPassword || !newPassword) {
+            return res.status(400).json({ message: 'Vui lòng điền đầy đủ mật khẩu!' });
+        }
+
+        // 1. Lấy mật khẩu đã mã hóa hiện tại trong DB
+        const [users] = await db.execute('SELECT password FROM users WHERE id = ?', [userId]);
+        if (users.length === 0) {
+            return res.status(404).json({ message: 'Người dùng không tồn tại!' });
+        }
+
+        // 2. So khớp mật khẩu hiện tại với DB bằng bcrypt
+        const isMatch = await bcrypt.compare(oldPassword, users[0].password);
+        if (!isMatch) {
+            return res.status(400).json({ message: 'Mật khẩu hiện tại không chính xác!' });
+        }
+
+        // 3. Mã hóa mật khẩu mới và cập nhật
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+        await db.execute('UPDATE users SET password = ? WHERE id = ?', [hashedPassword, userId]);
+
+        return res.status(200).json({ message: 'Đổi mật khẩu thành công!' });
+    } catch (error) {
+        console.error('Lỗi đổi mật khẩu:', error);
+        return res.status(500).json({ message: 'Lỗi server khi đổi mật khẩu!' });
+    }
+};
+
+module.exports = {
+    // ... giữ nguyên các hàm cũ
+    updateProfile,
+    changePassword
+};  
+
 module.exports = {
     getUsers,
     createUser,
@@ -532,5 +611,7 @@ module.exports = {
     downloadTemplate,
     previewImportUsers,
     executeImportUsers,
-    uploadAvatar
+    uploadAvatar,
+    updateProfile,
+    changePassword
 };

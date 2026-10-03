@@ -152,7 +152,7 @@ const PipelineConfigManagement = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                 <div>
                     <h2 style={{ margin: 0, fontSize: '22px', color: '#58a6ff' }}>
-                        📊 Cấu Hình Pipeline Bán Hàng & Xác Suất Thắng (S2-09)
+                         Cấu Hình Pipeline Bán Hàng & Xác Suất Thắng
                     </h2>
                     <p style={{ margin: '6px 0 0', color: '#8b949e', fontSize: '13px' }}>
                         Thiết lập chuỗi giai đoạn phễu kinh doanh, xác suất dự báo doanh số và điều kiện bắt buộc khi chuyển bước.
@@ -173,7 +173,7 @@ const PipelineConfigManagement = () => {
                         gap: '6px'
                     }}
                 >
-                    ➕ Thêm Giai Đoạn Mới
+                     Thêm Giai Đoạn Mới
                 </button>
             </div>
 
@@ -200,7 +200,7 @@ const PipelineConfigManagement = () => {
                                     {st.name}
                                 </div>
                                 <div style={{ fontSize: '12px', marginTop: '4px', color: '#79c0ff', fontWeight: '600' }}>
-                                    🎯 {st.win_probability}% Thắng
+                                     {st.win_probability}% Thắng
                                 </div>
                             </div>
                             {idx < stages.length - 1 && (
@@ -285,7 +285,7 @@ const PipelineConfigManagement = () => {
                                                 fontSize: '12px'
                                             }}
                                         >
-                                            ✏️ Chỉnh sửa
+                                             Chỉnh sửa
                                         </button>
                                     </td>
                                 </tr>
