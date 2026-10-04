@@ -6,6 +6,7 @@ const { getGroupTree, createGroup, updateGroup, assignMember } = require('../con
 router.use(verifyToken, requireAdmin);
 
 router.get('/', getGroupTree);
+router.get('/tree', getGroupTree);
 router.post('/', createGroup);
 router.put('/:id', updateGroup);
 router.put('/:id/members', assignMember);

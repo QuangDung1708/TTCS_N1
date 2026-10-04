@@ -26,7 +26,7 @@ async function validateLeader(conn, leaderId, groupId) {
     return null;
 }
 
-// GET /api/groups -> trả về dạng cây
+// GET /api/groups & /api/groups/tree -> trả về dạng cây sơ đồ tổ chức phân cấp lồng nhau đệ quy
 const getGroupTree = async (req, res) => {
     try {
         const [rows] = await db.execute(`
@@ -38,13 +38,26 @@ const getGroupTree = async (req, res) => {
             LEFT JOIN regions r ON g.region_id = r.id
             ORDER BY g.id
         `);
-        const map = new Map(rows.map((r) => [r.id, { ...r, children: [] }]));
-        const roots = [];
-        for (const node of map.values()) {
-            if (node.parent_id && map.has(node.parent_id)) map.get(node.parent_id).children.push(node);
-            else roots.push(node);
-        }
-        return res.status(200).json({ data: roots });
+
+        // Hàm hỗ trợ dựng cây đệ quy
+        const buildTree = (nodes, parentId = null) => {
+            return nodes
+                .filter(node => node.parent_id === parentId)
+                .map(node => ({
+                    ...node,
+                    children: buildTree(nodes, node.id)
+                }));
+        };
+
+        const nodeIds = new Set(rows.map(r => r.id));
+        const rootNodes = rows.filter(r => !r.parent_id || !nodeIds.has(r.parent_id));
+
+        const tree = rootNodes.map(root => ({
+            ...root,
+            children: buildTree(rows, root.id)
+        }));
+
+        return res.status(200).json({ data: tree });
     } catch (error) {
         console.error('Lỗi lấy cây tổ chức:', error);
         return res.status(500).json({ message: 'Lỗi server khi lấy cơ cấu tổ chức!' });

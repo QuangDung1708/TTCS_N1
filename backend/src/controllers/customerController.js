@@ -41,7 +41,7 @@ const getCustomerById = async (req, res) => {
         const customer = records[0];
 
         // Kiểm tra phạm vi dữ liệu
-        const accessCheck = checkRecordAccess(req.user, customer);
+        const accessCheck = await checkRecordAccess(req.user, customer);
         if (!accessCheck.allowed) {
             return res.status(403).json({ message: accessCheck.message });
         }
