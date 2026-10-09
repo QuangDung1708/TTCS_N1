@@ -27,7 +27,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Đăng ký API Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/customers', customerRoutes);
+app.use('/api/customers', require('./src/routes/customerRoutes'));
 app.use('/api/users', userRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/products', productRoutes);

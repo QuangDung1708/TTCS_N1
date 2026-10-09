@@ -1,3 +1,4 @@
+const nodemailer = require('nodemailer');
 const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
@@ -49,65 +50,64 @@ router.post('/login', async (req, res) => {
         return res.status(500).json({ message: 'Lỗi máy chủ khi đăng nhập.' });
     }
 });
-router.post('/forgot-password', async (req, res) => {
-    const { email } = req.body;
-    const cleanEmail = (email || '').trim().toLowerCase();
 
-    try {
-        const db = require('../config/db');
-
-        // Dùng db.query thay cho db.execute để tránh lỗi 500 Prepared Statement trên MySQL
-        await db.query(`
-            CREATE TABLE IF NOT EXISTS password_resets (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                email VARCHAR(255) NOT NULL,
-                token VARCHAR(255) NOT NULL,
-                expires_at DATETIME NOT NULL,
-                used TINYINT(1) DEFAULT 0,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        `);
-
-        // Tìm email trong hệ thống
-        const [users] = await db.query('SELECT id, email FROM users WHERE LOWER(email) = ?', [cleanEmail]);
-
-        if (users.length > 0) {
-            const crypto = require('crypto');
-            const token = crypto.randomBytes(32).toString('hex');
-            const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 phút hiệu lực
-
-            await db.query(
-                'INSERT INTO password_resets (email, token, expires_at, used) VALUES (?, ?, ?, 0)',
-                [cleanEmail, token, expiresAt]
-            );
-
-            const resetLink = `http://localhost:5173/reset-password?token=${token}`;
-
-            // Gửi email thật qua mailer (nếu có lỗi SMTP thì không làm fail request)
-            try {
-                const { sendResetEmail } = require('../utils/mailer');
-                if (typeof sendResetEmail === 'function') {
-                    await sendResetEmail(cleanEmail, resetLink);
-                }
-            } catch (mailErr) {
-                console.error('[SMTP Error]:', mailErr.message);
-            }
-
-            // In liên kết ra terminal để kiểm thử trực tiếp
-            console.log(`\n>>> LINK ĐẶT LẠI MẬT KHẨU CHO ${cleanEmail}: ${resetLink}\n`);
-        }
-
-        // AC 3: Trả về cùng một thông báo dù email có tồn tại hay không
-        return res.json({
-            success: true,
-            message: 'Nếu email tồn tại trong hệ thống, liên kết đặt lại mật khẩu có hiệu lực 30 phút đã được gửi đến hòm thư của bạn.'
-        });
-    } catch (err) {
-        console.error('Lỗi 500 forgot-password:', err);
-        return res.status(500).json({ message: 'Lỗi máy chủ khi xử lý yêu cầu đặt lại mật khẩu.' });
-    }
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS
+  }
 });
+router.post('/forgot-password', async (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ message: 'Vui lòng nhập email!' });
 
+  try {
+    // 1. Kiểm tra tài khoản có trong hệ thống không
+    const [users] = await db.query('SELECT id, full_name FROM users WHERE email = ?', [email]);
+    if (users.length === 0) {
+      return res.status(404).json({ message: 'Email này chưa được đăng ký trong hệ thống!' });
+    }
+
+    // 2. KHAI BÁO VÀ TẠO TOKEN TRƯỚC (Bắt buộc phải nằm trên dòng 63)
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // Có hiệu lực 30 phút
+
+    // 3. Lưu token vào database
+    await db.query(
+      'INSERT INTO password_resets (email, token, expires_at, used) VALUES (?, ?, ?, 0)',
+      [email, token, expiresAt]
+    );
+
+    // 4. Tạo đường dẫn reset mật khẩu (lúc này token đã tồn tại, không bị lỗi nữa)
+    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${token}`;
+
+    // 5. Gửi email
+    try {
+      await transporter.sendMail({
+        from: `"Enterprise CRM" <${process.env.SMTP_USER}>`,
+        to: email,
+        subject: '[CRM] Yêu cầu thiết lập lại mật khẩu',
+        html: `
+          <div style="font-family: Arial, sans-serif; padding: 20px;">
+            <h2 style="color: #1677ff;">Khôi Phục Mật Khẩu</h2>
+            <p>Nhấn vào liên kết bên dưới để đổi mật khẩu (hiệu lực 30 phút):</p>
+            <p><a href="${resetUrl}" style="background-color: #1677ff; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">Đổi Mật Khẩu Ngay</a></p>
+          </div>
+        `
+      });
+      console.log('Đã gửi mail thành công tới:', email);
+      return res.json({ success: true, message: 'Nếu email tồn tại trong hệ thống, liên kết đặt lại mật khẩu có hiệu lực 30 phút đã được gửi đến hòm thư của bạn' });
+    } catch (mailErr) {
+      console.error(' Lỗi gửi mail qua SMTP:', mailErr.message);
+      console.log(' Link reset mật khẩu:', resetUrl);
+      return res.json({ success: true, message: 'Yêu cầu thành công! Vui lòng kiểm tra email hoặc terminal.' });
+    }
+  } catch (err) {
+    console.error('Lỗi server:', err);
+    return res.status(500).json({ message: 'Lỗi máy chủ: ' + err.message });
+  }
+});
 // 3. API ĐẶT LẠI MẬT KHẨU MỚI (ĐÁP ỨNG AC 2: CHỈ DÙNG 1 LẦN)
 router.post('/reset-password', async (req, res) => {
     const { token, new_password } = req.body;

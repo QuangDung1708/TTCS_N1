@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
     Layout, Menu, Button, Avatar, Badge, Dropdown, Space, Tag, 
@@ -266,6 +267,24 @@ const userMenu = {
 
 // --- 2. LAYOUT CHÍNH: CHUÔNG VÀ PROFILE ĐỘNG ---
 export default function App() {
+    const isResetPasswordPage = 
+    window.location.pathname.includes('/reset-password') || 
+    window.location.search.includes('token=');
+
+  if (window.location.pathname.includes('/reset-password') || window.location.search.includes('token=')) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        width: '100vw',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#141414'
+      }}>
+        <ResetPassword />
+      </div>
+    );
+  }
     const [collapsed, setCollapsed] = useState(false);
     const [isPasswordModalVisible, setIsPasswordModalVisible] = useState(false);
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -481,7 +500,7 @@ const handleUserDropdownClick = ({ key }) => {
                 { key: '/customers', icon: <UsergroupAddOutlined />, label: 'Khách Hàng & Liên Hệ' },
                 { key: '/deals', icon: <RiseOutlined />, label: 'Cơ Hội & Pipeline' },
                 { key: '/products', icon: <AppstoreOutlined />, label: 'Sản Phẩm Dịch Vụ' },
-                { key: '/categories', icon: <TagsOutlined />, label: 'Danh Mục Bán Hàng' }
+               //  { key: '/categories', icon: <TagsOutlined />, label: 'Danh Mục Bán Hàng' }
             ]
         },
         ...((isAdmin || isDirector) ? [
@@ -609,9 +628,9 @@ const handleUserDropdownClick = ({ key }) => {
                             <Route path="/roles" element={<PermissionMatrix />} />
                             <Route path="/custom-fields" element={<CustomFieldSettings />} />
                             <Route path="/audit-logs" element={<AuditLogManagement />} />
+                            <Route path="/reset-password" element={<ResetPassword />} />
                             <Route path="/login" element={<Login />} />
                             <Route path="*" element={<Navigate to="/dashboard" replace />} />
-                            <Route path="/reset-password" element={<ResetPassword />} />
                         </Routes>
                     </Content>
                 </Layout>

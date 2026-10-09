@@ -74,7 +74,7 @@ export default function AuditLogManagement() {
             )
         },
         {
-            title: 'Người Thực Hiện (AC 2)',
+            title: 'Người Thực Hiện',
             dataIndex: 'user_name',
             key: 'user_name',
             width: 190,
@@ -103,7 +103,7 @@ export default function AuditLogManagement() {
             render: (t) => <Tag color="geekblue">{t}</Tag>
         },
         {
-            title: 'Giá Trị Trước ➔ Sau (AC 2)',
+            title: 'Giá Trị Trước ➔ Sau',
             key: 'before_after',
             width: 280,
             render: (_, record) => {
@@ -139,7 +139,7 @@ export default function AuditLogManagement() {
                     <Col>
                         <Title level={3} style={{ margin: 0, color: '#0f172a' }}>
                             <HistoryOutlined style={{ color: '#1677ff', marginRight: 8 }} />
-                            Nhật Ký Thay Đổi Dữ Liệu Nhạy Cảm (S2-04)
+                            Nhật Ký Thay Đổi Dữ Liệu Nhạy Cảm 
                         </Title>
                         <Paragraph type="secondary" style={{ margin: 0, fontSize: 13 }}>
                             Theo dõi toàn bộ lịch sử can thiệp vào chiết khấu, chỉ tiêu KPI, phân quyền vai trò và bàn giao dữ liệu.
