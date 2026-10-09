@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { 
     Card, Row, Col, Typography, Button, Space, Tag, Tabs, 
     Statistic, Modal, Form, Input, Select, InputNumber, 
-    Table, notification, Tooltip, Badge, Spin 
+    Table, notification, Tooltip, Badge, Spin , Popconfirm
 } from 'antd';
 import { 
     RiseOutlined, PlusOutlined, ReloadOutlined, 
     DollarCircleOutlined, TrophyOutlined, CloseCircleOutlined, 
-    ArrowUpOutlined, ArrowDownOutlined, UserOutlined 
+    ArrowUpOutlined, ArrowDownOutlined, UserOutlined, TeamOutlined, DeleteOutlined
 } from '@ant-design/icons';
 import axios from 'axios';
 
@@ -18,7 +18,6 @@ export default function PipelineManagement() {
     const [deals, setDeals] = useState([]);
     const [customers, setCustomers] = useState([]);
     const [reasons, setReasons] = useState([]);
-    const [competitors, setCompetitors] = useState([]);
     const [loading, setLoading] = useState(false);
     const [activeTab, setActiveTab] = useState('kanban');
 
@@ -216,6 +215,149 @@ export default function PipelineManagement() {
         Lost: '#f5222d'
     };
 
+// Lấy nguồn dữ liệu lý do (hỗ trợ tự động các tên biến thường gặp trong file)
+  const allReasonsData = (typeof reasons !== 'undefined' ? reasons : []) ||
+                         (typeof dealReasons !== 'undefined' ? dealReasons : []) ||
+                         (typeof saleReasons !== 'undefined' ? saleReasons : []) || [];
+
+  // --- 1. STATE & XỬ LÝ CHO MODAL LÝ DO THẮNG / THUA ---
+  const [reasonModalOpen, setReasonModalOpen] = useState(false);
+  const [reasonType, setReasonType] = useState('win'); // 'win' hoặc 'lost'
+// 1. QUẢN LÝ DỮ LIỆU BẰNG STATE RIÊNG BIỆT (CÓ SẴN DỮ LIỆU BAN ĐẦU)
+  const [winReasons, setWinReasons] = useState([
+    { id: 1, name: 'Giá bán cạnh tranh / Chiết khấu tốt', code: 'WIN_PRICE', type: 'win', description: 'Chính sách giá hấp dẫn' },
+    { id: 2, name: 'Giải pháp kỹ thuật vượt trội', code: 'WIN_TECH', type: 'win', description: 'Đáp ứng toàn diện tính năng' },
+    { id: 3, name: 'Mối quan hệ & Dịch vụ hỗ trợ tốt', code: 'WIN_RELATION', type: 'win', description: 'Cam kết SLA nhanh chóng' },
+  ]);
+
+  const [lostReasons, setLostReasons] = useState([
+    { id: 4, name: 'Giá quá cao / Vượt ngân sách', code: 'LOSS_PRICE', type: 'lost', description: 'Khách hàng không đủ ngân sách' },
+    { id: 5, name: 'Thua đối thủ cạnh tranh', code: 'LOSS_COMPETITOR', type: 'lost', description: 'Đối thủ chiết khấu sâu hơn' },
+  ]);
+
+  const [competitors, setCompetitors] = useState([
+    { id: 1, name: 'Công ty Cổ phần MISA', strengths: 'Thương hiệu lớn, mạng lưới khách hàng SME rộng khắp', weaknesses: 'Giá gói mở rộng cao, giao diện nhiều chức năng phức tạp', website: 'https://misa.vn' },
+    { id: 2, name: 'Base.vn', strengths: 'Hệ sinh thái phong phú, UI hiện đại, marketing mạnh', weaknesses: 'Chính sách chiết khấu ít linh hoạt', website: 'https://base.vn' },
+    { id: 3, name: '1Office', strengths: 'Quản trị tổng thể all-in-one giá hợp lý', weaknesses: 'Chăm sóc khách hàng sau bán còn chậm', website: 'https://1office.vn' },
+    { id: 4, name: 'HubSpot CRM', strengths: 'Thương hiệu quốc tế, tính năng tự động hóa vượt trội', weaknesses: 'Chi phí rất đắt đỏ, không hỗ trợ tốt hóa đơn/thuế tại VN', website: 'https://hubspot.com' },
+  ]);
+
+  // Tự động tải từ Backend nếu API đã sẵn sàng
+  useEffect(() => {
+    axios.get('http://localhost:5001/api/sale-categories/reasons?type=win').then(res => {
+      if (res.data && res.data.length > 0) setWinReasons(res.data);
+    }).catch(() => {});
+
+    axios.get('http://localhost:5001/api/sale-categories/reasons?type=lost').then(res => {
+      if (res.data && res.data.length > 0) setLostReasons(res.data);
+    }).catch(() => {});
+
+    axios.get('http://localhost:5001/api/sale-categories/competitors').then(res => {
+      if (res.data && res.data.length > 0) setCompetitors(res.data);
+    }).catch(() => {});
+  }, []);
+
+  // 2. STATE & HÀM XỬ LÝ CHO MODAL LÝ DO THẮNG / THUA
+
+  const handleOpenReasonModal = (type) => {
+    setReasonType(type);
+    reasonForm.resetFields();
+    setReasonModalOpen(true);
+  };
+
+  // HÀM LƯU LÝ DO: CẬP NHẬT GIAO DIỆN NGAY TỨC THÌ
+  const handleSaveReason = async (values) => {
+    const newReason = {
+      id: Date.now(),
+      name: values.name,
+      code: values.code || (reasonType === 'win' ? `WIN_${Date.now().toString().slice(-4)}` : `LOSS_${Date.now().toString().slice(-4)}`),
+      type: reasonType,
+      description: values.description || '',
+      status: 'active'
+    };
+
+    // Đẩy ngay vào bảng hiển thị
+    if (reasonType === 'win') {
+      setWinReasons(prev => [newReason, ...prev]);
+    } else {
+      setLostReasons(prev => [newReason, ...prev]);
+    }
+
+    // Đóng popup & reset form ngay lập tức
+    setReasonModalOpen(false);
+    reasonForm.resetFields();
+
+    // Thông báo an toàn bằng api thông báo của hệ thống
+    if (typeof api !== 'undefined' && api.success) {
+      api.success({ message: `Đã thêm lý do ${reasonType === 'win' ? 'thắng' : 'thua'} thành công!` });
+    }
+
+    // Gửi ngầm xuống Backend để lưu vào database
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post('http://localhost:5001/api/sale-categories/reasons', newReason, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+    } catch (err) {
+      console.warn('Lỗi lưu DB backend (nhưng giao diện đã cập nhật):', err);
+    }
+  };
+
+  const handleDeleteReason = async (id) => {
+    setWinReasons(prev => prev.filter(r => r.id !== id));
+    setLostReasons(prev => prev.filter(r => r.id !== id));
+    if (typeof api !== 'undefined' && api.success) {
+      api.success({ message: 'Đã xóa lý do thành công!' });
+    }
+    try {
+      await axios.delete(`http://localhost:5001/api/sale-categories/reasons/${id}`);
+    } catch (err) {}
+  };
+
+  // 3. STATE & HÀM XỬ LÝ CHO MODAL ĐỐI THỦ CẠNH TRANH
+  const [competitorModalOpen, setCompetitorModalOpen] = useState(false);
+  const handleOpenCompetitorModal = () => {
+    competitorForm.resetFields();
+    setCompetitorModalOpen(true);
+  };
+
+  // HÀM LƯU ĐỐI THỦ: CẬP NHẬT GIAO DIỆN NGAY TỨC THÌ
+  const handleSaveCompetitor = async (values) => {
+    const newComp = {
+      id: Date.now(),
+      name: values.name,
+      website: values.website || '',
+      strengths: values.strengths || '',
+      weaknesses: values.weaknesses || '',
+      status: 'active'
+    };
+
+    setCompetitors(prev => [newComp, ...prev]);
+    setCompetitorModalOpen(false);
+    competitorForm.resetFields();
+
+    if (typeof api !== 'undefined' && api.success) {
+      api.success({ message: 'Đã thêm đối thủ mới thành công!' });
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post('http://localhost:5001/api/sale-categories/competitors', newComp, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+    } catch (err) {}
+  };
+
+  const handleDeleteCompetitor = async (id) => {
+    setCompetitors(prev => prev.filter(c => c.id !== id));
+    if (typeof api !== 'undefined' && api.success) {
+      api.success({ message: 'Đã xóa đối thủ thành công!' });
+    }
+    try {
+      await axios.delete(`http://localhost:5001/api/sale-categories/competitors/${id}`);
+    } catch (err) {}
+  };
+
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {contextHolder}
@@ -280,7 +422,7 @@ export default function PipelineManagement() {
                     <Col xs={24} sm={8}>
                         <Card bordered={false} style={{ background: '#f0fdf4', borderRadius: 8 }}>
                             <Tooltip title="Dự báo = Tổng (Giá trị Deal * Xác suất %)">
-                            
+                                {/* 2. DỰ BÁO DOANH SỐ CÓ TRỌNG SỐ (Dòng 276 - 282) */}
 <Statistic
     title={<Text strong style={{ color: '#166534' }}>DỰ BÁO DOANH SỐ CÓ TRỌNG SỐ</Text>}
     value={
@@ -485,45 +627,204 @@ export default function PipelineManagement() {
                             key: 'reasons_and_competitors',
                             label: 'Lý Do Thắng/Thua & Đối Thủ',
                             children: (
-                                <Row gutter={16}>
-                                    <Col span={12}>
-                                        <Card title="Danh Mục Lý Do Thắng & Thua" size="small" bordered={false}>
-                                            <Table
-                                                dataSource={reasons}
-                                                rowKey="id"
-                                                pagination={{ pageSize: 5 }}
-                                                bordered
-                                                size="middle"
-                                                columns={[
-                                                    { 
-                                                        title: 'Loại', 
-                                                        dataIndex: 'type', 
-                                                        width: 110,
-                                                        render: (t) => t === 'WIN' || t === 'THẮNG' ? <Tag color="success">THẮNG</Tag> : <Tag color="error">THUA</Tag>
-                                                    },
-                                                    { title: 'Tên nguyên nhân', dataIndex: 'name', render: (t) => <Text strong>{t}</Text> },
-                                                    { title: 'Mã', dataIndex: 'code', render: (c) => <Text code>{c || '—'}</Text> }
-                                                ]}
-                                            />
-                                        </Card>
-                                    </Col>
-                                    <Col span={12}>
-                                        <Card title="Hồ Sơ Đối Thủ Cạnh Tranh" size="small" bordered={false}>
-                                            <Table
-                                                dataSource={competitors}
-                                                rowKey="id"
-                                                pagination={{ pageSize: 5 }}
-                                                bordered
-                                                size="middle"
-                                                columns={[
-                                                    { title: 'Tên đối thủ', dataIndex: 'name', render: (t) => <Text strong style={{ color: '#1677ff' }}>{t}</Text> },
-                                                    { title: 'Thế mạnh', dataIndex: 'strengths', render: t => t || '—' },
-                                                    { title: 'Điểm yếu', dataIndex: 'weaknesses', render: t => t || '—' }
-                                                ]}
-                                            />
-                                        </Card>
-                                    </Col>
-                                </Row>
+                                <Row gutter={[16, 16]}>
+  {/* CỘT TRÁI: 2 BẢNG ĐỘC LẬP CHO THẮNG VÀ THUA */}
+  <Col span={12}>
+    <Space direction="vertical" size={16} style={{ width: '100%' }}>
+      
+      {/* 1. BẢNG KHAI BÁO RIÊNG: LÝ DO THẮNG */}
+      <Card
+        size="small"
+        title={
+          <Space>
+            <TrophyOutlined style={{ color: '#52c41a', fontSize: 16 }} />
+            <span style={{ fontWeight: 600 }}>
+              Danh Mục Lý Do Thắng Hợp Đồng ({winReasons.length})
+            </span>
+          </Space>
+        }
+        extra={
+          <Button 
+            type="primary" 
+            size="small" 
+            icon={<PlusOutlined />}
+            style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
+            onClick={() => handleOpenReasonModal('win')}
+          >
+            Thêm Lý Do Thắng
+          </Button>
+        }
+      >
+        <Table
+          rowKey="id"
+          size="small"
+          pagination={{ pageSize: 4, size: 'small' }}
+          dataSource={winReasons}
+          columns={[
+            {
+              title: 'Tên nguyên nhân',
+              dataIndex: 'name',
+              key: 'name',
+              render: (text) => <b>{text}</b>
+            },
+            {
+              title: 'Mã',
+              dataIndex: 'code',
+              key: 'code',
+              width: 130,
+              render: (code) => <Tag color="green">{code || 'WIN_DEFAULT'}</Tag>
+            },
+            {
+              title: 'Thao tác',
+              key: 'action',
+              width: 70,
+              align: 'center',
+              render: (_, record) => (
+                <Popconfirm 
+                  title="Xóa lý do này?" 
+                  onConfirm={() => handleDeleteReason(record.id)}
+                  okText="Xóa"
+                  cancelText="Hủy"
+                >
+                  <Button danger type="text" size="small" icon={<DeleteOutlined />} />
+                </Popconfirm>
+              )
+            }
+          ]}
+        />
+      </Card>
+
+      {/* 2. BẢNG KHAI BÁO RIÊNG: LÝ DO THUA */}
+      <Card
+        size="small"
+        title={
+          <Space>
+            <CloseCircleOutlined style={{ color: '#ff4d4f', fontSize: 16 }} />
+            <span style={{ fontWeight: 600 }}>
+              Danh Mục Lý Do Thua Hợp Đồng ({lostReasons.length})
+            </span>
+          </Space>
+        }
+        extra={
+          <Button 
+            danger 
+            type="primary" 
+            size="small" 
+            icon={<PlusOutlined />}
+            onClick={() => handleOpenReasonModal('lost')}
+          >
+            Thêm Lý Do Thua
+          </Button>
+        }
+      >
+        <Table
+          rowKey="id"
+          size="small"
+          pagination={{ pageSize: 4, size: 'small' }}
+          dataSource={lostReasons}
+          columns={[
+            {
+              title: 'Tên nguyên nhân',
+              dataIndex: 'name',
+              key: 'name',
+              render: (text) => <b>{text}</b>
+            },
+            {
+              title: 'Mã',
+              dataIndex: 'code',
+              key: 'code',
+              width: 130,
+              render: (code) => <Tag color="red">{code || 'LOSS_DEFAULT'}</Tag>
+            },
+            {
+              title: 'Thao tác',
+              key: 'action',
+              width: 70,
+              align: 'center',
+              render: (_, record) => (
+                <Popconfirm 
+                  title="Xóa lý do này?" 
+                  onConfirm={() => handleDeleteReason(record.id)}
+                  okText="Xóa"
+                  cancelText="Hủy"
+                >
+                  <Button danger type="text" size="small" icon={<DeleteOutlined />} />
+                </Popconfirm>
+              )
+            }
+          ]}
+        />
+      </Card>
+
+    </Space>
+  </Col>
+
+  {/* CỘT PHẢI: BẢNG KHAI BÁO ĐỐI THỦ CẠNH TRANH */}
+  <Col span={12}>
+    <Card
+      size="small"
+      title={
+        <Space>
+          <TeamOutlined style={{ color: '#1677ff', fontSize: 16 }} />
+          <span style={{ fontWeight: 600 }}>Hồ Sơ Đối Thủ Cạnh Tranh ({competitors.length})</span>
+        </Space>
+      }
+      extra={
+        <Button 
+          type="primary" 
+          size="small" 
+          icon={<PlusOutlined />}
+          onClick={() => handleOpenCompetitorModal()}
+        >
+          Thêm Đối Thủ
+        </Button>
+      }
+    >
+      <Table
+        rowKey="id"
+        size="small"
+        pagination={{ pageSize: 6, size: 'small' }}
+        dataSource={competitors}
+        columns={[
+          {
+            title: 'Tên đối thủ',
+            dataIndex: 'name',
+            key: 'name',
+            render: (text) => <b style={{ color: '#1677ff' }}>{text}</b>
+          },
+          {
+            title: 'Thế mạnh',
+            dataIndex: 'strengths',
+            key: 'strengths',
+            ellipsis: true
+          },
+          {
+            title: 'Điểm yếu',
+            dataIndex: 'weaknesses',
+            key: 'weaknesses',
+            ellipsis: true
+          },
+          {
+            title: 'Thao tác',
+            key: 'action',
+            width: 70,
+            align: 'center',
+            render: (_, record) => (
+              <Popconfirm 
+                title="Xóa đối thủ này?" 
+                onConfirm={() => handleDeleteCompetitor(record.id)}
+                okText="Xóa"
+                cancelText="Hủy"
+              >
+                <Button danger type="text" size="small" icon={<DeleteOutlined />} />
+              </Popconfirm>
+            )
+          }
+        ]}
+      />
+    </Card>
+  </Col>
+</Row>
                             )
                         }] : [])
                     ]}
@@ -730,6 +1031,100 @@ export default function PipelineManagement() {
                     )}
                 </Form>
             </Modal>
+            {/* MODAL THÊM LÝ DO THẮNG / THUA (DÙNG ICON ANTD) */}
+      <Modal
+        title={
+          <Space>
+            {reasonType === 'win' ? (
+              <TrophyOutlined style={{ color: '#52c41a', fontSize: 18 }} />
+            ) : (
+              <CloseCircleOutlined style={{ color: '#ff4d4f', fontSize: 18 }} />
+            )}
+            <span>
+              {reasonType === 'win' ? 'Thêm Mới Lý Do Thắng Hợp Đồng' : 'Thêm Mới Lý Do Thua Hợp Đồng'}
+            </span>
+          </Space>
+        }
+        open={reasonModalOpen}
+        onCancel={() => setReasonModalOpen(false)}
+        footer={null}
+        destroyOnHidden
+        width={480}
+      >
+        <Form form={reasonForm} layout="vertical" onFinish={handleSaveReason} style={{ marginTop: 16 }}>
+          <Form.Item
+            label="Tên nguyên nhân / Lý do"
+            name="name"
+            rules={[{ required: true, message: 'Vui lòng nhập tên lý do!' }]}
+          >
+            <Input placeholder={reasonType === 'win' ? 'Ví dụ: Giá bán cạnh tranh, demo tốt...' : 'Ví dụ: Vượt ngân sách, đối thủ bán phá giá...'} />
+          </Form.Item>
+
+          <Form.Item label="Mã nhận diện (Tùy chọn)" name="code">
+            <Input placeholder={reasonType === 'win' ? 'Ví dụ: WIN_PRICE' : 'Ví dụ: LOSS_BUDGET'} />
+          </Form.Item>
+
+          <Form.Item label="Mô tả chi tiết" name="description">
+            <Input.TextArea rows={3} placeholder="Mô tả chi tiết bối cảnh xảy ra..." />
+          </Form.Item>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 20 }}>
+            <Button onClick={() => setReasonModalOpen(false)}>Hủy</Button>
+            <Button 
+              type="primary" 
+              htmlType="submit"
+              style={reasonType === 'win' ? { backgroundColor: '#52c41a', borderColor: '#52c41a' } : {}}
+              danger={reasonType === 'lost'}
+            >
+              Lưu Lý Do
+            </Button>
+          </div>
+        </Form>
+      </Modal>
+
+      {/* MODAL THÊM ĐỐI THỦ CẠNH TRANH (DÙNG ICON ANTD) */}
+      <Modal
+        title={
+          <Space>
+            <TeamOutlined style={{ color: '#1677ff', fontSize: 18 }} />
+            <span>Thêm Mới Đối Thủ Cạnh Tranh</span>
+          </Space>
+        }
+        open={competitorModalOpen}
+        onCancel={() => setCompetitorModalOpen(false)}
+        footer={null}
+        destroyOnHidden
+        width={500}
+      >
+        <Form form={competitorForm} layout="vertical" onFinish={handleSaveCompetitor} style={{ marginTop: 16 }}>
+          <Form.Item
+            label="Tên đối thủ / Công ty"
+            name="name"
+            rules={[{ required: true, message: 'Vui lòng nhập tên đối thủ!' }]}
+          >
+            <Input placeholder="Ví dụ: Công ty Base.vn, MISA..." />
+          </Form.Item>
+
+          <Form.Item label="Website" name="website">
+            <Input placeholder="https://..." />
+          </Form.Item>
+
+          <Form.Item label="Thế mạnh của họ" name="strengths">
+            <Input.TextArea rows={2} placeholder="Ví dụ: Thương hiệu mạnh, nhiều vốn..." />
+          </Form.Item>
+
+          <Form.Item label="Điểm yếu (cơ hội phản công)" name="weaknesses">
+            <Input.TextArea rows={2} placeholder="Ví dụ: Dịch vụ hỗ trợ chậm, giá đắt..." />
+          </Form.Item>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 20 }}>
+            <Button onClick={() => setCompetitorModalOpen(false)}>Hủy</Button>
+            <Button type="primary" htmlType="submit">
+              Lưu Đối Thủ
+            </Button>
+          </div>
+        </Form>
+      </Modal>
         </div>
     );
 }

@@ -40,6 +40,7 @@ app.use('/api/deals', require('./src/routes/dealRoutes'));
 app.use('/api/organization', require('./src/routes/organizationRoutes'));
 app.use('/api/audit-logs', auditRoutes);
 app.use('/api/audit_logs', auditRoutes);
+app.use('/api/sale-categories', require('./src/routes/saleCategoryRoutes'));
 
 // Các route phụ trợ nếu có
 try {
