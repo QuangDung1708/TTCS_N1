@@ -1,466 +1,425 @@
 import React, { useState, useEffect } from 'react';
+import { 
+    Table, Button, Space, Tag, Input, Select, Card, 
+    Row, Col, Typography, Modal, Form, notification, 
+    Tooltip, Popconfirm, Drawer, List, Avatar 
+} from 'antd';
+import { 
+    ClusterOutlined, PlusOutlined, ReloadOutlined, 
+    EditOutlined, DeleteOutlined, UserOutlined, 
+    EnvironmentOutlined, TeamOutlined, CrownOutlined, 
+    SwapOutlined, FolderOutlined 
+} from '@ant-design/icons';
+import axios from 'axios';
 
-// Component đệ quy hiển thị từng nút nhóm trong cây
-function TreeNode({ node, onAddChild, onEdit, onManageMembers, level = 0 }) {
-    const [collapsed, setCollapsed] = useState(false);
-    const hasChildren = node.children && node.children.length > 0;
+const { Title, Text, Paragraph } = Typography;
 
-    return (
-        <div style={{ marginLeft: level > 0 ? '28px' : '0px', marginTop: '12px' }}>
-            <div style={{
-                backgroundColor: '#161b22', border: '1px solid #30363d',
-                borderRadius: '8px', padding: '12px 16px',
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-            }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    {hasChildren && (
-                        <button
-                            onClick={() => setCollapsed(!collapsed)}
-                            style={{
-                                background: 'none', border: 'none', color: '#58a6ff',
-                                cursor: 'pointer', fontSize: '14px', width: '20px'
-                            }}
-                        >
-                            {collapsed ? '▶' : '▼'}
-                        </button>
-                    )}
-                    {!hasChildren && <span style={{ width: '20px', display: 'inline-block' }}>•</span>}
-
-                    <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span style={{ fontWeight: 'bold', fontSize: '15px', color: '#e6edf3' }}>
-                                {node.name}
-                            </span>
-                            <span style={{
-                                padding: '2px 8px', borderRadius: '12px', fontSize: '11px',
-                                backgroundColor: '#1f242c', border: '1px solid #388bfd', color: '#58a6ff'
-                            }}>
-                                 {node.region || 'Toàn quốc'}
-                            </span>
-                        </div>
-                        <div style={{ fontSize: '12px', color: '#8b949e', marginTop: '4px' }}>
-                            Trưởng nhóm: <strong style={{ color: '#7ee787' }}>{node.leader_name || 'Chưa chỉ định'}</strong>
-                            {' '} | Nhân sự: <strong style={{ color: '#d29922' }}>{node.member_count}</strong> người
-                        </div>
-                    </div>
-                </div>
-
-                {/* Các nút thao tác */}
-                <div style={{ display: 'flex', gap: '8px' }}>
-                    <button
-                        onClick={() => onManageMembers(node)}
-                        style={{ padding: '5px 10px', backgroundColor: '#21262d', color: '#c9d1d9', border: '1px solid #30363d', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
-                    >
-                         Nhân sự
-                    </button>
-                    <button
-                        onClick={() => onAddChild(node)}
-                        style={{ padding: '5px 10px', backgroundColor: '#238636', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
-                    >
-                        + Nhóm con
-                    </button>
-                    <button
-                        onClick={() => onEdit(node)}
-                        style={{ padding: '5px 10px', backgroundColor: '#21262d', color: '#8b949e', border: '1px solid #30363d', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
-                    >
-                         Sửa
-                    </button>
-                </div>
-            </div>
-
-            {/* Render các nhóm con nếu không bị thu gọn */}
-            {!collapsed && hasChildren && (
-                <div style={{ borderLeft: '2px dashed #30363d', marginLeft: '12px', paddingLeft: '8px' }}>
-                    {node.children.map(child => (
-                        <TreeNode
-                            key={child.id}
-                            node={child}
-                            onAddChild={onAddChild}
-                            onEdit={onEdit}
-                            onManageMembers={onManageMembers}
-                            level={level + 1}
-                        />
-                    ))}
-                </div>
-            )}
-        </div>
-    );
-}
-
-export default function SalesOrgTree() {
+export default function SaaSOrgTree() {
     const [treeData, setTreeData] = useState([]);
-    const [flatList, setFlatList] = useState([]);
+    const [rawGroups, setRawGroups] = useState([]);
+    const [allUsers, setAllUsers] = useState([]);
+    const [regions, setRegions] = useState([]);
     const [loading, setLoading] = useState(false);
 
-    // Modal tạo/sửa nhóm
-    const [showGroupModal, setShowGroupModal] = useState(false);
+    // Modal Thêm/Sửa Nhóm kinh doanh
+    const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
     const [editingGroup, setEditingGroup] = useState(null);
-    const [groupForm, setGroupForm] = useState({ name: '', parent_id: '', region: 'Toàn quốc', leader_id: '' });
+    const [groupForm] = Form.useForm();
+    const [savingGroup, setSavingGroup] = useState(false);
 
-    // Modal điều chuyển nhân sự
-    const [showMemberModal, setShowMemberModal] = useState(false);
-    const [selectedGroup, setSelectedGroup] = useState(null);
-    const [currentMembers, setCurrentMembers] = useState([]);
-    const [availableUsers, setAvailableUsers] = useState([]);
-    const [selectedUserId, setSelectedUserId] = useState('');
+    // Modal Thêm Khu vực địa lý
+    const [isRegionModalOpen, setIsRegionModalOpen] = useState(false);
+    const [regionForm] = Form.useForm();
 
-    const fetchTree = async () => {
+    // Drawer Quản lý & Điều chuyển thành viên nhóm
+    const [selectedGroupForMembers, setSelectedGroupForMembers] = useState(null);
+    const [isMemberDrawerOpen, setIsMemberDrawerOpen] = useState(false);
+    const [selectedUserIdToAssign, setSelectedUserIdToAssign] = useState(null);
+
+    const [api, contextHolder] = notification.useNotification();
+    const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+    const isDirectorOrAdmin = currentUser.role_code === 'Director' || currentUser.role_code === 'Admin';
+
+    // 1. Nạp dữ liệu cây tổ chức và khu vực
+    const fetchData = async () => {
         setLoading(true);
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch('http://localhost:5001/api/groups/tree', {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            const data = await res.json();
-            if (data.success) {
-                setTreeData(data.tree);
-                setFlatList(data.flatList);
-            }
+            const [treeRes, regRes] = await Promise.all([
+                axios.get('http://localhost:5001/api/organization/tree', { headers: { Authorization: `Bearer ${token}` } }),
+                axios.get('http://localhost:5001/api/organization/regions', { headers: { Authorization: `Bearer ${token}` } })
+            ]);
+
+            setTreeData(treeRes.data.treeData || []);
+            setRawGroups(treeRes.data.rawGroups || []);
+            setAllUsers(treeRes.data.allUsers || []);
+            setRegions(regRes.data.data || []);
         } catch (err) {
-            console.error('Lỗi tải cây tổ chức:', err);
+            api.error({ message: 'Lỗi nạp dữ liệu', description: 'Không thể kết nối API tổ chức!' });
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
-        fetchTree();
+        fetchData();
     }, []);
 
-    // Mở modal thêm nhóm con
-    const handleAddChild = (parentNode) => {
-        setEditingGroup(null);
-        setGroupForm({
-            name: '',
-            parent_id: parentNode ? parentNode.id : '',
-            region: parentNode ? parentNode.region : 'Toàn quốc',
-            leader_id: ''
-        });
-        setShowGroupModal(true);
+    // 2. Mở Modal Thêm mới / Sửa nhóm
+    const handleOpenGroupModal = (record = null) => {
+        setEditingGroup(record);
+        if (record) {
+            groupForm.setFieldsValue({
+                name: record.name,
+                parent_id: record.parent_id || undefined,
+                leader_id: record.leader_id || undefined,
+                region_id: record.region_id || undefined,
+                description: record.description
+            });
+        } else {
+            groupForm.resetFields();
+        }
+        setIsGroupModalOpen(true);
     };
 
-    // Mở modal sửa nhóm
-    const handleEdit = (node) => {
-        setEditingGroup(node);
-        setGroupForm({
-            name: node.name,
-            parent_id: node.parent_id || '',
-            region: node.region || 'Toàn quốc',
-            leader_id: node.leader_id || ''
-        });
-        setShowGroupModal(true);
-    };
-
-    // Lưu nhóm (Thêm / Sửa)
-    const handleSaveGroup = async (e) => {
-        e.preventDefault();
+    // 3. Lưu nhóm kinh doanh
+    const handleSaveGroup = async (values) => {
+        setSavingGroup(true);
         try {
             const token = localStorage.getItem('token');
-            const url = editingGroup
-                ? `http://localhost:5001/api/groups/${editingGroup.id}`
-                : 'http://localhost:5001/api/groups';
-            const method = editingGroup ? 'PUT' : 'POST';
-
-            const res = await fetch(url, {
-                method,
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                body: JSON.stringify(groupForm)
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.message);
-
-            setShowGroupModal(false);
-            fetchTree();
+            if (editingGroup) {
+                await axios.put(`http://localhost:5001/api/organization/groups/${editingGroup.id}`, values, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                api.success({ message: 'Đã cập nhật nhóm kinh doanh!' });
+            } else {
+                await axios.post('http://localhost:5001/api/organization/groups', values, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                api.success({ message: 'Đã thêm nhánh mới vào cây tổ chức!' });
+            }
+            setIsGroupModalOpen(false);
+            fetchData();
         } catch (err) {
-            alert(err.message);
+            api.error({ message: 'Thất bại', description: err.response?.data?.message });
+        } finally {
+            setSavingGroup(false);
         }
     };
 
-    // Mở modal quản lý nhân sự
-    const handleManageMembers = async (node) => {
-        setSelectedGroup(node);
+    // 4. Thêm khu vực địa lý
+    const handleSaveRegion = async (values) => {
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch(`http://localhost:5001/api/groups/${node.id}/members`, {
+            await axios.post('http://localhost:5001/api/organization/regions', values, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            const data = await res.json();
-            if (data.success) {
-                setCurrentMembers(data.members);
-                // Lọc những người chưa ở nhóm này
-                setAvailableUsers(data.allUsers.filter(u => u.group_id !== node.id));
-                setShowMemberModal(true);
-            }
+            api.success({ message: 'Đã tạo khu vực địa lý mới!' });
+            setIsRegionModalOpen(false);
+            regionForm.resetFields();
+            fetchData();
         } catch (err) {
-            alert('Lỗi tải danh sách nhân sự');
+            api.error({ message: 'Lỗi', description: err.response?.data?.message });
         }
     };
 
-    // Điều chuyển thêm nhân sự vào nhóm
-    const handleAssignMember = async () => {
-        if (!selectedUserId) return;
+    // 5. Xóa nhóm
+    const handleDeleteGroup = async (id) => {
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch(`http://localhost:5001/api/groups/${selectedGroup.id}/assign-members`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                body: JSON.stringify({ userIds: [parseInt(selectedUserId)] })
+            const res = await axios.delete(`http://localhost:5001/api/organization/groups/${id}`, {
+                headers: { Authorization: `Bearer ${token}` }
             });
-            if (res.ok) {
-                setSelectedUserId('');
-                handleManageMembers(selectedGroup);
-                fetchTree();
-            }
+            api.success({ message: res.data.message });
+            fetchData();
         } catch (err) {
-            alert('Lỗi khi điều chuyển nhân sự');
+            api.error({ message: 'Không thể xóa', description: err.response?.data?.message });
         }
     };
 
-const handleSetLeader = async (userId) => {
-    try {
-        const token = localStorage.getItem('token');
-        const res = await fetch(`http://localhost:5001/api/groups/${selectedGroup.id}/leader`, {
-            method: 'PATCH',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`
-            },
-            body: JSON.stringify({ leader_id: userId })
-        });
-        const data = await res.json();
-        if (res.ok) {
-            const leaderName = userId ? currentMembers.find(m => m.id === userId)?.full_name : null;
-            setSelectedGroup(prev => ({ ...prev, leader_id: userId, leader_name: leaderName }));
-            fetchTree();
-        } else {
-            alert(data.message);
+    // 6. Điều chuyển nhân sự vào nhóm (AC S2-06)
+    const handleAssignMember = async () => {
+        if (!selectedUserIdToAssign) return;
+        try {
+            const token = localStorage.getItem('token');
+            await axios.post(`http://localhost:5001/api/organization/groups/${selectedGroupForMembers.id}/assign-member`, {
+                user_id: selectedUserIdToAssign
+            }, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            api.success({ message: 'Đã điều chuyển nhân sự vào nhóm!' });
+            setSelectedUserIdToAssign(null);
+            fetchData();
+            const updatedGroup = rawGroups.find(g => g.id === selectedGroupForMembers.id);
+            setSelectedGroupForMembers(updatedGroup);
+        } catch (err) {
+            api.error({ message: 'Lỗi điều chuyển' });
         }
-    } catch (err) {
-        alert('Lỗi thao tác trưởng nhóm!');
-    }
-};
+    };
+
+    const columns = [
+        {
+            title: 'Tên Nhóm / Phòng Ban (Cây Phân Cấp)',
+            dataIndex: 'name',
+            key: 'name',
+            render: (text) => (
+                <Space>
+                    <FolderOutlined style={{ color: '#1677ff' }} />
+                    <Text strong style={{ color: '#0f172a' }}>{text}</Text>
+                </Space>
+            )
+        },
+        {
+            title: (
+                <Tooltip title="Mỗi nhóm có một trưởng nhóm phụ trách)">
+                    <span>Trưởng Nhóm (Leader) <CrownOutlined style={{ color: '#fa8c16' }} /></span>
+                </Tooltip>
+            ),
+            dataIndex: 'leader_name',
+            key: 'leader_name',
+            width: 230,
+            render: (name, record) => name ? (
+                <Space>
+                    <Avatar size="small" style={{ backgroundColor: '#fa8c16' }}>{name.charAt(0)}</Avatar>
+                    <div>
+                        <Text strong style={{ color: '#b45309' }}>{name}</Text>
+                        <div style={{ fontSize: 11, color: '#94a3b8' }}>{record.leader_email}</div>
+                    </div>
+                </Space>
+            ) : <Tag color="default">Chưa bổ nhiệm</Tag>
+        },
+        {
+            title: 'Khu Vực Địa Lý',
+            dataIndex: 'region_name',
+            key: 'region_name',
+            width: 180,
+            render: (region) => region ? (
+                <Tag icon={<EnvironmentOutlined />} color="cyan">{region}</Tag>
+            ) : <Text type="secondary">Chưa gán</Text>
+        },
+        {
+            title: 'Quy Mô Nhân Sự',
+            dataIndex: 'member_count',
+            key: 'member_count',
+            width: 150,
+            align: 'center',
+            render: (count, record) => (
+                <Button 
+                    type="link" 
+                    size="small" 
+                    icon={<TeamOutlined />} 
+                    onClick={() => { setSelectedGroupForMembers(record); setIsMemberDrawerOpen(true); }}
+                >
+                    {count || 0} nhân sự
+                </Button>
+            )
+        },
+        {
+            title: 'Mô Tả Chức Năng',
+            dataIndex: 'description',
+            key: 'description',
+            render: (t) => t || <Text type="secondary">—</Text>
+        },
+        {
+            title: 'Thao Tác',
+            key: 'actions',
+            align: 'center',
+            width: 130,
+            render: (_, record) => isDirectorOrAdmin ? (
+                <Space size={6}>
+                    <Tooltip title="Chỉnh sửa">
+                        <Button size="small" icon={<EditOutlined style={{ color: '#1677ff' }} />} onClick={() => handleOpenGroupModal(record)} />
+                    </Tooltip>
+                    <Tooltip title="Giải thể nhóm">
+                        <Popconfirm 
+                            title={`Xóa nhóm "${record.name}"?`} 
+                            description="Nhân sự sẽ được đưa về trạng thái Chưa gán." 
+                            onConfirm={() => handleDeleteGroup(record.id)}
+                            okText="Xóa"
+                            cancelText="Hủy"
+                        >
+                            <Button size="small" danger icon={<DeleteOutlined />} />
+                        </Popconfirm>
+                    </Tooltip>
+                </Space>
+            ) : <Tag color="default">Chỉ xem</Tag>
+        }
+    ];
 
     return (
-        <div style={{ padding: '24px', color: '#e6edf3', maxWidth: '1100px', margin: '0 auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                <div>
-                    <h2 style={{ fontSize: '20px', fontWeight: 'bold', margin: '0 0 4px 0' }}>
-                         Cơ Cấu Tổ Chức Kinh Doanh Dạng Cây
-                    </h2>
-                    <span style={{ fontSize: '13px', color: '#8b949e' }}>
-                        Cấu trúc phân cấp quyết định phạm vi dữ liệu mà Trưởng nhóm nhìn thấy
-                    </span>
-                </div>
-                <button
-                    onClick={() => handleAddChild(null)}
-                    style={{ padding: '8px 16px', backgroundColor: '#238636', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
-                >
-                    + Khai Báo Nhóm Gốc Mới
-                </button>
-            </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {contextHolder}
 
-            {loading ? (
-                <div style={{ padding: '40px', textAlign: 'center', color: '#8b949e' }}>Đang tải sơ đồ cơ cấu tổ chức...</div>
-            ) : (
-                <div>
-                    {treeData.map(rootNode => (
-                        <TreeNode
-                            key={rootNode.id}
-                            node={rootNode}
-                            onAddChild={handleAddChild}
-                            onEdit={handleEdit}
-                            onManageMembers={handleManageMembers}
-                        />
-                    ))}
-                </div>
-            )}
+            {/* HEADER */}
+            <Card bordered={false} style={{ borderRadius: 12 }}>
+                <Row justify="space-between" align="middle">
+                    <Col>
+                        <Title level={3} style={{ margin: 0, color: '#0f172a' }}>
+                            <ClusterOutlined style={{ color: '#1677ff', marginRight: 8 }} />
+                            Cơ Cấu Tổ Chức Kinh Doanh
+                        </Title>
+                        <Paragraph type="secondary" style={{ margin: 0, fontSize: 13 }}>
+                            Khai báo cây phân cấp phòng ban, bổ nhiệm Trưởng nhóm và phân bổ khu vực địa lý
+                        </Paragraph>
+                    </Col>
+                    <Col>
+                        <Space>
+                            <Button icon={<ReloadOutlined />} onClick={fetchData} loading={loading}>Làm mới</Button>
+                            {isDirectorOrAdmin && (
+                                <>
+                                    <Button icon={<EnvironmentOutlined />} onClick={() => setIsRegionModalOpen(true)}>
+                                        Khai Báo Khu Vực
+                                    </Button>
+                                    <Button type="primary" icon={<PlusOutlined />} onClick={() => handleOpenGroupModal(null)}>
+                                        Thêm Nhóm Kinh Doanh
+                                    </Button>
+                                </>
+                            )}
+                        </Space>
+                    </Col>
+                </Row>
+            </Card>
 
-            {/* Modal Thêm/Sửa Nhóm */}
-            {showGroupModal && (
-                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200 }}>
-                    <div style={{ backgroundColor: '#161b22', border: '1px solid #30363d', borderRadius: '8px', width: '480px', padding: '24px', color: '#e6edf3' }}>
-                        <h3 style={{ margin: '0 0 16px 0' }}>{editingGroup ? '✏️ Cập Nhật Nhóm Kinh Doanh' : '➕ Khai Báo Nhóm Con Mới'}</h3>
-                        <form onSubmit={handleSaveGroup}>
-                            <div style={{ marginBottom: '12px' }}>
-                                <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px' }}>Tên nhóm kinh doanh *</label>
-                                <input
-                                    type="text" required
-                                    placeholder="VD: Phòng Kinh Doanh Hà Nội 1"
-                                    value={groupForm.name}
-                                    onChange={(e) => setGroupForm({ ...groupForm, name: e.target.value })}
-                                    style={{ width: '100%', padding: '8px', backgroundColor: '#0d1117', color: '#fff', border: '1px solid #30363d', borderRadius: '6px' }}
-                                />
-                            </div>
+            {/* BẢNG CÂY TỔ CHỨC */}
+            <Card bordered={false} style={{ borderRadius: 12 }}>
+                <Table
+                    columns={columns}
+                    dataSource={treeData}
+                    rowKey="id"
+                    loading={loading}
+                    pagination={false}
+                    defaultExpandAllRows={true}
+                    bordered
+                />
+            </Card>
 
-                            <div style={{ marginBottom: '12px' }}>
-                                <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px' }}>Nhóm cha trực thuộc</label>
-                                <select
-                                    value={groupForm.parent_id}
-                                    onChange={(e) => setGroupForm({ ...groupForm, parent_id: e.target.value })}
-                                    style={{ width: '100%', padding: '8px', backgroundColor: '#0d1117', color: '#fff', border: '1px solid #30363d', borderRadius: '6px' }}
-                                >
-                                    <option value="">(Không có - Đây là nhóm gốc cao nhất)</option>
-                                    {flatList.filter(g => !editingGroup || g.id !== editingGroup.id).map(g => (
-                                        <option key={g.id} value={g.id}>{g.name} ({g.region})</option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div style={{ marginBottom: '16px' }}>
-                                <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px' }}>Khu vực địa lý</label>
-                                <input
-                                    type="text"
-                                    placeholder="VD: Miền Bắc, Hà Nội, Thái Nguyên..."
-                                    value={groupForm.region}
-                                    onChange={(e) => setGroupForm({ ...groupForm, region: e.target.value })}
-                                    style={{ width: '100%', padding: '8px', backgroundColor: '#0d1117', color: '#fff', border: '1px solid #30363d', borderRadius: '6px' }}
-                                />
-                            </div>
-
-                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                                <button type="button" onClick={() => setShowGroupModal(false)} style={{ padding: '8px 14px', backgroundColor: '#21262d', color: '#c9d1d9', border: '1px solid #30363d', borderRadius: '6px', cursor: 'pointer' }}>Hủy</button>
-                                <button type="submit" style={{ padding: '8px 16px', backgroundColor: '#238636', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>Lưu Nhóm</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
-
-            {/* Modal Quản Lý & Điều Chuyển Nhân Sự */}
-            {showMemberModal && selectedGroup && (
-                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200 }}>
-                    <div style={{ backgroundColor: '#161b22', border: '1px solid #30363d', borderRadius: '8px', width: '550px', padding: '24px', color: '#e6edf3' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-                            <h3 style={{ margin: 0 }}>👥 Phân Bổ Nhân Sự: {selectedGroup.name}</h3>
-                            <button onClick={() => setShowMemberModal(false)} style={{ background: 'none', border: 'none', color: '#8b949e', fontSize: '18px', cursor: 'pointer' }}>✕</button>
-                        </div>
-                        {/* KHỐI TRƯỞNG NHÓM HIỆN TẠI & NÚT BÃI NHIỆM */}
-<div style={{
-    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-    backgroundColor: '#0d1117', padding: '10px 14px', borderRadius: '6px',
-    border: '1px solid #30363d', marginBottom: '16px'
-}}>
-    <div>
-        <span style={{ fontSize: '13px', color: '#8b949e' }}>Trưởng nhóm hiện tại: </span>
-        <span style={{ fontWeight: 'bold', color: selectedGroup.leader_name ? '#7ee787' : '#8b949e' }}>
-            {selectedGroup.leader_name || 'Chưa chỉ định'}
-        </span>
-    </div>
-    {selectedGroup.leader_id && (
-        <button
-            type="button"
-            onClick={() => handleSetLeader(null)}
-            style={{
-                padding: '4px 10px',
-                backgroundColor: '#3d1d1d',
-                color: '#f85149',
-                border: '1px solid #f85149',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '12px',
-                fontWeight: '600'
-            }}
-        >
-            ✕ Bãi nhiệm / Hủy
-        </button>
-    )}
-</div>
-
-                        {/* Thêm nhân sự vào nhóm */}
-                        <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', backgroundColor: '#0d1117', padding: '12px', borderRadius: '6px', border: '1px solid #30363d' }}>
-                            <select
-                                value={selectedUserId}
-                                onChange={(e) => setSelectedUserId(e.target.value)}
-                                style={{ flex: 1, padding: '8px', backgroundColor: '#161b22', color: '#fff', border: '1px solid #30363d', borderRadius: '6px' }}
-                            >
-                                <option value="">-- Chọn nhân viên để điều chuyển vào nhóm --</option>
-                                {availableUsers.map(u => (
-                                    <option key={u.id} value={u.id}>{u.full_name} ({u.email})</option>
-                                ))}
-                            </select>
-                            <button
-                                onClick={handleAssignMember}
-                                style={{ padding: '8px 14px', backgroundColor: '#238636', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
-                            >
-                                + Thêm Vào Nhóm
-                            </button>
-                        </div>
-
-                        {/* Danh sách thành viên hiện tại */}
-                        <div style={{ maxHeight: '250px', overflowY: 'auto' }}>
-                            <div style={{ fontSize: '12px', color: '#8b949e', marginBottom: '8px' }}>Danh sách thành viên hiện tại ({currentMembers.length}):</div>
-                            {currentMembers.length === 0 ? (
-    <div style={{ textAlign: 'center', padding: '20px', color: '#8b949e', fontSize: '13px' }}>
-        Chưa có nhân viên nào trong nhóm này.
-    </div>
-) : (
-    currentMembers.map(m => {
-        const isCurrentLeader = selectedGroup.leader_id === m.id;
-        return (
-            <div 
-                key={m.id} 
-                style={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    alignItems: 'center',
-                    padding: '10px 12px', 
-                    backgroundColor: isCurrentLeader ? '#122317' : '#0d1117', 
-                    border: isCurrentLeader ? '1px solid #238636' : '1px solid #21262d', 
-                    borderRadius: '6px', 
-                    marginBottom: '8px', 
-                    fontSize: '13px' 
-                }}
+            {/* MODAL 1: THÊM / SỬA NHÓM KINH DOANH */}
+            <Modal
+                title={editingGroup ? `Chỉnh Sửa: ${editingGroup.name}` : "Thêm Nhóm Kinh Doanh Mới"}
+                open={isGroupModalOpen}
+                onCancel={() => setIsGroupModalOpen(false)}
+                onOk={groupForm.submit}
+                confirmLoading={savingGroup}
+                okText={editingGroup ? "Lưu thay đổi" : "Tạo nhóm"}
+                cancelText="Hủy"
+                destroyOnClose
             >
-                <div>
-                    <span style={{ fontWeight: '600', color: isCurrentLeader ? '#7ee787' : '#e6edf3' }}>
-                        {m.full_name}
-                    </span>
-                    <span style={{ color: '#8b949e', marginLeft: '8px' }}>({m.email})</span>
-                </div>
+                <Form form={groupForm} layout="vertical" onFinish={handleSaveGroup} style={{ marginTop: 16 }}>
+                    <Form.Item name="name" label="Tên nhóm / Phòng ban" rules={[{ required: true, message: 'Nhập tên nhóm!' }]}>
+                        <Input placeholder="Ví dụ: Phòng Kinh Doanh Hà Nội" />
+                    </Form.Item>
 
-                <div>
-                    {isCurrentLeader ? (
-                        <span style={{ 
-                            padding: '3px 8px', 
-                            borderRadius: '4px', 
-                            backgroundColor: '#238636', 
-                            color: '#fff', 
-                            fontSize: '11px',
-                            fontWeight: 'bold' 
-                        }}>
-                            👑 Đang là Trưởng nhóm
-                        </span>
-                    ) : (
-                        <button
-                            type="button"
-                            onClick={() => handleSetLeader(m.id)}
-                            style={{
-                                padding: '4px 10px',
-                                backgroundColor: '#21262d',
-                                color: '#58a6ff',
-                                border: '1px solid #30363d',
-                                borderRadius: '4px',
-                                cursor: 'pointer',
-                                fontSize: '12px'
-                            }}
-                        >
-                            ⭐ Bổ nhiệm Trưởng nhóm
-                        </button>
+                    <Form.Item name="parent_id" label="Trực thuộc Nhóm cấp trên (Cấu trúc cây)">
+                        <Select placeholder="Chọn nhóm cha (để trống nếu là cấp cao nhất)" allowClear>
+                            {rawGroups.filter(g => g.id !== editingGroup?.id).map(g => (
+                                <Select.Option key={g.id} value={g.id}>{g.name}</Select.Option>
+                            ))}
+                        </Select>
+                    </Form.Item>
+
+                    <Row gutter={12}>
+                        <Col span={12}>
+                            <Form.Item name="leader_id" label="Trưởng nhóm (Team Lead)">
+                                <Select placeholder="Chọn Trưởng nhóm" allowClear>
+                                    {allUsers.map(u => (
+                                        <Select.Option key={u.id} value={u.id}>{u.full_name} ({u.role_code})</Select.Option>
+                                    ))}
+                                </Select>
+                            </Form.Item>
+                        </Col>
+                        <Col span={12}>
+                            <Form.Item name="region_id" label="Khu vực địa lý phụ trách">
+                                <Select placeholder="Chọn khu vực" allowClear>
+                                    {regions.map(r => (
+                                        <Select.Option key={r.id} value={r.id}>{r.name}</Select.Option>
+                                    ))}
+                                </Select>
+                            </Form.Item>
+                        </Col>
+                    </Row>
+
+                    <Form.Item name="description" label="Mô tả chức năng">
+                        <Input.TextArea rows={2} placeholder="Mô tả thị trường và nhiệm vụ phụ trách..." />
+                    </Form.Item>
+                </Form>
+            </Modal>
+
+            {/* MODAL 2: KHAI BÁO KHU VỰC ĐỊA LÝ */}
+            <Modal
+                title="Khai Báo Khu Vực Địa Lý Mới"
+                open={isRegionModalOpen}
+                onCancel={() => setIsRegionModalOpen(false)}
+                onOk={regionForm.submit}
+                okText="Lưu khu vực"
+                cancelText="Hủy"
+                destroyOnClose
+            >
+                <Form form={regionForm} layout="vertical" onFinish={handleSaveRegion} style={{ marginTop: 16 }}>
+                    <Form.Item name="name" label="Tên khu vực" rules={[{ required: true, message: 'Nhập tên khu vực!' }]}>
+                        <Input placeholder="Ví dụ: Khu vực Miền Bắc" />
+                    </Form.Item>
+                    <Form.Item name="code" label="Mã định danh" rules={[{ required: true, message: 'Nhập mã!' }]}>
+                        <Input placeholder="Ví dụ: NORTH" />
+                    </Form.Item>
+                    <Form.Item name="description" label="Mô tả phạm vi tỉnh thành">
+                        <Input.TextArea rows={2} placeholder="Bao gồm: Hà Nội, Thái Nguyên, Hải Phòng..." />
+                    </Form.Item>
+                </Form>
+            </Modal>
+
+            {/* DRAWER: QUẢN LÝ THÀNH VIÊN TRONG NHÓM */}
+            <Drawer
+                title={<Space><TeamOutlined /> <span>Nhân Sự Thuộc: {selectedGroupForMembers?.name}</span></Space>}
+                open={isMemberDrawerOpen}
+                onClose={() => setIsMemberDrawerOpen(false)}
+                width={480}
+            >
+                {isDirectorOrAdmin && (
+                    <Card size="small" style={{ marginBottom: 16, background: '#f8fafc' }}>
+                        <Text strong style={{ display: 'block', marginBottom: 8 }}>Điều chuyển nhân viên vào nhóm này:</Text>
+                        <Space.Compact style={{ width: '100%' }}>
+                            <Select
+    showSearch
+    allowClear
+    placeholder="Nhập tên để tìm kiếm hoặc lướt chọn..."
+    style={{ width: '75%' }}
+    value={selectedUserIdToAssign}
+    onChange={v => setSelectedUserIdToAssign(v)}
+    optionFilterProp="children"
+    filterOption={(input, option) =>
+        (option?.children ?? '').toString().toLowerCase().includes(input.toLowerCase())
+    }
+>
+    {allUsers.filter(u => u.group_id !== selectedGroupForMembers?.id).map(u => (
+        <Select.Option key={u.id} value={u.id}>
+            {u.full_name} ({u.role_code}) - {u.email}
+        </Select.Option>
+    ))}
+</Select>
+                            <Button type="primary" icon={<SwapOutlined />} onClick={handleAssignMember}>
+                                Chuyển
+                            </Button>
+                        </Space.Compact>
+                        <Text type="secondary" style={{ fontSize: 11, marginTop: 4, display: 'block' }}>
+                            * Mỗi nhân viên thuộc đúng 1 nhóm tại một thời điểm
+                        </Text>
+                    </Card>
+                )}
+
+                <List
+                    itemLayout="horizontal"
+                    dataSource={allUsers.filter(u => u.group_id === selectedGroupForMembers?.id)}
+                    renderItem={user => (
+                        <List.Item>
+                            <List.Item.Meta
+                                avatar={<Avatar style={{ backgroundColor: user.role_code === 'Team Lead' ? '#fa8c16' : '#1677ff' }}><UserOutlined /></Avatar>}
+                                title={<Space><Text strong>{user.full_name}</Text>{user.id === selectedGroupForMembers?.leader_id && <Tag color="warning">Trưởng nhóm</Tag>}</Space>}
+                                description={<div><div>{user.email}</div><Tag color="blue">{user.role_code}</Tag></div>}
+                            />
+                        </List.Item>
                     )}
-                </div>
-            </div>
-        );
-    })
-)}
-                        </div>
-
-                        <div style={{ textAlign: 'right', marginTop: '16px' }}>
-                            <button onClick={() => setShowMemberModal(false)} style={{ padding: '6px 14px', backgroundColor: '#21262d', color: '#c9d1d9', border: '1px solid #30363d', borderRadius: '6px', cursor: 'pointer' }}>Đóng</button>
-                        </div>
-                    </div>
-                </div>
-            )}
+                />
+            </Drawer>
         </div>
     );
 }

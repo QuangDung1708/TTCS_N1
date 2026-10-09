@@ -13,6 +13,7 @@ const customFieldRoutes = require('./src/routes/customFieldRoutes');
 const pipelineStageRoutes = require('./src/routes/pipelineStageRoutes');
 const dealReasonRoutes = require('./src/routes/dealReasonRoutes');
 const competitorRoutes = require('./src/routes/competitorRoutes');
+const auditRoutes = require('./src/routes/auditRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -34,6 +35,11 @@ app.use('/api/custom-fields', customFieldRoutes);
 app.use('/api/pipeline-stages', pipelineStageRoutes);
 app.use('/api/deal-reasons', dealReasonRoutes);
 app.use('/api/competitors', competitorRoutes);
+app.use('/api/dashboard', require('./src/routes/dashboardRoutes'));
+app.use('/api/deals', require('./src/routes/dealRoutes'));
+app.use('/api/organization', require('./src/routes/organizationRoutes'));
+app.use('/api/audit-logs', auditRoutes);
+app.use('/api/audit_logs', auditRoutes);
 
 // Các route phụ trợ nếu có
 try {

@@ -1,35 +1,52 @@
 import React, { useState, useEffect } from 'react';
+import { 
+    Table, Button, Space, Tag, Input, Select, Card, 
+    Row, Col, Typography, Modal, Form, notification, 
+    Tooltip, Popconfirm, Tabs, Badge 
+} from 'antd';
+import { 
+    TagsOutlined, PlusOutlined, ReloadOutlined, 
+    ArrowUpOutlined, ArrowDownOutlined, EditOutlined, 
+    DeleteOutlined, CheckCircleOutlined, StopOutlined 
+} from '@ant-design/icons';
+import axios from 'axios';
 
-const TABS = [
-    { key: 'industries', label: ' Ngành Nghề Kinh Doanh', title: 'Ngành nghề' },
-    { key: 'company-sizes', label: ' Quy Mô Doanh Nghiệp', title: 'Quy mô doanh nghiệp' },
-    { key: 'lead-sources', label: ' Nguồn Khách Hàng (Lead)', title: 'Nguồn lead' },
-    { key: 'activity-types', label: ' Loại Hoạt Động', title: 'Loại hoạt động' }
-];
+const { Title, Text, Paragraph } = Typography;
 
-const CategoryManagement = () => {
-    const [activeTab, setActiveTab] = useState('industries');
+export default function CategoryManagement() {
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [activeTab, setActiveTab] = useState('industry');
 
-    // Modal State
-    const [showModal, setShowModal] = useState(false);
+    // Modal Thêm & Sửa
+    const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState(null);
-    const [formData, setFormData] = useState({ name: '', code: '', description: '', is_active: true });
+    const [saving, setSaving] = useState(false);
+    const [form] = Form.useForm();
 
-    const currentTabInfo = TABS.find(t => t.key === activeTab);
+    const [api, contextHolder] = notification.useNotification();
+    const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+    // Phân quyền theo ma trận RBAC: Giám đốc (Director) và Admin có toàn quyền (F)
+    const isDirectorOrAdmin = currentUser.role_code === 'Director' || currentUser.role_code === 'Admin';
 
+    const tabConfig = {
+        industry: { label: 'Ngành Nghề Kinh Doanh', addText: 'Thêm Ngành Nghề' },
+        company_size: { label: 'Quy Mô Doanh Nghiệp', addText: 'Thêm Quy Mô' },
+        lead_source: { label: 'Nguồn Khách Hàng (Lead)', addText: 'Thêm Nguồn Lead' },
+        activity_type: { label: 'Loại Hoạt Động', addText: 'Thêm Loại Hoạt Động' }
+    };
+
+    // 1. Tải danh sách danh mục theo Tab đang chọn
     const fetchCategories = async () => {
         setLoading(true);
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch(`http://localhost:5001/api/categories/${activeTab}`, {
+            const res = await axios.get(`http://localhost:5001/api/categories?type=${activeTab}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            const data = await res.json();
-            if (res.ok) setCategories(data.data || []);
+            setCategories(res.data.data || []);
         } catch (err) {
-            console.error('Lỗi tải danh mục:', err);
+            api.error({ message: 'Lỗi tải danh mục', description: 'Không thể kết nối đến máy chủ.' });
         } finally {
             setLoading(false);
         }
@@ -39,269 +56,282 @@ const CategoryManagement = () => {
         fetchCategories();
     }, [activeTab]);
 
-    const handleOpenAdd = () => {
+    // 2. Mở Modal Thêm mới
+    const handleOpenAddModal = () => {
         setEditingItem(null);
-        setFormData({ name: '', code: '', description: '', is_active: true });
-        setShowModal(true);
+        form.resetFields();
+        form.setFieldsValue({ status: 'active' });
+        setIsModalOpen(true);
     };
 
-    const handleOpenEdit = (item) => {
-        setEditingItem(item);
-        setFormData({
-            name: item.name,
-            code: item.code || '',
-            description: item.description || '',
-            is_active: Boolean(item.is_active)
+    // 3. Mở Modal Sửa
+    const handleOpenEditModal = (record) => {
+        setEditingItem(record);
+        form.setFieldsValue({
+            name: record.name,
+            code: record.code,
+            description: record.description,
+            status: record.status
         });
-        setShowModal(true);
+        setIsModalOpen(true);
     };
 
-    const handleSave = async (e) => {
-        e.preventDefault();
+    // 4. Lưu danh mục
+    const handleSaveCategory = async (values) => {
+        setSaving(true);
         try {
             const token = localStorage.getItem('token');
-            const url = editingItem
-                ? `http://localhost:5001/api/categories/${activeTab}/${editingItem.id}`
-                : `http://localhost:5001/api/categories/${activeTab}`;
-            const method = editingItem ? 'PUT' : 'POST';
-
-            const res = await fetch(url, {
-                method,
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                body: JSON.stringify(formData)
-            });
-
-            const data = await res.json();
-            if (!res.ok) {
-                alert('⚠️ ' + data.message);
-                return;
+            if (editingItem) {
+                const res = await axios.put(`http://localhost:5001/api/categories/${editingItem.id}`, values, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                api.success({ message: 'Thành công', description: res.data.message });
+            } else {
+                const res = await axios.post('http://localhost:5001/api/categories', {
+                    ...values,
+                    type: activeTab
+                }, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                api.success({ message: 'Thành công', description: res.data.message });
             }
-
-            alert('✅ ' + data.message);
-            setShowModal(false);
+            setIsModalOpen(false);
+            form.resetFields();
             fetchCategories();
         } catch (err) {
-            alert('Lỗi kết nối máy chủ!');
-        }
-    };
-
-    // Đổi thứ tự sắp xếp trực tiếp (Lên / Xuống)
-    const handleMove = async (index, direction) => {
-        const targetIndex = direction === 'up' ? index - 1 : index + 1;
-        if (targetIndex < 0 || targetIndex >= categories.length) return;
-
-        const current = categories[index];
-        const target = categories[targetIndex];
-
-        try {
-            const token = localStorage.getItem('token');
-            const res = await fetch(`http://localhost:5001/api/categories/${activeTab}/swap-order`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                body: JSON.stringify({
-                    id1: current.id,
-                    order1: current.sort_order,
-                    id2: target.id,
-                    order2: target.sort_order
-                })
+            api.error({ 
+                message: 'Thao tác thất bại', 
+                description: err.response?.data?.message || 'Có lỗi xảy ra!' 
             });
-
-            if (res.ok) fetchCategories();
-        } catch (err) {
-            alert('Lỗi đổi thứ tự!');
+        } finally {
+            setSaving(false);
         }
     };
 
-    const handleDelete = async (id) => {
-        if (!window.confirm('Bạn có chắc chắn muốn xóa giá trị danh mục này?')) return;
+    // 5. Đổi thứ tự hiển thị Lên / Xuống (AC 3)
+    const handleSwapOrder = async (record, direction) => {
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch(`http://localhost:5001/api/categories/${activeTab}/${id}`, {
-                method: 'DELETE',
+            const res = await axios.put(`http://localhost:5001/api/categories/${record.id}/swap-order`, { direction }, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-
-            const data = await res.json();
-            if (!res.ok) {
-                // Báo lỗi rõ ràng khi không thể xóa do ràng buộc
-                alert(data.message);
-                return;
-            }
-
-            alert('✅ ' + data.message);
+            api.success({ message: res.data.message });
             fetchCategories();
         } catch (err) {
-            alert('Lỗi khi xóa!');
+            api.error({ message: 'Lỗi sắp xếp', description: err.response?.data?.message });
         }
     };
 
+    // 6. Xóa danh mục kèm chặn tham chiếu (AC 2)
+    const handleDeleteCategory = async (record) => {
+        try {
+            const token = localStorage.getItem('token');
+            const res = await axios.delete(`http://localhost:5001/api/categories/${record.id}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            api.success({ message: res.data.message });
+            fetchCategories();
+        } catch (err) {
+            api.error({ 
+                message: 'Không thể xóa danh mục này', 
+                description: err.response?.data?.message || 'Giá trị đang được sử dụng ở module khác!' 
+            });
+        }
+    };
+
+    const columns = [
+        {
+            title: 'Thứ tự',
+            key: 'order',
+            width: 110,
+            align: 'center',
+            render: (_, record, index) => (
+                <Space size={4}>
+                    <Text strong style={{ minWidth: 16 }}>{record.sort_order || index + 1}</Text>
+                    {isDirectorOrAdmin && (
+                        <>
+                            <Tooltip title="Đẩy lên trước">
+                                <Button 
+                                    size="small" 
+                                    type="text" 
+                                    icon={<ArrowUpOutlined style={{ color: '#1677ff' }} />} 
+                                    disabled={index === 0}
+                                    onClick={() => handleSwapOrder(record, 'UP')} 
+                                />
+                            </Tooltip>
+                            <Tooltip title="Đẩy xuống sau">
+                                <Button 
+                                    size="small" 
+                                    type="text" 
+                                    icon={<ArrowDownOutlined style={{ color: '#1677ff' }} />} 
+                                    disabled={index === categories.length - 1}
+                                    onClick={() => handleSwapOrder(record, 'DOWN')} 
+                                />
+                            </Tooltip>
+                        </>
+                    )}
+                </Space>
+            )
+        },
+        {
+            title: 'Tên hiển thị',
+            dataIndex: 'name',
+            key: 'name',
+            render: (text) => <Text strong style={{ color: '#0f172a' }}>{text}</Text>
+        },
+        {
+            title: 'Mã viết tắt',
+            dataIndex: 'code',
+            key: 'code',
+            width: 160,
+            render: (code) => <Tag color="blue" style={{ fontWeight: 600 }}>{code}</Tag>
+        },
+        {
+            title: 'Mô tả giải thích',
+            dataIndex: 'description',
+            key: 'description',
+            render: (text) => text || <Text type="secondary">—</Text>
+        },
+        {
+            title: 'Trạng thái',
+            dataIndex: 'status',
+            key: 'status',
+            width: 140,
+            align: 'center',
+            render: (st) => (
+                <Badge 
+                    status={st === 'inactive' ? 'error' : 'success'} 
+                    text={st === 'inactive' ? 'Tạm ngưng' : 'Đang dùng'} 
+                />
+            )
+        },
+        {
+            title: 'Thao tác',
+            key: 'actions',
+            align: 'center',
+            width: 130,
+            render: (_, record) => isDirectorOrAdmin ? (
+                <Space size={8}>
+                    <Tooltip title="Chỉnh sửa">
+                        <Button 
+                            size="small" 
+                            icon={<EditOutlined style={{ color: '#1677ff' }} />} 
+                            onClick={() => handleOpenEditModal(record)} 
+                        />
+                    </Tooltip>
+                    <Tooltip title="Xóa danh mục">
+                        <Popconfirm
+                            title={`Xóa danh mục "${record.name}"?`}
+                            description="Hệ thống sẽ kiểm tra ràng buộc trước khi xóa."
+                            onConfirm={() => handleDeleteCategory(record)}
+                            okText="Xóa"
+                            cancelText="Hủy"
+                        >
+                            <Button size="small" danger icon={<DeleteOutlined />} />
+                        </Popconfirm>
+                    </Tooltip>
+                </Space>
+            ) : <Tag color="default">Chỉ xem</Tag>
+        }
+    ];
+
     return (
-        <div style={{ padding: '24px', color: '#e6edf3', maxWidth: '1200px', margin: '0 auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                <div>
-                    <h2 style={{ margin: 0, fontSize: '22px' }}>🏷️ Khai Báo Danh Mục Dùng Chung (S2-07)</h2>
-                    <p style={{ margin: '6px 0 0', color: '#8b949e', fontSize: '13px' }}>
-                        Chuẩn hóa danh mục ngành nghề, quy mô, nguồn lead để đồng bộ báo cáo toàn công ty
-                    </p>
-                </div>
-                <button
-                    onClick={handleOpenAdd}
-                    style={{
-                        padding: '9px 16px', backgroundColor: '#238636', color: '#fff',
-                        border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold'
-                    }}
-                >
-                    + Thêm {currentTabInfo.title}
-                </button>
-            </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {contextHolder}
 
-            {/* TAB SELECTOR */}
-            <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid #30363d', marginBottom: '20px' }}>
-                {TABS.map(tab => (
-                    <button
-                        key={tab.key}
-                        onClick={() => setActiveTab(tab.key)}
-                        style={{
-                            padding: '10px 16px',
-                            background: 'none',
-                            border: 'none',
-                            borderBottom: activeTab === tab.key ? '2px solid #58a6ff' : '2px solid transparent',
-                            color: activeTab === tab.key ? '#58a6ff' : '#8b949e',
-                            fontWeight: activeTab === tab.key ? 'bold' : 'normal',
-                            cursor: 'pointer',
-                            fontSize: '14px'
-                        }}
+            {/* HEADER */}
+            <Card bordered={false} style={{ borderRadius: 12 }}>
+                <Row justify="space-between" align="middle">
+                    <Col>
+                        <Title level={3} style={{ margin: 0, color: '#0f172a' }}>
+                            <TagsOutlined style={{ color: '#1677ff', marginRight: 8 }} />
+                            Khai Báo Danh Mục Dùng Chung
+                        </Title>
+                        <Paragraph type="secondary" style={{ margin: 0, fontSize: 13 }}>
+                            Chuẩn hóa danh mục ngành nghề, quy mô, nguồn lead và loại hoạt động để đồng bộ báo cáo toàn công ty
+                        </Paragraph>
+                    </Col>
+                    <Col>
+                        <Space>
+                            {isDirectorOrAdmin && (
+                                <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenAddModal}>
+                                    {tabConfig[activeTab]?.addText}
+                                </Button>
+                            )}
+                            <Button icon={<ReloadOutlined />} onClick={fetchCategories} />
+                        </Space>
+                    </Col>
+                </Row>
+            </Card>
+
+            {/* TABS 4 NHÓM DANH MỤC & BẢNG LIGHT MODE */}
+            <Card bordered={false} style={{ borderRadius: 12 }}>
+                <Tabs
+                    activeKey={activeTab}
+                    onChange={(k) => setActiveTab(k)}
+                    type="line"
+                    size="large"
+                    items={[
+                        { key: 'industry', label: `1. ${tabConfig.industry.label}` },
+                        { key: 'company_size', label: `2. ${tabConfig.company_size.label}` },
+                        { key: 'lead_source', label: `3. ${tabConfig.lead_source.label}` },
+                        { key: 'activity_type', label: `4. ${tabConfig.activity_type.label}` }
+                    ]}
+                />
+
+                <Table
+                    columns={columns}
+                    dataSource={categories}
+                    rowKey="id"
+                    loading={loading}
+                    pagination={false}
+                    bordered
+                    style={{ marginTop: 8 }}
+                />
+            </Card>
+
+            {/* MODAL THÊM & SỬA */}
+            <Modal
+                title={editingItem ? `Chỉnh Sửa: ${editingItem.name}` : tabConfig[activeTab]?.addText}
+                open={isModalOpen}
+                onCancel={() => setIsModalOpen(false)}
+                onOk={form.submit}
+                confirmLoading={saving}
+                okText={editingItem ? "Lưu thay đổi" : "Thêm mới"}
+                cancelText="Hủy"
+                destroyOnClose
+            >
+                <Form form={form} layout="vertical" onFinish={handleSaveCategory} style={{ marginTop: 16 }}>
+                    <Form.Item 
+                        name="name" 
+                        label="Tên hiển thị" 
+                        rules={[{ required: true, message: 'Vui lòng nhập tên danh mục!' }]}
                     >
-                        {tab.label}
-                    </button>
-                ))}
-            </div>
+                        <Input placeholder="Ví dụ: Công nghệ thông tin..." />
+                    </Form.Item>
 
-            {/* DATA TABLE */}
-            <div style={{ backgroundColor: '#161b22', border: '1px solid #30363d', borderRadius: '8px', overflow: 'hidden' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
-                    <thead>
-                        <tr style={{ backgroundColor: '#0d1117', borderBottom: '1px solid #30363d', color: '#8b949e' }}>
-                            <th style={{ padding: '12px 16px', width: '90px' }}>Thứ tự</th>
-                            <th style={{ padding: '12px 16px' }}>Tên hiển thị</th>
-                            <th style={{ padding: '12px 16px', width: '150px' }}>Mã viết tắt</th>
-                            <th style={{ padding: '12px 16px' }}>Mô tả</th>
-                            <th style={{ padding: '12px 16px', width: '130px' }}>Trạng thái</th>
-                            <th style={{ padding: '12px 16px', textAlign: 'center', width: '150px' }}>Thao tác</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {loading ? (
-                            <tr><td colSpan="6" style={{ padding: '30px', textAlign: 'center', color: '#8b949e' }}>Đang tải dữ liệu...</td></tr>
-                        ) : categories.length === 0 ? (
-                            <tr><td colSpan="6" style={{ padding: '30px', textAlign: 'center', color: '#8b949e' }}>Chưa có bản ghi nào.</td></tr>
-                        ) : (
-                            categories.map((item, index) => (
-                                <tr key={item.id} style={{ borderBottom: '1px solid #21262d' }}>
-                                    <td style={{ padding: '12px 16px' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                            <span style={{ fontWeight: 'bold', width: '16px' }}>{item.sort_order}</span>
-                                            <button 
-                                                disabled={index === 0}
-                                                onClick={() => handleMove(index, 'up')}
-                                                style={{ background: 'none', border: 'none', color: index === 0 ? '#484f58' : '#58a6ff', cursor: index === 0 ? 'default' : 'pointer', fontSize: '12px' }}
-                                            >▲</button>
-                                            <button 
-                                                disabled={index === categories.length - 1}
-                                                onClick={() => handleMove(index, 'down')}
-                                                style={{ background: 'none', border: 'none', color: index === categories.length - 1 ? '#484f58' : '#58a6ff', cursor: index === categories.length - 1 ? 'default' : 'pointer', fontSize: '12px' }}
-                                            >▼</button>
-                                        </div>
-                                    </td>
-                                    <td style={{ padding: '12px 16px', fontWeight: 'bold' }}>{item.name}</td>
-                                    <td style={{ padding: '12px 16px', color: '#79c0ff', fontFamily: 'monospace' }}>{item.code || '—'}</td>
-                                    <td style={{ padding: '12px 16px', color: '#8b949e' }}>{item.description || '—'}</td>
-                                    <td style={{ padding: '12px 16px' }}>
-                                        <span style={{
-                                            padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 'bold',
-                                            backgroundColor: item.is_active ? '#122317' : '#21262d',
-                                            color: item.is_active ? '#3fb950' : '#8b949e',
-                                            border: item.is_active ? '1px solid #238636' : '1px solid #30363d'
-                                        }}>
-                                            {item.is_active ? '● Đang dùng' : '○ Ngừng'}
-                                        </span>
-                                    </td>
-                                    <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                                        <button
-                                            onClick={() => handleOpenEdit(item)}
-                                            style={{ padding: '4px 8px', marginRight: '6px', backgroundColor: '#21262d', color: '#58a6ff', border: '1px solid #30363d', borderRadius: '4px', cursor: 'pointer' }}
-                                        >
-                                            ✏️ Sửa
-                                        </button>
-                                        <button
-                                            onClick={() => handleDelete(item.id)}
-                                            style={{ padding: '4px 8px', backgroundColor: '#21262d', color: '#f85149', border: '1px solid #30363d', borderRadius: '4px', cursor: 'pointer' }}
-                                        >
-                                            🗑️ Xóa
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
-            </div>
+                    <Form.Item 
+                        name="code" 
+                        label="Mã viết tắt / Định danh" 
+                        rules={[{ required: true, message: 'Nhập mã viết tắt!' }]}
+                    >
+                        <Input disabled={!!editingItem} placeholder="Ví dụ: IT, SME, WEB..." />
+                    </Form.Item>
 
-            {/* MODAL THÊM / SỬA */}
-            {showModal && (
-                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200 }}>
-                    <div style={{ backgroundColor: '#161b22', border: '1px solid #30363d', borderRadius: '8px', width: '450px', padding: '24px' }}>
-                        <h3 style={{ margin: '0 0 16px 0', fontSize: '16px' }}>
-                            {editingItem ? `✏️ Chỉnh Sửa ${currentTabInfo.title}` : `➕ Thêm Mới ${currentTabInfo.title}`}
-                        </h3>
-                        <form onSubmit={handleSave}>
-                            <div style={{ marginBottom: '12px' }}>
-                                <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px' }}>Tên danh mục *</label>
-                                <input
-                                    type="text" required
-                                    value={formData.name}
-                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                    style={{ width: '100%', padding: '8px', backgroundColor: '#0d1117', color: '#fff', border: '1px solid #30363d', borderRadius: '6px' }}
-                                />
-                            </div>
-                            <div style={{ marginBottom: '12px' }}>
-                                <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px' }}>Mã viết tắt (Code)</label>
-                                <input
-                                    type="text"
-                                    placeholder="Tự động sinh nếu để trống"
-                                    value={formData.code}
-                                    onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                                    style={{ width: '100%', padding: '8px', backgroundColor: '#0d1117', color: '#fff', border: '1px solid #30363d', borderRadius: '6px' }}
-                                />
-                            </div>
-                            <div style={{ marginBottom: '12px' }}>
-                                <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px' }}>Mô tả chi tiết</label>
-                                <textarea
-                                    rows="2"
-                                    value={formData.description}
-                                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                    style={{ width: '100%', padding: '8px', backgroundColor: '#0d1117', color: '#fff', border: '1px solid #30363d', borderRadius: '6px', resize: 'none' }}
-                                />
-                            </div>
-                            <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <input
-                                    type="checkbox"
-                                    id="is_active_chk"
-                                    checked={formData.is_active}
-                                    onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                                />
-                                <label htmlFor="is_active_chk" style={{ fontSize: '13px', cursor: 'pointer' }}>Kích hoạt sử dụng</label>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                                <button type="button" onClick={() => setShowModal(false)} style={{ padding: '8px 14px', backgroundColor: '#21262d', color: '#c9d1d9', border: '1px solid #30363d', borderRadius: '6px', cursor: 'pointer' }}>Hủy</button>
-                                <button type="submit" style={{ padding: '8px 16px', backgroundColor: '#238636', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>Lưu Dữ Liệu</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
+                    <Form.Item name="description" label="Mô tả giải thích">
+                        <Input.TextArea rows={3} placeholder="Mô tả phạm vi hoặc đối tượng áp dụng..." />
+                    </Form.Item>
+
+                    {editingItem && (
+                        <Form.Item name="status" label="Trạng thái sử dụng" rules={[{ required: true }]}>
+                            <Select>
+                                <Select.Option value="active">Đang dùng</Select.Option>
+                                <Select.Option value="inactive">Tạm ngưng</Select.Option>
+                            </Select>
+                        </Form.Item>
+                    )}
+                </Form>
+            </Modal>
         </div>
     );
-};
-
-export default CategoryManagement;
+}

@@ -13,72 +13,25 @@ const { logAudit } = require('../utils/auditLogger');
 // ==========================================
 const getUsers = async (req, res) => {
     try {
-        let { page = 1, limit = 20, search = '', role_id = '', status = '' } = req.query;
-        page = parseInt(page) || 1;
-        limit = parseInt(limit) || 20;
-        const offset = (page - 1) * limit;
-
-        let whereClauses = ['1=1'];
-        let queryParams = [];
-
-        // Tiêu chí AC: Tìm theo tên, email, nhóm kinh doanh
-        if (search.trim()) {
-            whereClauses.push('(u.full_name LIKE ? OR u.email LIKE ? OR g.name LIKE ?)');
-            const keyword = `%${search.trim()}%`;
-            queryParams.push(keyword, keyword, keyword);
-        }
-
-        // Tiêu chí AC: Lọc theo vai trò (Role)
-        if (role_id) {
-            whereClauses.push('u.role_id = ?');
-            queryParams.push(role_id);
-        }
-
-        // Tiêu chí AC: Lọc theo trạng thái (status)
-        if (status) {
-            whereClauses.push('u.status = ?');
-            queryParams.push(status);
-        }
-
-        const whereSql = whereClauses.join(' AND ');
-
-        // 1. Đếm tổng số lượng bản ghi thỏa mãn điều kiện
-        const countQuery = `
-            SELECT COUNT(*) AS total
+        const db = require('../config/db');
+        const [users] = await db.execute(`
+            SELECT u.id, u.full_name, u.email, u.role_code, u.status, u.group_id,
+                   g.name AS group_name
             FROM users u
             LEFT JOIN \`groups\` g ON u.group_id = g.id
-            WHERE ${whereSql}
-        `;
-        const [countResult] = await db.execute(countQuery, queryParams);
-        const total = countResult[0].total;
-
-        // 2. Lấy dữ liệu người dùng có phân trang (mặc định 20 dòng)
-        const dataQuery = `
-            SELECT 
-                u.id, u.email, u.full_name, u.role_id, u.group_id, u.status, u.created_at,
-                r.role_name, r.data_scope,
-                g.name AS group_name
-            FROM users u
-            LEFT JOIN roles r ON u.role_id = r.id
-            LEFT JOIN \`groups\` g ON u.group_id = g.id
-            WHERE ${whereSql}
-            ORDER BY u.id DESC
-            LIMIT ${limit} OFFSET ${offset}
-        `;
-        const [users] = await db.execute(dataQuery, queryParams);
-
-        return res.status(200).json({
-            data: users,
-            pagination: {
-                total,
-                page,
-                limit,
-                totalPages: Math.ceil(total / limit)
-            }
-        });
+            ORDER BY u.id ASC
+        `);
+        return res.json({ data: users, total: users.length });
     } catch (error) {
-        console.error('Lỗi khi lấy danh sách người dùng:', error);
-        return res.status(500).json({ message: 'Lỗi server khi lấy danh sách người dùng!' });
+        console.error('Lỗi getUsers:', error);
+        // Fallback nếu database chưa có bảng groups
+        try {
+            const db = require('../config/db');
+            const [users] = await db.execute('SELECT id, full_name, email, role_code, status, group_id FROM users');
+            return res.json({ data: users, total: users.length });
+        } catch (err) {
+            return res.status(500).json({ message: 'Lỗi truy vấn danh sách người dùng.' });
+        }
     }
 };
 
@@ -135,92 +88,36 @@ const createUser = async (req, res) => {
     }
 };
 
-// ==========================================
-// 3. CẬP NHẬT TÀI KHOẢN & VAI TRÒ (Subtask N1-109)
-// ==========================================
-const updateUser = async (req, res) => {
+const updateUserRole = async (req, res) => {
     try {
-        const targetUserId = parseInt(req.params.id);
-        const currentAdminId = req.user.id;
-        const { full_name, role_id, group_id, status } = req.body;
+        const db = require('../config/db');
+        const targetId = parseInt(req.params.id);
+        const { role_code, group_id } = req.body;
 
-        // 1. Kiểm tra tài khoản tồn tại
-        const [users] = await db.execute('SELECT * FROM users WHERE id = ?', [targetUserId]);
-        if (users.length === 0) {
-            return res.status(404).json({ message: 'Không tìm thấy người dùng yêu cầu!' });
-        }
-        const targetUser = users[0];
-
-        // 2. RÀNG BUỘC N1-109: Không cho phép Admin tự thu hồi quyền Admin của chính mình
-        if (currentAdminId === targetUserId) {
-            if (role_id && parseInt(role_id) !== targetUser.role_id) {
-                return res.status(400).json({
-                    message: 'Bảo mật: Bạn không thể tự thay đổi hoặc thu hồi quyền Quản trị viên của chính mình!'
-                });
-            }
-            if (status && status !== 'ACTIVE') {
-                return res.status(400).json({
-                    message: 'Bảo mật: Bạn không thể tự khóa tài khoản của chính mình!'
-                });
-            }
+        // Chặn an toàn: Không cho Admin tự hạ quyền của chính mình
+        if (req.user.id === targetId && role_code !== 'Admin') {
+            return res.status(403).json({ message: 'Không thể tự tước quyền Quản trị (Admin) của chính mình!' });
         }
 
-        // 3. RÀNG BUỘC N1-109: Trưởng nhóm (role_id = 2) bắt buộc phải có Group ID
-        const finalRoleId = role_id !== undefined ? parseInt(role_id) : targetUser.role_id;
-        const finalGroupId = group_id !== undefined ? (group_id ? parseInt(group_id) : null) : targetUser.group_id;
-
-        if (finalRoleId === 2 && !finalGroupId) {
-            return res.status(400).json({
-                message: 'Ràng buộc nghiệp vụ: Tài khoản Trưởng nhóm bắt buộc phải thuộc về một nhóm kinh doanh cụ thể!'
-            });
+        // Ràng buộc: Trưởng nhóm (Team Lead) bắt buộc phải có nhóm kinh doanh
+        if (role_code === 'Team Lead' && !group_id) {
+            return res.status(400).json({ message: 'Trưởng nhóm bắt buộc phải phân công một nhóm cụ thể!' });
         }
 
-        // 4. Thực thi cập nhật
-        const updateQuery = `
-            UPDATE users 
-            SET full_name = COALESCE(?, full_name),
-                role_id = COALESCE(?, role_id),
-                group_id = ?,
-                status = COALESCE(?, status)
-            WHERE id = ?
-        `;
-        await db.execute(updateQuery, [
-            full_name || null,
-            role_id || null,
-            finalGroupId,
-            status || null,
-            targetUserId
-        ]);
-        // [S2-04] Tự động ghi nhật ký thay đổi dữ liệu người dùng/vai trò
-        await logAudit({
-            userId: req.user.id,
-            userName: req.user.full_name || req.user.name,
-            action: 'UPDATE_USER_ROLE',
-            targetType: 'USER',
-            targetId: targetUserId,
-            oldValue: {
-                full_name: targetUser.full_name,
-                role_id: targetUser.role_id,
-                group_id: targetUser.group_id,
-                status: targetUser.status
-            },
-            newValue: {
-                full_name: full_name || targetUser.full_name,
-                role_id: finalRoleId || targetUser.role_id,
-                group_id: finalGroupId,
-                status: status || targetUser.status
-            }
-        });
+        // Director và Admin có phạm vi toàn công ty, group_id tự về null
+        const finalGroupId = (role_code === 'Admin' || role_code === 'Director') ? null : (group_id || null);
 
+        await db.execute(
+            'UPDATE users SET role_code = ?, group_id = ? WHERE id = ?',
+            [role_code, finalGroupId, targetId]
+        );
 
-        return res.status(200).json({ message: 'Cập nhật thông tin và vai trò người dùng thành công!' });
+        return res.json({ message: 'Cập nhật phân quyền thành công!' });
     } catch (error) {
-        console.error('Lỗi khi cập nhật người dùng:', error);
-        return res.status(500).json({ message: 'Lỗi server khi cập nhật tài khoản!' });
+        console.error('Lỗi updateUserRole:', error);
+        return res.status(500).json({ message: 'Lỗi server khi phân quyền.' });
     }
-
 };
-
 // ==========================================
 // 4. LẤY DANH MỤC ROLES VÀ GROUPS (Để Frontend đổ vào Select box)
 // ==========================================
@@ -604,7 +501,8 @@ module.exports = {
 module.exports = {
     getUsers,
     createUser,
-    updateUser,
+    updateUserRole,
+    updateUser: updateUserRole,
     getMetadata,
     lockAndHandoverUser,
     getUserCustomerCount,

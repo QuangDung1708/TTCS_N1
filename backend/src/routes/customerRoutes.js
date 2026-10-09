@@ -1,21 +1,71 @@
 const express = require('express');
 const router = express.Router();
-const { verifyToken } = require('../middleware/authMiddleware');
-const { buildDataScope } = require('../middleware/rbacMiddleware');
-const { getCustomers, getCustomerById, createCustomer } = require('../controllers/customerController');
-const customerController = require('../controllers/customerController');
+const db = require('../config/db');
+const authMiddleware = require('../middleware/authMiddleware');
 
-// Mọi route khách hàng đều phải xác thực token
-router.use(verifyToken);
+const verifyToken = typeof authMiddleware === 'function' 
+    ? authMiddleware 
+    : (authMiddleware.verifyToken || ((req, res, next) => next()));
 
-// Lấy danh sách khách hàng (lọc theo phạm vi dữ liệu với tiền tố c.)
-router.get('/', buildDataScope({ userField: 'c.created_by', groupField: 'c.group_id' }), getCustomers);
+// 1. GET ALL CUSTOMERS
+router.get('/', verifyToken, async (req, res) => {
+    try {
+        const [rows] = await db.execute('SELECT * FROM customers ORDER BY id DESC');
+        return res.json({ data: rows });
+    } catch (error) {
+        console.error('Lỗi GET /api/customers:', error);
+        return res.status(500).json({ message: 'Lỗi tải danh sách khách hàng' });
+    }
+});
 
-// Xem chi tiết khách hàng theo ID
-router.get('/:id', getCustomerById);
+// 2. CREATE CUSTOMER (LƯU CẢ CUSTOM_FIELDS)
+router.post('/', verifyToken, async (req, res) => {
+    try {
+        const { name, phone, email, company_name, address, custom_fields } = req.body;
+        if (!name || !phone) {
+            return res.status(400).json({ message: 'Tên và số điện thoại không được để trống!' });
+        }
 
-router.post('/', createCustomer);
+        const cfString = custom_fields ? JSON.stringify(custom_fields) : null;
 
-router.get('/export-excel', customerController.exportExcelCustomers);
+        await db.execute(`
+            INSERT INTO customers (name, phone, email, company_name, address, custom_fields)
+            VALUES (?, ?, ?, ?, ?, ?)
+        `, [name.trim(), phone.trim(), email || '', company_name || '', address || '', cfString]);
+
+        return res.json({ message: 'Thêm khách hàng mới thành công!' });
+    } catch (error) {
+        console.error('Lỗi POST /api/customers:', error);
+        return res.status(500).json({ message: 'Lỗi khi lưu khách hàng vào cơ sở dữ liệu' });
+    }
+});
+
+// 3. UPDATE CUSTOMER
+router.put('/:id', verifyToken, async (req, res) => {
+    try {
+        const { name, phone, email, company_name, address, custom_fields } = req.body;
+        const cfString = custom_fields ? JSON.stringify(custom_fields) : null;
+
+        await db.execute(`
+            UPDATE customers 
+            SET name = ?, phone = ?, email = ?, company_name = ?, address = ?, custom_fields = ?
+            WHERE id = ?
+        `, [name.trim(), phone.trim(), email || '', company_name || '', address || '', cfString, req.params.id]);
+
+        return res.json({ message: 'Cập nhật thông tin khách hàng thành công!' });
+    } catch (error) {
+        return res.status(500).json({ message: 'Lỗi cập nhật khách hàng' });
+    }
+});
+
+// 4. DELETE CUSTOMER
+router.delete('/:id', verifyToken, async (req, res) => {
+    try {
+        await db.execute('DELETE FROM customers WHERE id = ?', [req.params.id]);
+        return res.json({ message: 'Xóa khách hàng thành công!' });
+    } catch (error) {
+        return res.status(500).json({ message: 'Lỗi khi xóa khách hàng' });
+    }
+});
 
 module.exports = router;

@@ -1,43 +1,47 @@
 import React, { useState, useEffect } from 'react';
+import { 
+    Table, Button, Space, Tag, Input, Select, Card, 
+    Row, Col, Typography, Modal, Form, notification, 
+    InputNumber, Tooltip, Popconfirm, Badge, Statistic 
+} from 'antd';
+import { 
+    PlusOutlined, ReloadOutlined, SearchOutlined, 
+    EditOutlined, StopOutlined, CheckCircleOutlined, 
+    SafetyCertificateOutlined, LockOutlined, DollarOutlined, 
+    ShoppingOutlined, SyncOutlined 
+} from '@ant-design/icons';
+import axios from 'axios';
+
+const { Title, Text, Paragraph } = Typography;
 
 export default function ProductManagement() {
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [search, setSearch] = useState('');
+    const [searchText, setSearchText] = useState('');
     const [typeFilter, setTypeFilter] = useState('');
-    const [showModal, setShowModal] = useState(false);
+    const [statusFilter, setStatusFilter] = useState('');
+
+    // Modal Thêm & Sửa sản phẩm
+    const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingProduct, setEditingProduct] = useState(null);
-    const [errorMsg, setErrorMsg] = useState('');
+    const [saving, setSaving] = useState(false);
+    const [form] = Form.useForm();
 
-    // Lấy thông tin user hiện tại để check vai trò Giám đốc
-    const [currentUser] = useState(() => {
-        try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return {}; }
-    });
-    const isDirector = currentUser?.role_id === 1;
+    const [api, contextHolder] = notification.useNotification();
+    const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+    const isDirectorOrAdmin = currentUser.role_code === 'Director' || currentUser.role_code === 'Admin';
 
-    const [formData, setFormData] = useState({
-        code: '', name: '', type: 'one_time', unit: 'Gói',
-        list_price: '', floor_price: '', cost_price: ''
-    });
-
+    // 1. Tải danh sách sản phẩm từ MySQL
     const fetchProducts = async () => {
         setLoading(true);
         try {
             const token = localStorage.getItem('token');
-            const query = new URLSearchParams({
-                search,
-                ...(typeFilter && { type: typeFilter })
-            }).toString();
-
-            const res = await fetch(`http://localhost:5001/api/products?${query}`, {
+            const res = await axios.get('http://localhost:5001/api/products', {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            const data = await res.json();
-            if (data.success) {
-                setProducts(data.data);
-            }
+            setProducts(res.data.data || []);
         } catch (err) {
-            console.error('Lỗi tải sản phẩm:', err);
+            api.error({ message: 'Lỗi tải dữ liệu', description: 'Không thể kết nối đến API sản phẩm!' });
         } finally {
             setLoading(false);
         }
@@ -45,342 +49,456 @@ export default function ProductManagement() {
 
     useEffect(() => {
         fetchProducts();
-    }, [typeFilter]);
+    }, []);
 
-    const handleOpenModal = (prod = null) => {
-        setErrorMsg('');
-        if (prod) {
-            setEditingProduct(prod);
-            setFormData({
-                code: prod.code,
-                name: prod.name,
-                type: prod.type,
-                unit: prod.unit,
-                list_price: prod.list_price,
-                floor_price: prod.floor_price,
-                cost_price: prod.cost_price !== undefined ? prod.cost_price : ''
-            });
-        } else {
-            setEditingProduct(null);
-            setFormData({
-                code: '', name: '', type: 'one_time', unit: 'Gói',
-                list_price: '', floor_price: '', cost_price: ''
-            });
-        }
-        setShowModal(true);
+    // Hàm nhận diện trạng thái an toàn tuyệt đối (hỗ trợ cả active/inactive lẫn 1/0)
+    const isProductActive = (p) => {
+        if (!p) return false;
+        return p.status !== 'inactive' && p.status !== 0 && p.status !== '0' && p.status !== false;
     };
 
-    const handleSave = async (e) => {
-        e.preventDefault();
-        setErrorMsg('');
+    // 2. Mở Modal Thêm mới
+    const handleOpenAddModal = () => {
+        setEditingProduct(null);
+        form.resetFields();
+        form.setFieldsValue({
+            type: 'Sản phẩm một lần',
+            unit: 'Gói',
+            list_price: 10000000,
+            floor_price: 8000000,
+            cost_price: 5000000
+        });
+        setIsModalOpen(true);
+    };
 
-        if (parseFloat(formData.floor_price) > parseFloat(formData.list_price)) {
-            setErrorMsg('⚠️ Nghiệp vụ vi phạm: Giá sàn không được lớn hơn Giá niêm yết!');
-            return;
-        }
+    // 3. Mở Modal Chỉnh sửa
+    const handleOpenEditModal = (record) => {
+        setEditingProduct(record);
+        form.setFieldsValue({
+            code: record.code,
+            name: record.name,
+            type: record.type,
+            unit: record.unit,
+            list_price: Number(record.list_price),
+            floor_price: Number(record.floor_price),
+            cost_price: Number(record.cost_price || 0)
+        });
+        setIsModalOpen(true);
+    };
 
+    // 4. Lưu sản phẩm
+    const handleSaveProduct = async (values) => {
+        setSaving(true);
         try {
             const token = localStorage.getItem('token');
-            const url = editingProduct
-                ? `http://localhost:5001/api/products/${editingProduct.id}`
-                : 'http://localhost:5001/api/products';
-            const method = editingProduct ? 'PUT' : 'POST';
-
-            const res = await fetch(url, {
-                method,
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`
-                },
-                body: JSON.stringify(formData)
-            });
-
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.message || 'Lỗi khi lưu sản phẩm!');
-
-            setShowModal(false);
+            if (editingProduct) {
+                const res = await axios.put(`http://localhost:5001/api/products/${editingProduct.id}`, values, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                api.success({ message: 'Cập nhật thành công', description: res.data.message });
+            } else {
+                const res = await axios.post('http://localhost:5001/api/products', values, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                api.success({ message: 'Tạo sản phẩm thành công', description: res.data.message });
+            }
+            setIsModalOpen(false);
+            form.resetFields();
             fetchProducts();
         } catch (err) {
-            setErrorMsg(err.message);
+            api.error({ 
+                message: 'Không thể lưu sản phẩm', 
+                description: err.response?.data?.message || 'Có lỗi xảy ra khi lưu vào hệ thống!' 
+            });
+        } finally {
+            setSaving(false);
         }
     };
 
-    const handleToggleStatus = async (id) => {
+    // 5. Chuyển đổi trạng thái kinh doanh (AC S2-05)
+    const handleToggleStatus = async (record) => {
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch(`http://localhost:5001/api/products/${id}/toggle-status`, {
-                method: 'PATCH',
+            const res = await axios.put(`http://localhost:5001/api/products/${record.id}/toggle-status`, {}, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            const data = await res.json();
-            if (res.ok) fetchProducts();
-            else alert(data.message);
+            api.success({ message: res.data.message });
+            fetchProducts();
         } catch (err) {
-            alert('Lỗi khi đổi trạng thái sản phẩm!');
+            api.error({ message: 'Lỗi', description: err.response?.data?.message });
         }
     };
 
+    // Tính toán chỉ số thống kê (duy nhất 1 lần)
+    const totalActive = products.filter(isProductActive).length;
+    const totalSubscription = products.filter(p => p.type === 'Dịch vụ thuê bao').length;
+    const totalOneTime = products.filter(p => p.type !== 'Dịch vụ thuê bao').length;
+
+    // Bộ lọc
+    const filteredProducts = products.filter(p => {
+        const matchText = !searchText || (
+            p.code?.toLowerCase().includes(searchText.toLowerCase()) || 
+            p.name?.toLowerCase().includes(searchText.toLowerCase())
+        );
+        const matchType = !typeFilter || p.type === typeFilter;
+        const active = isProductActive(p);
+        const matchStatus = !statusFilter || (statusFilter === 'active' ? active : !active);
+        return matchText && matchType && matchStatus;
+    });
+
+    const columns = [
+        {
+            title: 'Mã SP',
+            dataIndex: 'code',
+            key: 'code',
+            width: 140,
+            render: (text, record) => (
+                <Text code strong style={{ color: text ? '#1677ff' : '#94a3b8' }}>
+                    {text || `SP-00${record.id}`}
+                </Text>
+            )
+        },
+        {
+            title: 'Tên Sản Phẩm / Dịch Vụ',
+            dataIndex: 'name',
+            key: 'name',
+            render: (text) => <Text strong style={{ color: '#0f172a' }}>{text}</Text>
+        },
+        {
+            title: 'Hình Thức',
+            dataIndex: 'type',
+            key: 'type',
+            width: 170,
+            render: (type) => (
+                <Tag color={type === 'Dịch vụ thuê bao' ? 'purple' : 'blue'}>
+                    {type}
+                </Tag>
+            )
+        },
+        {
+            title: 'ĐVT',
+            dataIndex: 'unit',
+            key: 'unit',
+            width: 110,
+            align: 'center'
+        },
+        {
+            title: 'Giá Niêm Yết',
+            dataIndex: 'list_price',
+            key: 'list_price',
+            width: 150,
+            align: 'right',
+            render: (v) => <Text strong style={{ color: '#059669' }}>{Number(v || 0).toLocaleString('vi-VN')} đ</Text>
+        },
+        {
+            title: (
+                <Tooltip title="Ngưỡng duyệt chiết khấu tự động ">
+                    <span>Giá Sàn (Floor) <SafetyCertificateOutlined style={{ color: '#fa8c16' }} /></span>
+                </Tooltip>
+            ),
+            dataIndex: 'floor_price',
+            key: 'floor_price',
+            width: 150,
+            align: 'right',
+            render: (v) => <Text strong style={{ color: '#d97706' }}>{Number(v || 0).toLocaleString('vi-VN')} đ</Text>
+        },
+        // BẢO MẬT: CHỈ GIÁM ĐỐC KINH DOANH VÀ ADMIN MỚI ĐƯỢC XEM GIÁ VỐN (AC S2-05)
+        ...(isDirectorOrAdmin ? [{
+            title: (
+                <Tooltip title="Giá vốn bảo mật - Chỉ Giám đốc kinh doanh xem và sửa được">
+                    <span>Giá Vốn (Bảo Mật) <LockOutlined style={{ color: '#dc2626' }} /></span>
+                </Tooltip>
+            ),
+            dataIndex: 'cost_price',
+            key: 'cost_price',
+            width: 150,
+            align: 'right',
+            render: (v) => <Text strong style={{ color: '#dc2626' }}>{Number(v || 0).toLocaleString('vi-VN')} đ</Text>
+        }] : []),
+        {
+            title: 'Trạng Thái',
+            key: 'status',
+            width: 160,
+            align: 'center',
+            render: (_, record) => {
+                const active = isProductActive(record);
+                return (
+                    <Badge 
+                        status={active ? 'success' : 'error'} 
+                        text={active ? 'Đang kinh doanh' : 'Ngừng kinh doanh'} 
+                    />
+                );
+            }
+        },
+        {
+            title: 'Thao Tác',
+            key: 'actions',
+            align: 'center',
+            width: 140,
+            render: (_, record) => {
+                const active = isProductActive(record);
+                return isDirectorOrAdmin ? (
+                    <Space size={6}>
+                        <Tooltip title="Chỉnh sửa bảng giá">
+                            <Button size="small" icon={<EditOutlined />} onClick={() => handleOpenEditModal(record)} />
+                        </Tooltip>
+                        <Tooltip title={active ? "Chuyển sang Ngừng kinh doanh" : "Kích hoạt kinh doanh lại"}>
+                            <Popconfirm
+                                title={active ? "Ngừng kinh doanh sản phẩm này?" : "Kích hoạt lại sản phẩm này?"}
+                                onConfirm={() => handleToggleStatus(record)}
+                                okText="Đồng ý"
+                                cancelText="Hủy"
+                            >
+                                <Button 
+                                    size="small" 
+                                    danger={active}
+                                    style={!active ? { color: '#059669', borderColor: '#059669' } : {}}
+                                    icon={active ? <StopOutlined /> : <CheckCircleOutlined />} 
+                                />
+                            </Popconfirm>
+                        </Tooltip>
+                    </Space>
+                ) : <Tag color="default">Chỉ xem</Tag>;
+            }
+        }
+    ];
+
     return (
-        <div style={{ padding: '24px', color: '#e6edf3', maxWidth: '1200px', margin: '0 auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <div>
-                    <h2 style={{ fontSize: '20px', fontWeight: 'bold', margin: '0 0 4px 0' }}>
-                         Danh Mục Sản Phẩm & Bảng Giá Chuẩn
-                    </h2>
-                    <span style={{ fontSize: '13px', color: '#8b949e' }}>
-                        Mọi báo giá kinh doanh bắt buộc xuất phát từ bảng giá niêm yết này
-                    </span>
-                </div>
-                {isDirector && (
-                    <button
-                        onClick={() => handleOpenModal()}
-                        style={{
-                            padding: '8px 16px', backgroundColor: '#238636', color: '#fff',
-                            border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600'
-                        }}
-                    >
-                        + Khai Báo Sản Phẩm Mới
-                    </button>
-                )}
-            </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {contextHolder}
 
-            {/* Thanh Tìm Kiếm & Bộ Lọc */}
-            <div style={{
-                display: 'flex', gap: '12px', backgroundColor: '#161b22', padding: '16px',
-                borderRadius: '8px', border: '1px solid #30363d', marginBottom: '20px'
-            }}>
-                <input
-                    type="text"
-                    placeholder="Tìm theo mã hoặc tên sản phẩm..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && fetchProducts()}
-                    style={{ padding: '8px 12px', backgroundColor: '#0d1117', color: '#c9d1d9', border: '1px solid #30363d', borderRadius: '6px', flex: 1 }}
-                />
-                <select
-                    value={typeFilter}
-                    onChange={(e) => setTypeFilter(e.target.value)}
-                    style={{ padding: '8px 12px', backgroundColor: '#0d1117', color: '#c9d1d9', border: '1px solid #30363d', borderRadius: '6px' }}
-                >
-                    <option value="">Tất cả hình thức</option>
-                    <option value="one_time">Sản phẩm một lần</option>
-                    <option value="subscription">Dịch vụ thuê bao</option>
-                </select>
-                <button
-                    onClick={fetchProducts}
-                    style={{ padding: '8px 16px', backgroundColor: '#21262d', color: '#58a6ff', border: '1px solid #30363d', borderRadius: '6px', cursor: 'pointer' }}
-                >
-                    🔍 Tìm kiếm
-                </button>
-            </div>
-
-            {/* Bảng Danh Sách */}
-            <div style={{ backgroundColor: '#161b22', borderRadius: '8px', border: '1px solid #30363d', overflow: 'hidden' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
-                    <thead style={{ backgroundColor: '#0d1117', borderBottom: '1px solid #30363d' }}>
-                        <tr>
-                            <th style={{ padding: '12px' }}>Mã SP</th>
-                            <th style={{ padding: '12px' }}>Tên Sản Phẩm / Dịch Vụ</th>
-                            <th style={{ padding: '12px' }}>Hình Thức</th>
-                            <th style={{ padding: '12px' }}>ĐVT</th>
-                            <th style={{ padding: '12px', textAlign: 'right' }}>Giá Niêm Yết</th>
-                            <th style={{ padding: '12px', textAlign: 'right' }}>Giá Sàn (Floor)</th>
-                            {isDirector && <th style={{ padding: '12px', textAlign: 'right', color: '#e3b341' }}> Giá Vốn (Cost)</th>}
-                            <th style={{ padding: '12px', textAlign: 'center' }}>Trạng Thái</th>
-                            {isDirector && <th style={{ padding: '12px', textAlign: 'center' }}>Thao Tác</th>}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {loading ? (
-                            <tr><td colSpan={isDirector ? 9 : 7} style={{ padding: '30px', textAlign: 'center' }}>Đang tải danh mục...</td></tr>
-                        ) : products.length === 0 ? (
-                            <tr><td colSpan={isDirector ? 9 : 7} style={{ padding: '30px', textAlign: 'center', color: '#8b949e' }}>Không tìm thấy sản phẩm nào.</td></tr>
-                        ) : (
-                            products.map((p) => (
-                                <tr key={p.id} style={{ borderBottom: '1px solid #21262d' }}>
-                                    <td style={{ padding: '12px', fontWeight: 'bold', color: '#58a6ff' }}>{p.code}</td>
-                                    <td style={{ padding: '12px', fontWeight: '500' }}>{p.name}</td>
-                                    <td style={{ padding: '12px' }}>
-                                        <span style={{
-                                            padding: '3px 8px', borderRadius: '4px', fontSize: '12px',
-                                            backgroundColor: p.type === 'subscription' ? '#1f242c' : '#232b21',
-                                            color: p.type === 'subscription' ? '#58a6ff' : '#7ee787'
-                                        }}>
-                                            {p.type === 'subscription' ? 'Dịch vụ thuê bao' : 'Bán một lần'}
-                                        </span>
-                                    </td>
-                                    <td style={{ padding: '12px' }}>{p.unit}</td>
-                                    <td style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold' }}>
-                                        {Number(p.list_price).toLocaleString('vi-VN')} đ
-                                    </td>
-                                    <td style={{ padding: '12px', textAlign: 'right', color: '#f85149' }}>
-                                        {Number(p.floor_price).toLocaleString('vi-VN')} đ
-                                    </td>
-                                    {isDirector && (
-                                        <td style={{ padding: '12px', textAlign: 'right', color: '#e3b341', fontWeight: '500' }}>
-                                            {Number(p.cost_price || 0).toLocaleString('vi-VN')} đ
-                                        </td>
-                                    )}
-                                    <td style={{ padding: '12px', textAlign: 'center' }}>
-                                        <span style={{
-                                            padding: '2px 8px', borderRadius: '4px', fontSize: '12px',
-                                            backgroundColor: p.status === 'active' ? '#1f4827' : '#3d1d1d',
-                                            color: p.status === 'active' ? '#7ee787' : '#f85149'
-                                        }}>
-                                            {p.status === 'active' ? 'Đang kinh doanh' : 'Ngừng kinh doanh'}
-                                        </span>
-                                    </td>
-                                    {isDirector && (
-                                        <td style={{ padding: '12px', textAlign: 'center' }}>
-                                            <button
-                                                onClick={() => handleOpenModal(p)}
-                                                style={{ padding: '4px 8px', marginRight: '6px', backgroundColor: '#21262d', color: '#c9d1d9', border: '1px solid #30363d', borderRadius: '4px', cursor: 'pointer' }}
-                                            >
-                                                 Sửa
-                                            </button>
-                                            <button
-                                                onClick={() => handleToggleStatus(p.id)}
-                                                title="Chỉ ngừng kinh doanh, không xóa cứng để đảm bảo toàn vẹn báo giá"
-                                                style={{
-                                                    padding: '4px 8px',
-                                                    backgroundColor: p.status === 'active' ? '#3d1d1d' : '#1f4827',
-                                                    color: p.status === 'active' ? '#f85149' : '#7ee787',
-                                                    border: 'none', borderRadius: '4px', cursor: 'pointer'
-                                                }}
-                                            >
-                                                {p.status === 'active' ? 'Ngừng bán' : 'Mở lại'}
-                                            </button>
-                                        </td>
-                                    )}
-                                </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
-            </div>
-
-            {/* Modal Form Thêm / Sửa Sản Phẩm (N1-154) */}
-            {showModal && (
-                <div style={{
-                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-                    backgroundColor: 'rgba(0,0,0,0.75)', display: 'flex',
-                    alignItems: 'center', justifyContent: 'center', zIndex: 1200
-                }}>
-                    <div style={{
-                        backgroundColor: '#161b22', border: '1px solid #30363d',
-                        borderRadius: '8px', width: '480px', padding: '24px', color: '#e6edf3'
-                    }}>
-                        <h3 style={{ margin: '0 0 16px 0', fontSize: '18px' }}>
-                            {editingProduct ? '✏️ Cập Nhật Sản Phẩm' : '📦 Khai Báo Sản Phẩm Mới'}
-                        </h3>
-
-                        {errorMsg && (
-                            <div style={{ padding: '10px', backgroundColor: '#3d1d1d', border: '1px solid #f85149', borderRadius: '6px', color: '#f85149', marginBottom: '16px', fontSize: '13px' }}>
-                                {errorMsg}
-                            </div>
-                        )}
-
-                        <form onSubmit={handleSave}>
-                            <div style={{ marginBottom: '12px' }}>
-                                <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px' }}>Mã sản phẩm *</label>
-                                <input
-                                    type="text" required disabled={!!editingProduct}
-                                    placeholder="VD: CRM-PRO"
-                                    value={formData.code}
-                                    onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-                                    style={{ width: '100%', padding: '8px', backgroundColor: '#0d1117', color: '#fff', border: '1px solid #30363d', borderRadius: '6px' }}
-                                />
-                            </div>
-
-                            <div style={{ marginBottom: '12px' }}>
-                                <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px' }}>Tên sản phẩm / dịch vụ *</label>
-                                <input
-                                    type="text" required
-                                    placeholder="VD: Gói CRM Cao Cấp"
-                                    value={formData.name}
-                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                    style={{ width: '100%', padding: '8px', backgroundColor: '#0d1117', color: '#fff', border: '1px solid #30363d', borderRadius: '6px' }}
-                                />
-                            </div>
-
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px' }}>Hình thức</label>
-                                    <select
-                                        value={formData.type}
-                                        onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                                        style={{ width: '100%', padding: '8px', backgroundColor: '#0d1117', color: '#fff', border: '1px solid #30363d', borderRadius: '6px' }}
-                                    >
-                                        <option value="one_time">Bán một lần</option>
-                                        <option value="subscription">Thuê bao</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px' }}>Đơn vị tính *</label>
-                                    <input
-                                        type="text" required
-                                        placeholder="VD: Gói, Tháng..."
-                                        value={formData.unit}
-                                        onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-                                        style={{ width: '100%', padding: '8px', backgroundColor: '#0d1117', color: '#fff', border: '1px solid #30363d', borderRadius: '6px' }}
-                                    />
-                                </div>
-                            </div>
-
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px' }}>Giá niêm yết (VNĐ) *</label>
-                                    <input
-                                        type="number" required min="0"
-                                        value={formData.list_price}
-                                        onChange={(e) => setFormData({ ...formData, list_price: e.target.value })}
-                                        style={{ width: '100%', padding: '8px', backgroundColor: '#0d1117', color: '#fff', border: '1px solid #30363d', borderRadius: '6px' }}
-                                    />
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px' }}>Giá sàn (Floor) *</label>
-                                    <input
-                                        type="number" required min="0"
-                                        title="Giá bán tối thiểu không cần duyệt chiết khấu"
-                                        value={formData.floor_price}
-                                        onChange={(e) => setFormData({ ...formData, floor_price: e.target.value })}
-                                        style={{ width: '100%', padding: '8px', backgroundColor: '#0d1117', color: '#fff', border: '1px solid #30363d', borderRadius: '6px' }}
-                                    />
-                                </div>
-                            </div>
-
-                            {isDirector && (
-                                <div style={{ marginBottom: '18px' }}>
-                                    <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px', color: '#e3b341' }}>
-                                        🔒 Giá vốn (Chỉ Giám đốc được xem & sửa)
-                                    </label>
-                                    <input
-                                        type="number" min="0"
-                                        value={formData.cost_price}
-                                        onChange={(e) => setFormData({ ...formData, cost_price: e.target.value })}
-                                        style={{ width: '100%', padding: '8px', backgroundColor: '#0d1117', color: '#e3b341', border: '1px solid #d29922', borderRadius: '6px' }}
-                                    />
-                                </div>
+            {/* HEADER & THẺ KPI */}
+            <Card bordered={false} style={{ borderRadius: 12 }}>
+                <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
+                    <Col>
+                        <Title level={3} style={{ margin: 0, color: '#0f172a' }}>
+                            Danh Mục Sản Phẩm & Bảng Giá Chuẩn
+                        </Title>
+                        <Paragraph type="secondary" style={{ margin: 0, fontSize: 13 }}>
+                            Mọi báo giá kinh doanh bắt buộc xuất phát từ bảng giá niêm yết này thay vì giá tự tính.
+                        </Paragraph>
+                    </Col>
+                    <Col>
+                        <Space>
+                            {isDirectorOrAdmin && (
+                                <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenAddModal}>
+                                    Thêm Sản Phẩm Mới
+                                </Button>
                             )}
+                            <Button icon={<ReloadOutlined />} onClick={fetchProducts} />
+                        </Space>
+                    </Col>
+                </Row>
 
-                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                                <button
-                                    type="button" onClick={() => setShowModal(false)}
-                                    style={{ padding: '8px 14px', backgroundColor: '#21262d', color: '#c9d1d9', border: '1px solid #30363d', borderRadius: '6px', cursor: 'pointer' }}
-                                >
-                                    Hủy
-                                </button>
-                                <button
-                                    type="submit"
-                                    style={{ padding: '8px 16px', backgroundColor: '#238636', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
-                                >
-                                    Lưu Sản Phẩm
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
+                <Row gutter={[16, 16]}>
+                    <Col xs={24} sm={8}>
+                        <Card bordered={false} style={{ background: '#f8fafc', borderRadius: 8 }}>
+                            <Statistic
+                                title={<Text strong style={{ color: '#64748b' }}>SẢN PHẨM ĐANG KINH DOANH</Text>}
+                                value={totalActive}
+                                suffix={`/ ${products.length} mã`}
+                                prefix={<ShoppingOutlined style={{ color: '#1677ff', marginRight: 6 }} />}
+                            />
+                        </Card>
+                    </Col>
+                    <Col xs={24} sm={8}>
+                        <Card bordered={false} style={{ background: '#f5f3ff', borderRadius: 8 }}>
+                            <Statistic
+                                title={<Text strong style={{ color: '#6b21a8' }}>DỊCH VỤ THUÊ BAO ĐỊNH KỲ</Text>}
+                                value={totalSubscription}
+                                suffix="dịch vụ"
+                                prefix={<SyncOutlined style={{ color: '#9333ea', marginRight: 6 }} />}
+                            />
+                        </Card>
+                    </Col>
+                    <Col xs={24} sm={8}>
+                        <Card bordered={false} style={{ background: '#ecfdf5', borderRadius: 8 }}>
+                            <Statistic
+                                title={<Text strong style={{ color: '#065f46' }}>SẢN PHẨM MỘT LẦN / TRIỂN KHAI</Text>}
+                                value={totalOneTime}
+                                suffix="sản phẩm"
+                                prefix={<DollarOutlined style={{ color: '#059669', marginRight: 6 }} />}
+                            />
+                        </Card>
+                    </Col>
+                </Row>
+            </Card>
+
+            {/* BỘ LỌC TÌM KIẾM */}
+            <Card bordered={false} style={{ borderRadius: 12 }}>
+                <Row gutter={16}>
+                    <Col xs={24} sm={12} md={8}>
+                        <Input
+                            prefix={<SearchOutlined style={{ color: '#94a3b8' }} />}
+                            placeholder="Tìm theo mã hoặc tên sản phẩm..."
+                            allowClear
+                            onChange={e => setSearchText(e.target.value)}
+                        />
+                    </Col>
+                    <Col xs={24} sm={6} md={5}>
+                        <Select
+                            placeholder="Lọc theo hình thức"
+                            allowClear
+                            style={{ width: '100%' }}
+                            onChange={v => setTypeFilter(v)}
+                        >
+                            <Select.Option value="Sản phẩm một lần">Sản phẩm một lần</Select.Option>
+                            <Select.Option value="Dịch vụ thuê bao">Dịch vụ thuê bao</Select.Option>
+                        </Select>
+                    </Col>
+                    <Col xs={24} sm={6} md={5}>
+                        <Select
+                            placeholder="Lọc theo trạng thái"
+                            allowClear
+                            style={{ width: '100%' }}
+                            onChange={v => setStatusFilter(v)}
+                        >
+                            <Select.Option value="active">Đang kinh doanh</Select.Option>
+                            <Select.Option value="inactive">Ngừng kinh doanh</Select.Option>
+                        </Select>
+                    </Col>
+                </Row>
+            </Card>
+
+            {/* BẢNG SẢN PHẨM */}
+            <Card bordered={false} style={{ borderRadius: 12 }}>
+                <Table
+                    columns={columns}
+                    dataSource={filteredProducts}
+                    rowKey="id"
+                    loading={loading}
+                    pagination={{ pageSize: 8, showTotal: (t) => `Tổng cộng ${t} sản phẩm` }}
+                    bordered
+                />
+            </Card>
+
+            {/* MODAL THÊM & SỬA SẢN PHẨM */}
+            <Modal
+                title={editingProduct ? "Chỉnh Sửa Bảng Giá Sản Phẩm" : "Thêm Sản Phẩm Dịch Vụ Mới"}
+                open={isModalOpen}
+                onCancel={() => setIsModalOpen(false)}
+                onOk={form.submit}
+                confirmLoading={saving}
+                okText={editingProduct ? "Lưu thay đổi" : "Tạo sản phẩm"}
+                cancelText="Hủy"
+                width={620}
+                destroyOnClose
+            >
+                <Form form={form} layout="vertical" onFinish={handleSaveProduct} style={{ marginTop: 16 }}>
+                    <Row gutter={12}>
+                        <Col span={10}>
+                            <Form.Item 
+    name="code" 
+    label="Mã sản phẩm" 
+    rules={[
+        { required: true, message: 'Vui lòng nhập mã sản phẩm!' },
+        {
+            validator(_, value) {
+                if (!editingProduct && value) {
+                    const isDuplicate = products.some(
+                        p => p.code?.toUpperCase() === value.trim().toUpperCase()
+                    );
+                    if (isDuplicate) {
+                        return Promise.reject(new Error(`Mã "${value.trim().toUpperCase()}" đã có trong bảng, vui lòng chọn mã khác!`));
+                    }
+                }
+                return Promise.resolve();
+            }
+        }
+    ]}
+>
+    <Input 
+        disabled={!!editingProduct} 
+        placeholder="Ví dụ: CRM_TEST" 
+        onChange={e => form.setFieldsValue({ code: e.target.value.toUpperCase() })}
+    />
+</Form.Item>
+                        </Col>
+                        <Col span={14}>
+                            <Form.Item 
+                                name="name" 
+                                label="Tên sản phẩm / Dịch vụ" 
+                                rules={[{ required: true, message: 'Nhập tên SP!' }]}
+                            >
+                                <Input placeholder="Tên gói sản phẩm..." />
+                            </Form.Item>
+                        </Col>
+                    </Row>
+
+                    <Row gutter={12}>
+                        <Col span={12}>
+                            <Form.Item name="type" label="Hình thức kinh doanh" rules={[{ required: true }]}>
+                                <Select>
+                                    <Select.Option value="Sản phẩm một lần">Sản phẩm một lần</Select.Option>
+                                    <Select.Option value="Dịch vụ thuê bao">Dịch vụ thuê bao</Select.Option>
+                                </Select>
+                            </Form.Item>
+                        </Col>
+                        <Col span={12}>
+                            <Form.Item name="unit" label="Đơn vị tính (ĐVT)" rules={[{ required: true }]}>
+                                <Input placeholder="Gói / Năm, Tháng, Người dùng..." />
+                            </Form.Item>
+                        </Col>
+                    </Row>
+
+                   <Row gutter={12}>
+    <Col span={12}>
+        <Form.Item 
+            name="list_price" 
+            label="Giá niêm yết (VNĐ)" 
+            rules={[
+                { required: true, message: 'Nhập giá niêm yết!' },
+                { type: 'number', min: 1000, message: 'Giá niêm yết phải lớn hơn 0!' }
+            ]}
+        >
+            <InputNumber 
+                style={{ width: '100%' }} 
+                formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} 
+            />
+        </Form.Item>
+    </Col>
+    <Col span={12}>
+        {/* RÀNG BUỘC AC S2-05: GIÁ SÀN KHÔNG ĐƯỢC LỚN HƠN GIÁ NIÊM YẾT */}
+        <Form.Item 
+            name="floor_price" 
+            label="Giá sàn tối thiểu (VNĐ)" 
+            extra="Ngưỡng duyệt chiết khấu tự động"
+            dependencies={['list_price']}
+            rules={[
+                { required: true, message: 'Nhập giá sàn!' },
+                ({ getFieldValue }) => ({
+                    validator(_, value) {
+                        const listPrice = getFieldValue('list_price');
+                        if (!value || !listPrice || value <= listPrice) {
+                            return Promise.resolve();
+                        }
+                        return Promise.reject(new Error('Giá sàn không được vượt quá Giá niêm yết!'));
+                    },
+                }),
+            ]}
+        >
+            <InputNumber 
+                style={{ width: '100%' }} 
+                formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} 
+            />
+        </Form.Item>
+    </Col>
+</Row>
+
+                    {isDirectorOrAdmin && (
+                        <Form.Item 
+                            name="cost_price" 
+                            label={<Space><LockOutlined style={{ color: '#dc2626' }} /> <Text strong>Giá vốn bảo mật (VNĐ)</Text></Space>} 
+                            rules={[{ required: true, message: 'Nhập giá vốn!' }]}
+                        >
+                            <InputNumber 
+                                style={{ width: '100%' }} 
+                                formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} 
+                            />
+                        </Form.Item>
+                    )}
+                </Form>
+            </Modal>
         </div>
     );
 }

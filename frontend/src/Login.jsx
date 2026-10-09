@@ -1,315 +1,318 @@
 import React, { useState, useEffect } from 'react';
+import { Form, Input, Button, Card, Typography, message, Modal, Alert, Steps, Tag } from 'antd';
+import { UserOutlined, LockOutlined, SafetyCertificateOutlined, MailOutlined, KeyOutlined, ArrowRightOutlined } from '@ant-design/icons';
+import axios from 'axios';
 
-const Login = ({ onLoginSuccess, sessionExpiredMessage }) => {
-    const [email, setEmail] = useState('admin@gmail.com');
-    const [password, setPassword] = useState('123456aA@');
-    const [loading, setLoading] = useState(false);
-    const [showPassword, setShowPassword] = useState(false);
+const { Title, Text } = Typography;
 
-    // States thông báo lỗi & Khóa tài khoản (S1-01)
-    const [errorMessage, setErrorMessage] = useState('');
-    const [lockCountdown, setLockCountdown] = useState(0);
+// DANH SÁCH 7 TÀI KHOẢN THEO ĐÚNG ĐẶC TẢ MA TRẬN
+const TEST_ACCOUNTS = [
+  { label: 'Admin', role: 'Admin', email: 'admin@crm.vn', password: '123456', color: 'red' },
+  { label: 'Director', role: 'Director', email: 'director@crm.vn', password: '123456', color: 'purple' },
+  { label: 'Team Lead', role: 'Team Lead', email: 'lead@crm.vn', password: '123456', color: 'magenta' },
+  { label: 'Sales Rep', role: 'Sales Rep', email: 'sales@crm.vn', password: '123456', color: 'blue' },
+  { label: 'Marketing', role: 'Marketing', email: 'marketing@crm.vn', password: '123456', color: 'orange' },
+  { label: 'Cust. Success', role: 'Cust. Success', email: 'cs@crm.vn', password: '123456', color: 'cyan' },
+  { label: 'Accountant', role: 'Accountant', email: 'accountant@crm.vn', password: '123456', color: 'green' }
+];
 
-    // States Modal Quên Mật Khẩu (S1-03)
-    const [showForgotModal, setShowForgotModal] = useState(false);
-    const [forgotEmail, setForgotEmail] = useState('');
-    const [forgotNotice, setForgotNotice] = useState(null);
-    const [forgotLoading, setForgotLoading] = useState(false);
+export default function Login({ onLoginSuccess }) {
+  const [form] = Form.useForm();
+  const [forgotForm] = Form.useForm();
+  const [loading, setLoading] = useState(false);
 
-    // Bộ đếm ngược khi bị khóa 15s (S1-01)
-    useEffect(() => {
-        let timer;
-        if (lockCountdown > 0) {
-            timer = setInterval(() => {
-                setLockCountdown((prev) => (prev > 0 ? prev - 1 : 0));
-            }, 1000);
+  // RÀNG BUỘC KHÓA: SAI 5 LẦN KHÓA 15 GIÂY
+  const [failedCount, setFailedCount] = useState(() => {
+    return parseInt(localStorage.getItem('crm_failed_attempts') || '0', 10);
+  });
+  const [lockCountdown, setLockCountdown] = useState(0);
+
+  // MODAL QUÊN MẬT KHẨU
+  const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
+  const [forgotStep, setForgotStep] = useState(0);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [resettingPass, setResettingPass] = useState(false);
+
+  // Kiểm tra thời gian khóa khi tải trang
+  useEffect(() => {
+    const lockUntil = localStorage.getItem('crm_locked_until');
+    if (lockUntil) {
+      const remaining = Math.ceil((parseInt(lockUntil, 10) - Date.now()) / 1000);
+      if (remaining > 0) {
+        setLockCountdown(remaining);
+      } else {
+        clearLockState();
+      }
+    }
+  }, []);
+
+  // Bộ đếm ngược thời gian thực
+  useEffect(() => {
+    let timer;
+    if (lockCountdown > 0) {
+      timer = setInterval(() => {
+        setLockCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            clearLockState();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [lockCountdown]);
+
+  const clearLockState = () => {
+    localStorage.removeItem('crm_locked_until');
+    localStorage.removeItem('crm_failed_attempts');
+    setFailedCount(0);
+  };
+
+  // Xử lý đăng nhập
+  const handleLogin = async (values) => {
+    if (lockCountdown > 0) return;
+
+    setLoading(true);
+    try {
+      const res = await axios.post('http://localhost:5001/api/auth/login', {
+        email: values.email.trim(),
+        password: values.password
+      });
+
+      if (res.data.token) {
+        message.success(`Đăng nhập thành công với vai trò ${res.data.user.role_code || 'Người dùng'}!`);
+        clearLockState();
+
+        localStorage.setItem('token', res.data.token);
+        localStorage.setItem('user', JSON.stringify(res.data.user));
+        localStorage.setItem('role', res.data.user.role_code);
+
+        if (onLoginSuccess) {
+          onLoginSuccess(res.data.user);
+        } else {
+          window.location.href = '/dashboard';
         }
-        return () => clearInterval(timer);
-    }, [lockCountdown]);
+      }
+    } catch (err) {
+      const nextFail = failedCount + 1;
+      setFailedCount(nextFail);
+      localStorage.setItem('crm_failed_attempts', nextFail.toString());
 
-    // Xử lý Đăng Nhập
-    const handleSubmit = async (e) => {
-        if (e) e.preventDefault();
-        if (lockCountdown > 0) return;
+      if (nextFail >= 5) {
+        const unlockTime = Date.now() + 15 * 1000;
+        localStorage.setItem('crm_locked_until', unlockTime.toString());
+        setLockCountdown(15);
+        message.error('Bạn đã nhập sai 5 lần! Hệ thống khóa đăng nhập trong 15 giây.');
+      } else {
+        const remain = 5 - nextFail;
+        message.error(err.response?.data?.message || `Sai tài khoản hoặc mật khẩu! (Còn ${remain} lần thử)`);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        setLoading(true);
-        setErrorMessage('');
+  // Nạp nhanh tài khoản theo vai trò được chọn
+  const handleSelectTestAccount = (acc) => {
+    if (lockCountdown > 0) return;
+    form.setFieldsValue({
+      email: acc.email,
+      password: acc.password
+    });
+    message.info(`Đã nạp tài khoản: ${acc.label} (${acc.email})`);
+  };
 
-        try {
-            const res = await fetch('http://localhost:5001/api/auth/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password })
-            });
+// Hàm gửi yêu cầu quên mật khẩu thỏa mãn AC 3
+const handleSendResetLink = async (values) => {
+  setSendingEmail(true);
+  try {
+    const res = await axios.post('http://localhost:5001/api/auth/forgot-password', {
+      email: values.email.trim()
+    });
 
-            const data = await res.json();
-
-            if (res.ok) {
-                localStorage.setItem('token', data.token);
-                localStorage.setItem('user', JSON.stringify(data.user));
-                localStorage.setItem('last_active_time', Date.now().toString());
-                if (onLoginSuccess) onLoginSuccess(data.user);
-            } else {
-                if (res.status === 403) {
-                    setLockCountdown(data.secondsLeft || 15);
-                    setErrorMessage('');
-                } else {
-                    setErrorMessage(data.message || 'Email hoặc mật khẩu không chính xác!');
-                }
-            }
-        } catch (err) {
-            console.error('Lỗi login:', err);
-            setErrorMessage('Không thể kết nối đến máy chủ Backend!');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // Xử lý Quên Mật Khẩu (S1-03)
-    const handleForgotPassword = async (e) => {
-        e.preventDefault();
-        if (!forgotEmail.trim()) return;
-
-        setForgotLoading(true);
-        setForgotNotice(null);
-
-        try {
-            const res = await fetch('http://localhost:5001/api/auth/forgot-password', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: forgotEmail.trim() })
-            });
-
-            const data = await res.json();
-
-            if (res.ok) {
-                setForgotNotice({
-                    type: 'success',
-                    message: data.message,
-                    tempPassword: data.tempPassword
-                });
-            } else {
-                setForgotNotice({
-                    type: 'error',
-                    message: data.message || 'Lỗi xử lý yêu cầu!'
-                });
-            }
-        } catch (err) {
-            console.error('Lỗi forgot password:', err);
-            setForgotNotice({
-                type: 'error',
-                message: 'Lỗi kết nối máy chủ khi gửi yêu cầu!'
-            });
-        } finally {
-            setForgotLoading(false);
-        }
-    };
-
-    const fillAccount = (accEmail) => {
-        setEmail(accEmail);
-        setPassword('123456aA@');
-        setErrorMessage('');
-    };
-
-    return (
-        <div style={{
-            minHeight: '100vh',
-            width: '100%',
-            backgroundColor: '#0c1322',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-            padding: '20px',
-            boxSizing: 'border-box'
-        }}>
-            <style>{`
-                @keyframes modalFadeIn {
-                    from { opacity: 0; transform: translateY(-10px) scale(0.96); }
-                    to { opacity: 1; transform: translateY(0) scale(1); }
-                }
-                .auth-card { animation: modalFadeIn 0.3s ease forwards; }
-                .auth-input:focus {
-                    outline: none;
-                    border-color: #ff5e00 !important;
-                    box-shadow: 0 0 0 3px rgba(255, 94, 0, 0.2) !important;
-                }
-            `}</style>
-
-            <div className="auth-card" style={{
-                width: '100%',
-                maxWidth: '430px',
-                backgroundColor: '#162235',
-                border: '1px solid #27374f',
-                borderRadius: '20px',
-                padding: '36px 32px',
-                boxShadow: '0 20px 45px rgba(0, 0, 0, 0.45)'
-            }}>
-                <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-                    <h2 style={{ margin: 0, fontSize: '24px', fontWeight: '800', color: '#ff5e00' }}>HỆ THỐNG CRM</h2>
-                    <p style={{ margin: '8px 0 0', fontSize: '13px', color: '#8b9bb4' }}>Đăng nhập tài khoản để vào hệ thống</p>
-                </div>
-
-                {/* THÔNG BÁO HẾT HẠN PHIÊN (S1-02) */}
-                {sessionExpiredMessage && (
-                    <div style={{ padding: '12px 14px', borderRadius: '10px', backgroundColor: '#2e1f06', border: '1px solid #d29922', color: '#ffd37a', fontSize: '13px', marginBottom: '18px', display: 'flex', gap: '8px', alignItems: 'center' }}>
-                        <span>⚠️</span>
-                        <span>{sessionExpiredMessage}</span>
-                    </div>
-                )}
-
-                {/* THÔNG BÁO KHÓA TÀI KHOẢN HOẶC BÁO LỖI (S1-01) */}
-                {lockCountdown > 0 ? (
-                    <div style={{ padding: '12px 14px', borderRadius: '10px', backgroundColor: '#2c0e11', border: '1px solid #f85149', color: '#ff7b72', fontSize: '13px', marginBottom: '18px', display: 'flex', gap: '8px', alignItems: 'center' }}>
-                        <span>⏳</span>
-                        <div>
-                            Tài khoản bị tạm khóa do nhập sai 5 lần. Thử lại sau <strong>{lockCountdown}s</strong>!
-                        </div>
-                    </div>
-                ) : errorMessage ? (
-                    <div style={{ padding: '12px 14px', borderRadius: '10px', backgroundColor: '#2c0e11', border: '1px solid #f85149', color: '#ff7b72', fontSize: '13px', marginBottom: '18px', display: 'flex', gap: '8px', alignItems: 'center' }}>
-                        <span>❌</span>
-                        <div style={{ flex: 1 }}>{errorMessage}</div>
-                    </div>
-                ) : null}
-
-                <form onSubmit={handleSubmit}>
-                    <div style={{ marginBottom: '18px' }}>
-                        <label style={{ display: 'block', fontSize: '13px', color: '#c9d1d9', marginBottom: '6px', fontWeight: '500' }}>Email đăng nhập</label>
-                        <input
-                            type="email"
-                            required
-                            disabled={lockCountdown > 0}
-                            className="auth-input"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            placeholder="name@company.com"
-                            style={{ width: '100%', padding: '11px 14px', backgroundColor: '#212d42', border: '1px solid #324461', borderRadius: '12px', color: '#ffffff', fontSize: '14px', boxSizing: 'border-box' }}
-                        />
-                    </div>
-
-                    <div style={{ marginBottom: '22px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                            <label style={{ fontSize: '13px', color: '#c9d1d9', fontWeight: '500' }}>Mật khẩu</label>
-                            {/* NÚT QUÊN MẬT KHẨU (S1-03) */}
-                            <span
-                                onClick={() => { setShowForgotModal(true); setForgotNotice(null); setForgotEmail(''); }}
-                                style={{ fontSize: '12.5px', color: '#58a6ff', cursor: 'pointer', textDecoration: 'underline' }}
-                            >
-                                Quên mật khẩu?
-                            </span>
-                        </div>
-                        <div style={{ position: 'relative' }}>
-                            <input
-                                type={showPassword ? 'text' : 'password'}
-                                required
-                                disabled={lockCountdown > 0}
-                                className="auth-input"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                placeholder="••••••••"
-                                style={{ width: '100%', padding: '11px 40px 11px 14px', backgroundColor: '#212d42', border: '1px solid #324461', borderRadius: '12px', color: '#ffffff', fontSize: '14px', boxSizing: 'border-box' }}
-                            />
-                            <span
-                                onMouseEnter={() => setShowPassword(true)}
-                                onMouseLeave={() => setShowPassword(false)}
-                                title="Rê chuột để xem mật khẩu"
-                                style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', fontSize: '16px', opacity: 0.75, userSelect: 'none' }}
-                            >
-                                {showPassword ? '👁️' : '🙈'}
-                            </span>
-                        </div>
-                    </div>
-
-                    <button
-                        type="submit"
-                        disabled={loading || lockCountdown > 0}
-                        style={{
-                            width: '100%',
-                            padding: '12px 0',
-                            borderRadius: '12px',
-                            fontSize: '15px',
-                            fontWeight: 'bold',
-                            backgroundColor: lockCountdown > 0 ? '#484f58' : '#ff5e00',
-                            color: '#ffffff',
-                            border: 'none',
-                            cursor: lockCountdown > 0 ? 'not-allowed' : 'pointer'
-                        }}
-                    >
-                        {loading ? 'Đang xác thực...' : lockCountdown > 0 ? `Đang khóa (${lockCountdown}s)` : 'Đăng Nhập'}
-                    </button>
-                </form>
-
-                {/* TÀI KHOẢN TEST */}
-                <div style={{ marginTop: '28px', paddingTop: '18px', borderTop: '1px solid #23334a', textAlign: 'center' }}>
-                    <div style={{ fontSize: '11px', color: '#8b9bb4', marginBottom: '10px' }}>Tài khoản test nhanh (Pass: 123456aA@):</div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'center' }}>
-                        <button type="button" onClick={() => fillAccount('admin@gmail.com')} style={{ padding: '6px 12px', borderRadius: '10px', fontSize: '11px', backgroundColor: '#212c40', color: '#c9d1d9', border: '1px solid #303e55', cursor: 'pointer' }}>Admin (Giám Đốc)</button>
-                        <button type="button" onClick={() => fillAccount('sales_a1@gmail.com')} style={{ padding: '6px 12px', borderRadius: '10px', fontSize: '11px', backgroundColor: '#212c40', color: '#c9d1d9', border: '1px solid #303e55', cursor: 'pointer' }}>Sales A1</button>
-                        <button type="button" onClick={() => fillAccount('sales_b1@gmail.com')} style={{ padding: '6px 12px', borderRadius: '10px', fontSize: '11px', backgroundColor: '#212c40', color: '#c9d1d9', border: '1px solid #303e55', cursor: 'pointer' }}>Sales B1</button>
-                    </div>
-                </div>
-            </div>
-
-            {/* MODAL QUÊN MẬT KHẨU (S1-03) */}
-            {showForgotModal && (
-                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200 }}>
-                    <div style={{ backgroundColor: '#162235', border: '1px solid #27374f', borderRadius: '16px', width: '420px', padding: '26px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                            <h3 style={{ margin: 0, fontSize: '17px', color: '#ffffff' }}>🔑 Khôi Phục Mật Khẩu</h3>
-                            <button onClick={() => setShowForgotModal(false)} style={{ background: 'transparent', border: 'none', color: '#8b9bb4', fontSize: '18px', cursor: 'pointer' }}>✕</button>
-                        </div>
-
-                        <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#8b9bb4' }}>
-                            Nhập địa chỉ email đăng ký để nhận thông tin khôi phục tài khoản.
-                        </p>
-
-                        {forgotNotice && (
-                            <div style={{
-                                padding: '12px',
-                                borderRadius: '8px',
-                                marginBottom: '14px',
-                                fontSize: '13px',
-                                backgroundColor: forgotNotice.type === 'success' ? '#0d2818' : '#2c0e11',
-                                border: `1px solid ${forgotNotice.type === 'success' ? '#2ea043' : '#f85149'}`,
-                                color: '#ffffff'
-                            }}>
-                                <div>{forgotNotice.message}</div>
-                                {forgotNotice.tempPassword && (
-                                    <div style={{ marginTop: '8px', padding: '8px', backgroundColor: '#162235', borderRadius: '6px', border: '1px dashed #3fb950' }}>
-                                        Mật khẩu tạm thời: <strong style={{ color: '#3fb950', fontSize: '15px' }}>{forgotNotice.tempPassword}</strong>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
-                        <form onSubmit={handleForgotPassword}>
-                            <div style={{ marginBottom: '20px' }}>
-                                <label style={{ display: 'block', fontSize: '12.5px', color: '#8b9bb4', marginBottom: '6px' }}>Địa chỉ Email *</label>
-                                <input
-                                    type="email"
-                                    required
-                                    placeholder="name@company.com"
-                                    value={forgotEmail}
-                                    onChange={(e) => setForgotEmail(e.target.value)}
-                                    style={{ width: '100%', padding: '10px 12px', backgroundColor: '#0f1726', border: '1px solid #27374f', borderRadius: '8px', color: '#fff', fontSize: '14px', boxSizing: 'border-box' }}
-                                />
-                            </div>
-
-                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                                <button type="button" onClick={() => setShowForgotModal(false)} style={{ padding: '8px 16px', backgroundColor: '#30363d', color: '#c9d1d9', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
-                                    Đóng
-                                </button>
-                                <button type="submit" disabled={forgotLoading} style={{ padding: '8px 20px', backgroundColor: '#ff5e00', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
-                                    {forgotLoading ? 'Đang gửi...' : 'Gửi Yêu Cầu'}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
-        </div>
-    );
+    // AC 3: Bất kể email đúng hay sai, luôn hiển thị cùng thông báo này
+    message.success(res.data.message || 'Nếu email tồn tại trong hệ thống, liên kết đặt lại mật khẩu đã được gửi đến hộp thư của bạn.');
+    setIsForgotModalOpen(false);
+    forgotForm.resetFields();
+  } catch (err) {
+    message.error('Không thể kết nối đến máy chủ. Vui lòng thử lại sau.');
+  } finally {
+    setSendingEmail(false);
+  }
 };
 
-export default Login;
+  // Quên mật khẩu: Xác nhận OTP và đặt pass mới
+  const handleResetPassword = async (values) => {
+    setResettingPass(true);
+    try {
+      await axios.post('http://localhost:5001/api/auth/reset-password', {
+        email: forgotEmail,
+        otp: values.otp.trim(),
+        new_password: values.new_password
+      });
+      message.success('Đổi mật khẩu thành công! Bạn có thể đăng nhập ngay.');
+      setIsForgotModalOpen(false);
+      setForgotStep(0);
+      forgotForm.resetFields();
+      form.setFieldsValue({ email: forgotEmail, password: values.new_password });
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Mã OTP không chính xác hoặc đã hết hạn.');
+    } finally {
+      setResettingPass(false);
+    }
+  };
+
+  return (
+    <div style={{
+      minHeight: '100vh',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: 'linear-gradient(135deg, #f0f4f8 0%, #d9e2ec 100%)',
+      padding: '24px 16px'
+    }}>
+      <Card
+        style={{ width: 480, borderRadius: 16, boxShadow: '0 12px 32px rgba(15, 23, 42, 0.08)' }}
+        bodyStyle={{ padding: '36px 32px' }}
+      >
+        <div style={{ textAlign: 'center', marginBottom: 28 }}>
+          <div style={{
+            width: 50,
+            height: 50,
+            backgroundColor: '#1677ff',
+            borderRadius: 14,
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: 12
+          }}>
+            <SafetyCertificateOutlined style={{ fontSize: 28, color: '#fff' }} />
+          </div>
+          <Title level={3} style={{ margin: 0, fontWeight: 700, letterSpacing: -0.5 }}>
+            ENTERPRISE <span style={{ color: '#1677ff' }}>CRM</span>
+          </Title>
+          <Text type="secondary" style={{ fontSize: 13 }}>
+            Cổng thông tin quản trị và vận hành doanh nghiệp
+          </Text>
+        </div>
+
+        {/* Thông báo khóa tạm thời khi nhập sai quá 5 lần */}
+        {lockCountdown > 0 && (
+          <Alert
+            type="error"
+            showIcon
+            style={{ marginBottom: 20 }}
+            message="Tạm khóa đăng nhập"
+            description={`Bạn đã nhập sai quá 5 lần. Vui lòng chờ ${lockCountdown} giây để mở lại.`}
+          />
+        )}
+
+        <Form form={form} layout="vertical" onFinish={handleLogin} disabled={lockCountdown > 0}>
+          <Form.Item
+            label={<Text strong>Email tài khoản</Text>}
+            name="email"
+            rules={[
+              { required: true, message: 'Vui lòng nhập email!' },
+              { type: 'email', message: 'Email không hợp lệ!' }
+            ]}
+          >
+            <Input size="large" prefix={<UserOutlined style={{ color: '#94a3b8' }} />} placeholder="nhanvien@crm.vn" />
+          </Form.Item>
+
+          {/* TIÊU ĐỀ MẬT KHẨU CĂN 2 BÊN BẰNG FLEXBOX */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <Text strong>Mật khẩu</Text>
+            <a
+              onClick={() => {
+                if (lockCountdown > 0) return;
+                setIsForgotModalOpen(true);
+                setForgotStep(0);
+                forgotForm.resetFields();
+              }}
+              style={{ fontSize: 13, color: '#1677ff', cursor: 'pointer', fontWeight: 500 }}
+            >
+              Quên mật khẩu?
+            </a>
+          </div>
+
+          <Form.Item
+            name="password"
+            rules={[{ required: true, message: 'Vui lòng nhập mật khẩu!' }]}
+            style={{ marginBottom: 24 }}
+          >
+            <Input.Password size="large" prefix={<LockOutlined style={{ color: '#94a3b8' }} />} placeholder="••••••••" />
+          </Form.Item>
+
+          <Button
+            type="primary"
+            htmlType="submit"
+            size="large"
+            block
+            loading={loading}
+            disabled={lockCountdown > 0}
+            icon={<ArrowRightOutlined />}
+            style={{ height: 46, borderRadius: 8, fontWeight: 600, fontSize: 15 }}
+          >
+            {lockCountdown > 0 ? `Đang khóa (${lockCountdown}s)` : 'Đăng Nhập'}
+          </Button>
+        </Form>
+
+        {/* 7 TÀI KHOẢN TEST NHANH THEO MA TRẬN 7 ROLES */}
+        <div style={{ marginTop: 28, paddingTop: 20, borderTop: '1px solid #f1f5f9' }}>
+          <div style={{ textAlign: 'center', marginBottom: 12 }}>
+            <Text type="secondary" style={{ fontSize: 12, fontWeight: 500 }}>
+              Tài khoản test nhanh theo 7 vai trò hệ thống:
+            </Text>
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'center' }}>
+            {TEST_ACCOUNTS.map((acc) => (
+              <Button
+                key={acc.role}
+                size="small"
+                disabled={lockCountdown > 0}
+                onClick={() => handleSelectTestAccount(acc)}
+                style={{ borderRadius: 6, fontSize: 12 }}
+              >
+                <Tag color={acc.color} style={{ margin: 0, marginRight: 4, borderRadius: 4, padding: '0 4px' }}>
+                  {acc.role}
+                </Tag>
+              </Button>
+            ))}
+          </div>
+        </div>
+      </Card>
+
+      {/* MODAL QUÊN MẬT KHẨU THỎA MÃN AC 1 & AC 3 */}
+<Modal
+  title="Khôi Phục Mật Khẩu"
+  open={isForgotModalOpen}
+  onCancel={() => setIsForgotModalOpen(false)}
+  footer={null}
+  destroyOnClose
+  width={440}
+>
+  <div style={{ marginBottom: 16, color: '#64748b', fontSize: 13 }}>
+    Nhập địa chỉ email đăng ký tài khoản của bạn. Hệ thống sẽ gửi một <b>liên kết đặt lại mật khẩu có hiệu lực trong 30 phút</b> đến hòm thư.
+  </div>
+  <Form form={forgotForm} layout="vertical" onFinish={handleSendResetLink}>
+    <Form.Item
+      label="Email tài khoản"
+      name="email"
+      rules={[
+        { required: true, message: 'Vui lòng nhập email!' },
+        { type: 'email', message: 'Địa chỉ email không đúng định dạng!' }
+      ]}
+    >
+      <Input size="large" prefix={<MailOutlined />} placeholder="Ví dụ: admin@gmail.com" />
+    </Form.Item>
+    <Button type="primary" htmlType="submit" block size="large" loading={sendingEmail} style={{ height: 44, borderRadius: 8 }}>
+      Gửi Liên Kết Đặt Lại Mật Khẩu
+    </Button>
+  </Form>
+</Modal>
+    </div>
+  );
+}

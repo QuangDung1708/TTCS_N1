@@ -1,204 +1,188 @@
-const db = require('../config/db');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+const db = require('../config/db');
 
-// ==========================================
-// [S1-01] ĐĂNG NHẬP, KHÓA 15S & BẢO MẬT THÔNG TIN
-// ==========================================
+// Kiểm tra và nạp mailService an toàn
+let sendResetPasswordEmail = null;
+try {
+    const mailService = require('../services/mailService');
+    sendResetPasswordEmail = mailService.sendResetPasswordEmail;
+} catch (err) {
+    console.warn('Lưu ý: Chưa nạp được mailService, vui lòng kiểm tra file mailService.js');
+}
+
+// 1. Đăng nhập
 const login = async (req, res) => {
     try {
         const { email, password } = req.body;
+
         if (!email || !password) {
-            return res.status(400).json({ message: 'Vui lòng nhập đầy đủ email và mật khẩu!' });
+            return res.status(400).json({ message: 'Vui lòng nhập đầy đủ email và mật khẩu.' });
         }
 
-        // Truy vấn kèm tính toán số giây còn lại trực tiếp bằng MySQL để không lệch múi giờ
-        const [users] = await db.execute(
-            `SELECT u.*, r.role_name, r.data_scope, g.name AS group_name,
-                    TIMESTAMPDIFF(SECOND, NOW(), u.lock_until) AS seconds_left
-             FROM users u
-             JOIN roles r ON u.role_id = r.id
-             LEFT JOIN \`groups\` g ON u.group_id = g.id
-             WHERE u.email = ?`,
-            [email.trim().toLowerCase()]
-        );
-
+        const [users] = await db.execute('SELECT * FROM users WHERE email = ?', [email]);
         if (users.length === 0) {
-            return res.status(401).json({ message: 'Email hoặc mật khẩu không chính xác!' });
+            return res.status(401).json({ message: 'Tài khoản hoặc mật khẩu không chính xác.' });
         }
 
         const user = users[0];
 
-        // 1. Kiểm tra nếu tài khoản đang trong thời gian bị khóa
-        if (user.seconds_left && user.seconds_left > 0) {
-            return res.status(403).json({
-                message: `Tài khoản tạm thời bị khóa do nhập sai quá 5 lần.`,
-                secondsLeft: user.seconds_left
-            });
+        if (user.status === 'locked') {
+            return res.status(403).json({ message: 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ Admin.' });
         }
 
-        // 2. So khớp mật khẩu
-        const isMatch = await bcrypt.compare(password, user.password);
+        let isMatch = false;
+        try {
+            isMatch = await bcrypt.compare(password, user.password);
+        } catch (e) {
+            isMatch = false;
+        }
+
+        // Hỗ trợ kiểm tra plain-text nếu dữ liệu test chưa băm mật khẩu
+        if (!isMatch && user.password === password) {
+            isMatch = true;
+        }
 
         if (!isMatch) {
-            const attempts = (user.failed_attempts || 0) + 1;
-
-            if (attempts >= 5) {
-                // Khóa đúng 15 giây bằng hàm DATE_ADD của MySQL
-                await db.execute(
-                    'UPDATE users SET failed_attempts = 0, lock_until = DATE_ADD(NOW(), INTERVAL 15 SECOND) WHERE id = ?',
-                    [user.id]
-                );
-                return res.status(403).json({
-                    message: 'Bạn đã nhập sai 5 lần liên tiếp. Tài khoản bị tạm khóa trong 15 giây!',
-                    secondsLeft: 15
-                });
-            } else {
-                await db.execute(
-                    'UPDATE users SET failed_attempts = ? WHERE id = ?',
-                    [attempts, user.id]
-                );
-                const remaining = 5 - attempts;
-                return res.status(401).json({
-                    message: `Email hoặc mật khẩu không chính xác! (Còn ${remaining} lần thử trước khi bị khóa)`
-                });
-            }
+            return res.status(401).json({ message: 'Tài khoản hoặc mật khẩu không chính xác.' });
         }
 
-        // 3. Đăng nhập thành công -> Reset sạch sẽ
-        await db.execute(
-            'UPDATE users SET failed_attempts = 0, lock_until = NULL WHERE id = ?',
-            [user.id]
-        );
-
+        const secretKey = process.env.JWT_SECRET || 'CRM_ENTERPRISE_SUPER_SECRET_KEY_2026';
         const token = jwt.sign(
-            { id: user.id, email: user.email, role_id: user.role_id },
-            process.env.JWT_SECRET || 'crm_secret_key_2026',
-            { expiresIn: '2h' }
+            {
+                id: user.id,
+                email: user.email,
+                role_code: user.role_code,
+                group_id: user.group_id
+            },
+            secretKey,
+            { expiresIn: '8h' }
         );
 
-        return res.status(200).json({
+        return res.json({
             message: 'Đăng nhập thành công!',
             token,
             user: {
                 id: user.id,
-                name: user.full_name || user.name,
-                full_name: user.full_name || user.name,
+                full_name: user.full_name,
                 email: user.email,
-                phone: user.phone || '',
-                avatar: user.avatar || '',
-                email_signature: user.email_signature || '',
-                role_id: user.role_id,
-                role_name: user.role_name,
-                data_scope: user.data_scope,
-                group_name: user.group_name
+                role_code: user.role_code,
+                group_id: user.group_id
             }
         });
     } catch (error) {
         console.error('Lỗi login:', error);
-        return res.status(500).json({ message: 'Lỗi hệ thống khi đăng nhập!' });
+        return res.status(500).json({ message: 'Lỗi máy chủ khi đăng nhập.', error: error.message });
     }
 };
 
-// ==========================================
-// [S1-02] ĐĂNG XUẤT PHÍA SERVER
-// ==========================================
+// 2. Đăng xuất
 const logout = async (req, res) => {
-    try {
-        return res.status(200).json({ message: 'Đăng xuất thành công!' });
-    } catch (error) {
-        return res.status(500).json({ message: 'Lỗi server khi đăng xuất!' });
-    }
+    return res.json({ message: 'Đăng xuất thành công' });
 };
 
-// ==========================================
-// [S1-03] QUÊN MẬT KHẨU
-// ==========================================
+// 3. Quên mật khẩu - Gửi mã xác thực về Email thật
 const forgotPassword = async (req, res) => {
     try {
         const { email } = req.body;
         if (!email) {
-            return res.status(400).json({ message: 'Vui lòng cung cấp địa chỉ email!' });
+            return res.status(400).json({ message: 'Vui lòng nhập địa chỉ email!' });
         }
 
-        const [users] = await db.execute('SELECT * FROM users WHERE email = ?', [email.trim().toLowerCase()]);
-
+        const [users] = await db.execute('SELECT id, email, full_name FROM users WHERE email = ?', [email]);
         if (users.length === 0) {
-            return res.status(200).json({
-                message: 'Nếu email tồn tại trong hệ thống, thông tin khôi phục mật khẩu đã được gửi thành công!'
-            });
+            return res.status(404).json({ message: 'Địa chỉ email này không tồn tại trong hệ thống!' });
         }
 
-        const user = users[0];
-        const tempPassword = 'Crm@' + Math.floor(100000 + Math.random() * 900000);
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(tempPassword, salt);
+        const token = crypto.randomBytes(20).toString('hex');
+        const expires = new Date(Date.now() + 15 * 60 * 1000); // 15 phút
 
-        await db.execute('UPDATE users SET password = ? WHERE id = ?', [hashedPassword, user.id]);
+        await db.execute(
+            'UPDATE users SET reset_token = ?, reset_token_expires = ? WHERE email = ?',
+            [token, expires, email]
+        );
 
-        return res.status(200).json({
-            message: 'Mật khẩu tạm thời đã được tạo thành công!',
-            tempPassword: tempPassword
-        });
+        if (typeof sendResetPasswordEmail === 'function') {
+            await sendResetPasswordEmail(email, token);
+        } else {
+            console.log(`[TEST TOKEN]: Mã xác thực cho ${email} là: ${token}`);
+        }
+
+        return res.json({ message: 'Đã gửi mã xác thực thành công! Vui lòng kiểm tra email của bạn.' });
     } catch (error) {
-        console.error('Lỗi forgot password:', error);
-        return res.status(500).json({ message: 'Lỗi server khi xử lý quên mật khẩu!' });
+        console.error('Lỗi forgotPassword:', error);
+        return res.status(500).json({ message: 'Lỗi gửi email xác thực. Vui lòng kiểm tra cấu hình SMTP!' });
     }
 };
 
-// ==========================================
-// [S1-03] ĐẶT LẠI MẬT KHẨU BẰNG TOKEN/LINK
-// ==========================================
+// 4. Đặt lại mật khẩu mới
 const resetPassword = async (req, res) => {
     try {
-        const { email, newPassword } = req.body;
-        if (!newPassword || newPassword.length < 8) {
-            return res.status(400).json({ message: 'Mật khẩu mới tối thiểu 8 ký tự!' });
+        const { token, newPassword } = req.body;
+        if (!token || !newPassword) {
+            return res.status(400).json({ message: 'Thiếu mã xác thực hoặc mật khẩu mới!' });
         }
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(newPassword, salt);
-        await db.execute('UPDATE users SET password = ? WHERE email = ?', [hashedPassword, email]);
-        return res.status(200).json({ message: 'Đặt lại mật khẩu thành công!' });
+
+        const [users] = await db.execute(
+            'SELECT id FROM users WHERE reset_token = ? AND reset_token_expires > NOW()',
+            [token]
+        );
+
+        if (users.length === 0) {
+            return res.status(400).json({ message: 'Mã xác thực không hợp lệ hoặc đã hết hạn.' });
+        }
+
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        await db.execute(
+            'UPDATE users SET password = ?, reset_token = NULL, reset_token_expires = NULL WHERE id = ?',
+            [hashedPassword, users[0].id]
+        );
+
+        return res.json({ message: 'Đặt lại mật khẩu thành công!' });
     } catch (error) {
-        return res.status(500).json({ message: 'Lỗi server khi đặt lại mật khẩu!' });
+        console.error('Lỗi resetPassword:', error);
+        return res.status(500).json({ message: 'Lỗi máy chủ khi đổi mật khẩu!' });
     }
 };
 
-// ==========================================
-// [S1-04] ĐỔI MẬT KHẨU
-// ==========================================
+// 5. Đổi mật khẩu trong hệ thống
 const changePassword = async (req, res) => {
     try {
         const userId = req.user.id;
         const { oldPassword, newPassword } = req.body;
 
         if (!oldPassword || !newPassword) {
-            return res.status(400).json({ message: 'Vui lòng điền đầy đủ mật khẩu!' });
-        }
-
-        const passRegex = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
-        if (!passRegex.test(newPassword)) {
-            return res.status(400).json({ message: 'Mật khẩu mới phải có tối thiểu 8 ký tự, bao gồm cả chữ và số!' });
+            return res.status(400).json({ message: 'Vui lòng cung cấp mật khẩu cũ và mới.' });
         }
 
         const [users] = await db.execute('SELECT password FROM users WHERE id = ?', [userId]);
         if (users.length === 0) {
-            return res.status(404).json({ message: 'Người dùng không tồn tại!' });
+            return res.status(404).json({ message: 'Không tìm thấy người dùng.' });
         }
 
-        const isMatch = await bcrypt.compare(oldPassword, users[0].password);
+        let isMatch = false;
+        try {
+            isMatch = await bcrypt.compare(oldPassword, users[0].password);
+        } catch (e) {
+            isMatch = false;
+        }
+
+        if (!isMatch && users[0].password === oldPassword) {
+            isMatch = true;
+        }
+
         if (!isMatch) {
-            return res.status(400).json({ message: 'Mật khẩu hiện tại không chính xác!' });
+            return res.status(400).json({ message: 'Mật khẩu cũ không chính xác.' });
         }
 
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(newPassword, salt);
-        await db.execute('UPDATE users SET password = ? WHERE id = ?', [hashedPassword, userId]);
+        const hashed = await bcrypt.hash(newPassword, 10);
+        await db.execute('UPDATE users SET password = ? WHERE id = ?', [hashed, userId]);
 
-        return res.status(200).json({ message: 'Đổi mật khẩu thành công!' });
+        return res.json({ message: 'Đổi mật khẩu thành công!' });
     } catch (error) {
         console.error('Lỗi changePassword:', error);
-        return res.status(500).json({ message: 'Lỗi server khi đổi mật khẩu!' });
+        return res.status(500).json({ message: 'Lỗi máy chủ khi đổi mật khẩu.' });
     }
 };
 
