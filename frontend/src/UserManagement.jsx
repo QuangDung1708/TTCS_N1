@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { fetchUsers, fetchUserMeta, createUser, updateUser, fetchUserCustomerCount, lockUserAccount, downloadUserTemplate,  previewUserExcel, executeUserImport } from './api/api';
+import { fetchUsers, fetchUserMeta, createUser, updateUser, fetchUserCustomerCount, lockUserAccount, downloadUserTemplate,  previewUserExcel, executeUserImport } from './api';
 
 export default function UserManagement() {
     const [users, setUsers] = useState([]);

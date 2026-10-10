@@ -22,12 +22,16 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/customers', customerRoutes);
 app.use('/api/users', userRoutes);
+<<<<<<< HEAD
 app.use('/api/categories', categoryRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/groups', groupRoutes);     // MỚI
 app.use('/api/regions', regionRoutes);   // MỚI
 app.use('/api/pipeline-stages', pipelineStageRoutes); // S2-09
 
+=======
+app.use('/api/contacts', require('./src/routes/contactRoutes'));
+>>>>>>> c5b4fc43 (feat(contacts): [S2-02] hoan tat toan bo nghiep vu quan ly nguoi lien he va lich su chuyen doi cong ty)
 // Chỉ chạy app.listen khi KHÔNG ở chế độ kiểm thử (test)
 if (process.env.NODE_ENV !== 'test') {
   app.listen(PORT, () => {

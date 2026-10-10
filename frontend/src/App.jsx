@@ -1,10 +1,14 @@
 
 import React, { useState, useEffect } from 'react';
 import UserManagement from './UserManagement';
-import { login, changePassword, forgotPassword } from './api/api';
+import { login, changePassword, forgotPassword } from './api';
 import ErrorPage from './ErrorPage';
+<<<<<<< HEAD
 import CommonCategoryManagement from './CommonCategoryManagement';
 import ProductFormModal from './ProductFormModal';
+=======
+import CustomerManagement from './CustomerManagement';
+>>>>>>> c5b4fc43 (feat(contacts): [S2-02] hoan tat toan bo nghiep vu quan ly nguoi lien he va lich su chuyen doi cong ty)
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -359,6 +363,7 @@ export default function App() {
                   👥 Quản Lý Người Dùng
                 </button>
               )}
+<<<<<<< HEAD
              <button
   onClick={() => {
     setActiveTab('categories')
@@ -393,6 +398,24 @@ export default function App() {
   }}
 >
   📦 Quản Lý Sản Phẩm
+=======
+              <button
+                onClick={() => setActiveTab('customers')}
+                style={{
+                  backgroundColor: activeTab === 'customers' ? '#ff6b00' : 'transparent',
+                   color: '#fff',
+                   border: 'none',
+                  padding: '8px 16px',
+                  borderRadius: '6px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+  }}
+>
+  🏢 Quản Lý Khách Hàng
+>>>>>>> c5b4fc43 (feat(contacts): [S2-02] hoan tat toan bo nghiep vu quan ly nguoi lien he va lich su chuyen doi cong ty)
 </button>
             </nav>
           </div>
@@ -553,7 +576,8 @@ export default function App() {
             </p>
           </div>
         )}
-
+        
+        {activeTab === 'customers' && <CustomerManagement />}
         {/* Khi người dùng vào tab Quản trị người dùng */}
         {activeTab === 'users' && (
 
