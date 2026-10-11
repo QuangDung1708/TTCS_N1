@@ -28,6 +28,18 @@ router.post('/login', async (req, res) => {
         if (!isMatch) {
             return res.status(400).json({ message: 'Tài khoản hoặc mật khẩu không chính xác.' });
         }
+        if (user.status === 'Đã khóa' || user.status === 'inactive') {
+  return res.status(403).json({ 
+    message: 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ Quản trị hệ thống!' 
+  });
+
+  const statusStr = String(user.status || '').toLowerCase().trim();
+if (statusStr === 'đã khóa' || statusStr === 'inactive' || statusStr === '0') {
+  return res.status(403).json({ 
+    message: 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ Quản trị hệ thống!' 
+  });
+}
+}
 
         // Tạo JWT Token
         const token = jwt.sign(
@@ -65,9 +77,10 @@ router.post('/forgot-password', async (req, res) => {
     const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
 
     await db.query(
-      'INSERT INTO password_resets (email, token, expires_at, used) VALUES (?, ?, ?, 0)',
-      [email, token, expiresAt]
-    );
+  `INSERT INTO users (full_name, email, password, role_id, status) 
+   VALUES (?, ?, ?, 3, 'Hoạt động')`,
+  [userName, email, hashedPassword]
+);
 
     const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${token}`;
 
@@ -185,6 +198,112 @@ router.put('/change-password', async (req, res) => {
         console.error('Lỗi change-password:', err);
         return res.status(500).json({ message: 'Lỗi máy chủ khi đổi mật khẩu.' });
     }
+});
+
+// --- 1. API GỬI MÃ XÁC NHẬN (OTP) ĐĂNG KÝ ---
+router.post('/send-register-otp', async (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ message: 'Vui lòng cung cấp địa chỉ email!' });
+
+  try {
+    // Kiểm tra xem email đã được đăng ký trước đó chưa
+    const [existing] = await db.query('SELECT id FROM users WHERE email = ?', [email]);
+    if (existing.length > 0) {
+      return res.status(400).json({ message: 'Email này đã được sử dụng! Vui lòng chọn đăng nhập.' });
+    }
+
+    // Sinh mã OTP 6 số ngẫu nhiên
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 phút
+
+    // Lưu mã xác thực vào DB
+    await db.query(
+      'INSERT INTO email_verifications (email, otp_code, expires_at) VALUES (?, ?, ?)',
+      [email, otpCode, expiresAt]
+    );
+
+    // Gửi email mã xác nhận
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: (process.env.SMTP_USER || '').trim(),
+        pass: (process.env.SMTP_PASS || '').trim()
+      }
+    });
+
+    await transporter.sendMail({
+      from: `"Enterprise CRM" <${process.env.SMTP_USER}>`,
+      to: email,
+      subject: '[CRM] Mã xác nhận tạo tài khoản',
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 24px; border: 1px solid #e8e8e8; border-radius: 8px; max-width: 480px;">
+          <h2 style="color: #1677ff; margin-top: 0;">Xác Thực Tài Khoản Mới</h2>
+          <p>Mã xác thực tạo tài khoản CRM của bạn là:</p>
+          <div style="text-align: center; margin: 20px 0;">
+            <span style="font-size: 32px; font-weight: bold; letter-spacing: 6px; color: #1677ff; background: #e6f4ff; padding: 10px 24px; border-radius: 8px; display: inline-block;">
+              ${otpCode}
+            </span>
+          </div>
+          <p style="color: #666; font-size: 14px;">Mã này có hiệu lực trong vòng <b>5 phút</b>. Vui lòng không chia sẻ mã cho bất kỳ ai để đảm bảo an toàn.</p>
+        </div>
+      `
+    });
+
+    console.log(`[OTP] Đã gửi mã ${otpCode} tới: ${email}`);
+    return res.json({ success: true, message: 'Mã xác thực đã được gửi về email của bạn!' });
+  } catch (err) {
+    console.error('Lỗi gửi OTP:', err);
+    return res.status(500).json({ message: 'Không thể gửi mã xác nhận: ' + err.message });
+  }
+});
+
+// --- 2. API XÁC THỰC OTP VÀ TẠO TÀI KHOẢN ---
+router.post('/register', async (req, res) => {
+  const { full_name, email, password, otp_code } = req.body;
+
+  if (!email || !password || !otp_code) {
+    return res.status(400).json({ message: 'Vui lòng nhập đầy đủ email, mật khẩu và mã xác thực!' });
+  }
+
+  try {
+    // 1. Kiểm tra OTP hợp lệ và chưa hết hạn
+    const [otps] = await db.query(
+      'SELECT id FROM email_verifications WHERE email = ? AND otp_code = ? AND expires_at > NOW() AND verified = 0 ORDER BY id DESC LIMIT 1',
+      [email, otp_code]
+    );
+
+    if (otps.length === 0) {
+      return res.status(400).json({ message: 'Mã xác nhận không chính xác hoặc đã hết hạn!' });
+    }
+
+    // Đánh dấu mã OTP đã sử dụng
+    await db.query('UPDATE email_verifications SET verified = 1 WHERE id = ?', [otps[0].id]);
+
+    // 2. Kiểm tra lại trùng email lần cuối
+    const [existing] = await db.query('SELECT id FROM users WHERE email = ?', [email]);
+    if (existing.length > 0) {
+      return res.status(400).json({ message: 'Email này đã tồn tại trong hệ thống!' });
+    }
+
+    // 3. Hash mật khẩu và tạo tài khoản (mặc định vai trò 'Nhân viên kinh doanh')
+    const bcrypt = require('bcryptjs');
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const userName = full_name && full_name.trim() !== '' ? full_name : email.split('@')[0];
+
+    await db.query(
+      `INSERT INTO users (full_name, email, password, role, status) 
+       VALUES (?, ?, ?, 'Nhân viên kinh doanh', 'Hoạt động')`,
+      [userName, email, hashedPassword]
+    );
+
+    return res.status(201).json({ 
+      success: true, 
+      message: 'Tạo tài khoản thành công! Bạn có thể đăng nhập ngay.' 
+    });
+  } catch (err) {
+    console.error('Lỗi đăng ký:', err);
+    return res.status(500).json({ message: 'Lỗi đăng ký tài khoản: ' + err.message });
+  }
 });
 
 module.exports = router;

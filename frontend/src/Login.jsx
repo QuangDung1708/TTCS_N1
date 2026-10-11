@@ -15,11 +15,144 @@ const TEST_ACCOUNTS = [
   { label: 'Cust. Success', role: 'Cust. Success', email: 'cs@crm.vn', password: '123456', color: 'cyan' },
   { label: 'Accountant', role: 'Accountant', email: 'accountant@crm.vn', password: '123456', color: 'green' }
 ];
+// --- MODAL ĐĂNG KÝ AN TOÀN (KHÔNG DÙNG ICON LẠ, KHÔNG DÙNG ROW/COL) ---
+function RegisterModal({ open, onCancel, onSuccess }) {
+  const [form] = Form.useForm();
+  const [countdown, setCountdown] = useState(0);
+  const [sendingOtp, setSendingOtp] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    let timer;
+    if (countdown > 0) {
+      timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [countdown]);
+
+  const handleSendOtp = async () => {
+    try {
+      const email = form.getFieldValue('email');
+      if (!email) return message.warning('Vui lòng nhập email trước khi lấy mã!');
+      setSendingOtp(true);
+      const res = await axios.post('http://localhost:5001/api/auth/send-register-otp', { email });
+      message.success(res.data.message || 'Mã xác nhận đã gửi về email!');
+      setCountdown(60);
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Không thể gửi mã xác nhận.');
+    } finally {
+      setSendingOtp(false);
+    }
+  };
+
+  const handleRegister = async (values) => {
+    setSubmitting(true);
+    try {
+      const res = await axios.post('http://localhost:5001/api/auth/register', {
+        full_name: values.full_name,
+        email: values.email,
+        password: values.password,
+        otp_code: values.otp_code
+      });
+      message.success(res.data.message || 'Tạo tài khoản thành công!');
+      form.resetFields();
+      onSuccess();
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Đăng ký thất bại.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <Modal
+      title="Tạo Tài Khoản Mới"
+      open={open}
+      onCancel={onCancel}
+      footer={null}
+      destroyOnClose
+    >
+      <Form form={form} layout="vertical" onFinish={handleRegister} style={{ marginTop: 16 }}>
+        <Form.Item label="Họ và tên" name="full_name">
+          <Input prefix={<UserOutlined />} placeholder="Ví dụ: Nguyễn Văn A" size="large" />
+        </Form.Item>
+
+        <Form.Item
+          label="Email đăng ký"
+          name="email"
+          rules={[
+            { required: true, message: 'Vui lòng nhập email!' },
+            { type: 'email', message: 'Email không đúng định dạng!' }
+          ]}
+        >
+          <Input placeholder="name@company.com" size="large" />
+        </Form.Item>
+
+        <Form.Item label="Mã xác nhận (OTP gửi về mail)" required>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Form.Item
+              name="otp_code"
+              noStyle
+              rules={[{ required: true, message: 'Nhập mã 6 số!' }]}
+            >
+              <Input placeholder="Nhập mã 6 số" maxLength={6} size="large" />
+            </Form.Item>
+            <Button
+              size="large"
+              onClick={handleSendOtp}
+              loading={sendingOtp}
+              disabled={countdown > 0}
+              style={{ minWidth: 100 }}
+            >
+              {countdown > 0 ? `${countdown}s` : 'Gửi mã'}
+            </Button>
+          </div>
+        </Form.Item>
+
+        <Form.Item
+          label="Mật khẩu"
+          name="password"
+          rules={[
+            { required: true, message: 'Vui lòng nhập mật khẩu!' },
+            { min: 6, message: 'Tối thiểu 6 ký tự!' }
+          ]}
+        >
+          <Input.Password prefix={<LockOutlined />} placeholder="Tối thiểu 6 ký tự" size="large" />
+        </Form.Item>
+
+        <Form.Item
+          label="Xác nhận mật khẩu"
+          name="confirm_password"
+          dependencies={['password']}
+          rules={[
+            { required: true, message: 'Vui lòng xác nhận mật khẩu!' },
+            ({ getFieldValue }) => ({
+              validator(_, value) {
+                if (!value || getFieldValue('password') === value) return Promise.resolve();
+                return Promise.reject(new Error('Mật khẩu không khớp!'));
+              },
+            }),
+          ]}
+        >
+          <Input.Password prefix={<LockOutlined />} placeholder="Nhập lại mật khẩu" size="large" />
+        </Form.Item>
+
+        <Form.Item style={{ marginTop: 24, marginBottom: 0 }}>
+          <Button type="primary" htmlType="submit" size="large" block loading={submitting}>
+            Xác Nhận Tạo Tài Khoản
+          </Button>
+        </Form.Item>
+      </Form>
+    </Modal>
+  );
+}
+
 
 export default function Login({ onLoginSuccess }) {
   const [form] = Form.useForm();
   const [forgotForm] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const [isRegisterOpen, setIsRegisterOpen] = useState(false);
 
   // RÀNG BUỘC KHÓA: SAI 5 LẦN KHÓA 15 GIÂY
   const [failedCount, setFailedCount] = useState(() => {
@@ -72,49 +205,34 @@ export default function Login({ onLoginSuccess }) {
   };
 
   // Xử lý đăng nhập
-  const handleLogin = async (values) => {
-    if (lockCountdown > 0) return;
-
+const handleLogin = async (values) => {
+  try {
     setLoading(true);
-    try {
-      const res = await axios.post('http://localhost:5001/api/auth/login', {
-        email: values.email.trim(),
-        password: values.password
-      });
+    const res = await axios.post('http://localhost:5001/api/auth/login', values);
 
-      if (res.data.token) {
-        message.success(`Đăng nhập thành công với vai trò ${res.data.user.role_code || 'Người dùng'}!`);
-        clearLockState();
-
-        localStorage.setItem('token', res.data.token);
-        localStorage.setItem('user', JSON.stringify(res.data.user));
-        localStorage.setItem('role', res.data.user.role_code);
-
-        if (onLoginSuccess) {
-          onLoginSuccess(res.data.user);
-        } else {
-          window.location.href = '/dashboard';
-        }
+    // CHỈ LƯU VÀ CHUYỂN TRANG KHI SERVER THỰC SỰ TRẢ VỀ TOKEN HỢP LỆ
+    if (res.data && res.data.token) {
+      localStorage.setItem('token', res.data.token);
+      localStorage.setItem('user', JSON.stringify(res.data.user));
+      
+      message.success('Đăng nhập thành công!');
+      
+      // Gọi callback đăng nhập hoặc chuyển hướng
+      if (typeof onLoginSuccess === 'function') {
+        onLoginSuccess(res.data.user);
       }
-    } catch (err) {
-      const nextFail = failedCount + 1;
-      setFailedCount(nextFail);
-      localStorage.setItem('crm_failed_attempts', nextFail.toString());
-
-      if (nextFail >= 5) {
-        const unlockTime = Date.now() + 15 * 1000;
-        localStorage.setItem('crm_locked_until', unlockTime.toString());
-        setLockCountdown(15);
-        message.error('Bạn đã nhập sai 5 lần! Hệ thống khóa đăng nhập trong 15 giây.');
-      } else {
-        const remain = 5 - nextFail;
-        message.error(err.response?.data?.message || `Sai tài khoản hoặc mật khẩu! (Còn ${remain} lần thử)`);
-      }
-    } finally {
-      setLoading(false);
+    } else {
+      message.error(res.data?.message || 'Không nhận được mã xác thực!');
     }
-  };
-
+  } catch (err) {
+    // Khi có lỗi (400, 401, 403 tài khoản bị khóa), TUYỆT ĐỐI KHÔNG LƯU RÁC VÀO LOCALSTORAGE
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    message.error(err.response?.data?.message || 'Đăng nhập thất bại!');
+  } finally {
+    setLoading(false);
+  }
+};
   // Nạp nhanh tài khoản theo vai trò được chọn
   const handleSelectTestAccount = (acc) => {
     if (lockCountdown > 0) return;
@@ -259,6 +377,23 @@ const handleSendResetLink = async (values) => {
             {lockCountdown > 0 ? `Đang khóa (${lockCountdown}s)` : 'Đăng Nhập'}
           </Button>
         </Form>
+
+        <div style={{ textAlign: 'center', marginTop: 14 }}>
+        <span style={{ fontSize: 13, color: '#8c8c8c' }}>Chưa có tài khoản? </span>
+        <a
+          onClick={() => setIsRegisterOpen(true)}
+          style={{ fontSize: 13, fontWeight: 600, color: '#1677ff', cursor: 'pointer' }}
+        >
+          Tạo tài khoản ngay
+        </a>
+      </div>
+
+      {/* Thẻ gọi modal */}
+      <RegisterModal
+        open={isRegisterOpen}
+        onCancel={() => setIsRegisterOpen(false)}
+        onSuccess={() => setIsRegisterOpen(false)}
+      />
 
         {/* 7 TÀI KHOẢN TEST NHANH THEO MA TRẬN 7 ROLES */}
         <div style={{ marginTop: 28, paddingTop: 20, borderTop: '1px solid #f1f5f9' }}>

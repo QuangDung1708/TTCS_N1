@@ -3,6 +3,7 @@ const router = express.Router();
 const db = require('../config/db');
 const bcrypt = require('bcryptjs');
 const authMiddleware = require('../middleware/authMiddleware');
+const userController = require('../controllers/userController');
 
 const verifyToken = typeof authMiddleware === 'function' 
     ? authMiddleware 
@@ -11,6 +12,8 @@ const verifyToken = typeof authMiddleware === 'function'
 // =========================================================================
 // 1. API LẤY DANH SÁCH VAI TRÒ ĐỘNG TỪ DATABASE (Marketing, CSM, Kế toán, v.v.)
 // =========================================================================
+router.post('/', userController.createUser);
+router.put('/:id/status', verifyToken, userController.updateUserStatus);
 router.get('/roles/list', verifyToken, async (req, res) => {
     try {
         let roles = [];
@@ -475,6 +478,84 @@ router.put('/:id/status', async (req, res) => {
         console.error('Lỗi cập nhật status:', err);
         return res.status(500).json({ message: 'Lỗi cơ sở dữ liệu khi cập nhật trạng thái.' });
     }
+});
+
+router.post('/', async (req, res) => {
+  const { full_name, email, phone, password, role, department_id } = req.body;
+
+  if (!full_name || !email || !role) {
+    return res.status(400).json({ message: 'Vui lòng điền đầy đủ các thông tin bắt buộc!' });
+  }
+
+  try {
+    // 1. Kiểm tra email trùng
+    const [existing] = await db.query('SELECT id FROM users WHERE email = ?', [email]);
+    if (existing.length > 0) {
+      return res.status(400).json({ message: 'Email này đã tồn tại trong hệ thống!' });
+    }
+
+    // 2. Mật khẩu khởi tạo: Lấy mật khẩu nhập vào hoặc dùng mặc định '123456@crm'
+    const rawPassword = (password && password.trim() !== '') ? password.trim() : '123456@crm';
+    const hashedPassword = await bcrypt.hash(rawPassword, 10);
+
+    // 3. Thêm vào bảng users
+    const [result] = await db.query(
+      `INSERT INTO users (full_name, email, phone, password, role, department_id, status) 
+       VALUES (?, ?, ?, ?, ?, ?, 'Hoạt động')`,
+      [full_name, email, phone || null, hashedPassword, role, department_id || null]
+    );
+
+    // 4. Gửi email kích hoạt kèm mật khẩu cho nhân viên
+    // Ngay sau câu lệnh INSERT INTO users thành công:
+try {
+  const nodemailer = require('nodemailer');
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: (process.env.SMTP_USER || '').trim(),
+      pass: (process.env.SMTP_PASS || '').trim()
+    }
+  });
+
+  const loginUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/login`;
+  const defaultPass = (password && password.trim() !== '') ? password.trim() : '123456@crm';
+
+  await transporter.sendMail({
+    from: `"Enterprise CRM" <${process.env.SMTP_USER}>`,
+    to: email.trim(),
+    subject: '[Enterprise CRM] Thông tin tài khoản và mật khẩu khởi tạo',
+    html: `
+      <div style="font-family: Arial, sans-serif; padding: 24px; border: 1px solid #e8e8e8; border-radius: 8px; max-width: 500px;">
+        <h2 style="color: #1677ff; margin-top: 0;">Chào mừng bạn đến với Enterprise CRM</h2>
+        <p>Xin chào <b>${full_name}</b>,</p>
+        <p>Tài khoản nhân viên của bạn đã được khởi tạo trên hệ thống với thông tin đăng nhập sau:</p>
+        <div style="background-color: #f6f8fa; padding: 14px; border-radius: 6px; margin: 16px 0;">
+          <p style="margin: 4px 0;">• <b>Email:</b> ${email.trim()}</p>
+          <p style="margin: 4px 0;">• <b>Mật khẩu:</b> <b style="color: #1677ff;">${defaultPass}</b></p>
+        </div>
+        <div style="text-align: center; margin: 24px 0;">
+          <a href="${loginUrl}" style="background-color: #1677ff; color: #fff; padding: 10px 22px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+            Đăng Nhập Ngay
+          </a>
+        </div>
+      </div>
+    `
+  });
+  console.log('✅ [MAIL SUCCESS] Đã gửi thông tin tài khoản tới:', email);
+} catch (mailErr) {
+  console.error('⚠️ [MAIL ERROR] Lỗi gửi mail:', mailErr.message);
+}
+
+    return res.status(201).json({ 
+      success: true, 
+      message: 'Tạo tài khoản thành công! Thông tin đăng nhập đã được gửi tới email.',
+      userId: result.insertId 
+    });
+
+  } catch (err) {
+    console.error('Lỗi tạo người dùng:', err);
+    return res.status(500).json({ message: 'Lỗi máy chủ: ' + err.message });
+  }
 });
 
 module.exports = router;

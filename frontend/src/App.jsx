@@ -18,6 +18,17 @@ import {
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import axios from 'axios';
 
+axios.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
 import CustomerManagement from './CustomerManagement';
 import UserManagement from './UserManagement';
 import PermissionMatrix from './PermissionMatrix';

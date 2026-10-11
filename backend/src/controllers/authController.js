@@ -11,6 +11,11 @@ try {
 } catch (err) {
     console.warn('Lưu ý: Chưa nạp được mailService, vui lòng kiểm tra file mailService.js');
 }
+const user = users[0];
+console.log('🔍 [DEBUG LOGIN] Trạng thái tài khoản trong DB:', {
+  email: user.email,
+  status: user.status
+});
 
 // 1. Đăng nhập
 const login = async (req, res) => {
@@ -21,12 +26,19 @@ const login = async (req, res) => {
             return res.status(400).json({ message: 'Vui lòng nhập đầy đủ email và mật khẩu.' });
         }
 
-        const [users] = await db.execute('SELECT * FROM users WHERE email = ?', [email]);
+        // Đảm bảo có lấy cột status:
+        const [users] = await db.query('SELECT * FROM users WHERE email = ?', [email.trim()]);
         if (users.length === 0) {
             return res.status(401).json({ message: 'Tài khoản hoặc mật khẩu không chính xác.' });
         }
 
         const user = users[0];
+
+        if (user.status === 'Đã khóa') {
+  return res.status(403).json({ 
+    message: 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ Quản trị hệ thống!' 
+  });
+}
 
         if (user.status === 'locked') {
             return res.status(403).json({ message: 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ Admin.' });
@@ -45,11 +57,23 @@ const login = async (req, res) => {
         }
 
         if (!isMatch) {
-            return res.status(401).json({ message: 'Tài khoản hoặc mật khẩu không chính xác.' });
-        }
+  return res.status(401).json({ message: 'Tài khoản hoặc mật khẩu không chính xác.' });
+}
 
-        const secretKey = process.env.JWT_SECRET || 'CRM_ENTERPRISE_SUPER_SECRET_KEY_2026';
-        const token = jwt.sign(
+// ⛔ THÊM ĐOẠN NÀY ĐỂ CHẶN TÀI KHOẢN BỊ KHÓA (HOÀN THÀNH AC 1):
+const statusStr = String(user.status || '').toLowerCase().trim();
+const isLocked = statusStr === 'đã khóa' || statusStr === 'inactive' || statusStr === 'locked' || statusStr === '0';
+
+if (isLocked) {
+  console.log(` Đã chặn tài khoản bị khóa đăng nhập: ${user.email}`);
+  return res.status(403).json({ 
+    message: 'Tài khoản của bạn đã bị khóa! Vui lòng liên hệ Quản trị hệ thống.' 
+  });
+}
+
+const secretKey = process.env.JWT_SECRET || 'CRM_ENTERPRISE_SUPER_SECRET_KEY_2026';
+const token = jwt.sign(
+
             {
                 id: user.id,
                 email: user.email,
