@@ -276,6 +276,14 @@ export default function App() {
     const navigate = useNavigate();
     const location = useLocation();
 
+// Kiểm tra nếu đang vào link reset mật khẩu -> Render riêng biệt, không bọc Sidebar/Header
+  const isResetPath = window.location.pathname.includes('/reset-password') || 
+                      window.location.search.includes('token=');
+
+  if (isResetPath) {
+    return <ResetPassword />;
+  }
+
     // Dữ liệu người dùng động
     const [currentUser, setCurrentUser] = useState(() => {
     try {
