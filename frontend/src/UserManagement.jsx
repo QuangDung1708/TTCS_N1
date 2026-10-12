@@ -373,14 +373,36 @@ const handleDownloadTemplate = () => {
 
     const handleExecuteImport = async () => {
         const validItems = previewData.filter(d => d.isValid);
+        const initialErrorItems = previewData.filter(d => !d.isValid).map(d => ({
+            row: d.row,
+            full_name: d.full_name || '(Chưa nhập)',
+            email: d.email || '(Chưa nhập)',
+            error: d.errorMsg
+        }));
+
         setImporting(true);
         try {
             const token = localStorage.getItem('token');
             const res = await axios.post('http://localhost:5001/api/users/import-batch', { users: validItems }, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            setImportResult(res.data.summary);
-            api.success({ message: 'Hoàn tất nhập dữ liệu!' });
+            const backendErrors = (res.data.summary?.errors || []).map(e => ({
+                row: e.row,
+                full_name: e.fullName || e.full_name || '',
+                email: e.email || '',
+                error: e.error
+            }));
+            const allErrors = [...initialErrorItems, ...backendErrors];
+            setImportResult({
+                total: previewData.length,
+                success: res.data.summary?.success || 0,
+                failed: allErrors.length,
+                errors: allErrors
+            });
+            api.success({ 
+                message: 'Hoàn tất nhập dữ liệu!', 
+                description: `Đã nhập thành công ${res.data.summary?.success || 0} tài khoản. Bỏ qua ${allErrors.length} dòng lỗi.` 
+            });
             fetchData();
         } catch (err) {
             api.error({ message: 'Lỗi thực thi nhập', description: err.response?.data?.message });
@@ -792,7 +814,7 @@ const handleDownloadTemplate = () => {
                 onCancel={() => setIsImportModalOpen(false)}
                 width={850}
                 destroyOnClose
-                footer={[
+                footer={importResult ? null : [
                     <Button key="close" onClick={() => setIsImportModalOpen(false)}>Đóng</Button>,
                     previewData.length > 0 && !importResult && (
                         <Button 
@@ -860,19 +882,65 @@ const handleDownloadTemplate = () => {
                 )}
 
                 {importResult && (
-                    <Alert
-                        message="BÁO CÁO KẾT QUẢ NHẬP DỮ LIỆU"
-                        description={
-                            <div style={{ marginTop: 8 }}>
-                                <div>- Tổng số bản ghi xử lý: <b>{importResult.total}</b> dòng</div>
-                                <div>- Nhập thành công: <b style={{ color: '#52c41a' }}>{importResult.success}</b> tài khoản</div>
-                                <div>- Bỏ qua do vi phạm lỗi: <b style={{ color: '#ff4d4f' }}>{importResult.failed}</b> dòng</div>
+                    <div>
+                        <Alert
+                            message="BÁO CÁO TỔNG KẾT NHẬP DỮ LIỆU (S2-01)"
+                            description={
+                                <div style={{ marginTop: 8 }}>
+                                    <div>• Tổng số bản ghi trong tệp: <b>{importResult.total}</b> dòng</div>
+                                    <div>• Nhập thành công: <b style={{ color: '#52c41a' }}>{importResult.success}</b> tài khoản (dòng hợp lệ được tạo tài khoản ngay)</div>
+                                    <div>• Bị bỏ qua do vi phạm lỗi: <b style={{ color: '#ff4d4f' }}>{importResult.failed}</b> dòng (không làm gián đoạn các dòng hợp lệ)</div>
+                                </div>
+                            }
+                            type={importResult.failed > 0 ? "warning" : "success"}
+                            showIcon
+                            style={{ marginBottom: 16 }}
+                        />
+
+                        {importResult.errors && importResult.errors.length > 0 ? (
+                            <div>
+                                <Divider orientation="left" style={{ margin: '12px 0', fontSize: 14 }}>
+                                    <Space><CloseCircleOutlined style={{ color: '#ff4d4f' }} /> <b>Danh sách chi tiết các dòng lỗi bị bỏ qua:</b></Space>
+                                </Divider>
+                                <Table
+                                    size="small"
+                                    dataSource={importResult.errors}
+                                    rowKey={(r, idx) => `err_${idx}`}
+                                    pagination={{ pageSize: 5 }}
+                                    bordered
+                                    columns={[
+                                        { title: 'Dòng', dataIndex: 'row', width: 65, align: 'center', render: r => <Text code>{r}</Text> },
+                                        { title: 'Họ và tên', dataIndex: 'full_name', width: 160 },
+                                        { title: 'Email', dataIndex: 'email', width: 200 },
+                                        { 
+                                            title: 'Thông báo lỗi chi tiết', 
+                                            dataIndex: 'error', 
+                                            render: err => <Tag color="error" style={{ whiteSpace: 'normal', padding: '4px 8px' }}>{err}</Tag> 
+                                        },
+                                        { 
+                                            title: 'Xử lý của hệ thống', 
+                                            key: 'action', 
+                                            width: 160, 
+                                            render: () => <Tag color="orange">Bỏ qua dòng này</Tag> 
+                                        }
+                                    ]}
+                                />
                             </div>
-                        }
-                        type={importResult.failed > 0 ? "warning" : "success"}
-                        showIcon
-                        style={{ marginBottom: 16 }}
-                    />
+                        ) : (
+                            <Alert type="success" message="Toàn bộ 100% dòng dữ liệu hợp lệ và đã được nhập thành công!" showIcon />
+                        )}
+
+                        <div style={{ textAlign: 'right', marginTop: 16 }}>
+                            <Space>
+                                <Button onClick={() => { setImportResult(null); setPreviewData([]); }}>
+                                    Nhập thêm tệp khác
+                                </Button>
+                                <Button type="primary" onClick={() => setIsImportModalOpen(false)}>
+                                    Hoàn tất & Đóng
+                                </Button>
+                            </Space>
+                        </div>
+                    </div>
                 )}
             </Modal>
         </div>

@@ -31,7 +31,7 @@ exports.sendResetPasswordEmail = async (toEmail, resetToken) => {
                 <h2 style="color: #1677ff; margin-top: 0;">ENTERPRISE CRM</h2>
                 <p>Mã xác thực trực tiếp của bạn:</p>
                 <p style="font-size: 20px; font-weight: bold; color: #1677ff; letter-spacing: 1px;">${resetToken}</p>
-                <p>Hoặc bấm vào liên kết dưới đây để đổi mật khẩu (hiệu lực trong 15 phút):</p>
+                <p>Hoặc bấm vào liên kết dưới đây để đổi mật khẩu (hiệu lực trong 30 phút):</p>
                 <p><a href="${resetUrl}" style="background-color: #1677ff; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 6px; display: inline-block;">Đặt Lại Mật Khẩu</a></p>
             </div>
         `

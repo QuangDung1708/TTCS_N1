@@ -69,6 +69,12 @@ export default function CustomerManagement() {
   const [excelPreviewData, setExcelPreviewData] = useState([]);
   const [updateDuplicates, setUpdateDuplicates] = useState(true);
 
+  // S3-04 AC 1 & S2-08 AC 3
+  const [duplicatePairs, setDuplicatePairs] = useState([]);
+  const [loadingDuplicates, setLoadingDuplicates] = useState(false);
+  const [customFieldFilterKey, setCustomFieldFilterKey] = useState(null);
+  const [customFieldFilterValue, setCustomFieldFilterValue] = useState('');
+
   const [customerForm] = Form.useForm();
   const [ticketForm] = Form.useForm();
   const [contactForm] = Form.useForm();
@@ -396,9 +402,96 @@ export default function CustomerManagement() {
       setMasterCust(null);
       setDupCust(null);
       fetchCustomers();
+      fetchDuplicatePairs();
     } catch (err) {
-      message.error('Lỗi gộp khách hàng');
+      message.error(err.response?.data?.message || 'Lỗi gộp khách hàng');
     }
+  };
+
+  const fetchDuplicatePairs = async () => {
+    setLoadingDuplicates(true);
+    try {
+      const res = await axios.get('http://localhost:5001/api/customers/detect-duplicates', getHeaders());
+      setDuplicatePairs(res.data.data || []);
+    } catch (e) {
+      console.error('Lỗi quét trùng:', e);
+    } finally {
+      setLoadingDuplicates(false);
+    }
+  };
+
+  // S2-08 AC 3: Xuất danh sách khách hàng ra Excel đầy đủ các cột và các trường tùy chỉnh
+  const handleExportExcel = () => {
+    const listToExport = displayedCustomers || customers;
+    if (listToExport.length === 0) {
+      return message.warning('Không có dữ liệu khách hàng để xuất Excel!');
+    }
+
+    const headers = [
+      'Tên doanh nghiệp',
+      'Mã số thuế',
+      'Ngành nghề',
+      'Quy mô',
+      'Website',
+      'Trạng thái',
+      'Người phụ trách',
+      'Công ty mẹ',
+      'Giá trị hợp đồng (VNĐ)',
+      ...customFieldsList.map(cf => cf.field_label || cf.label || cf.name || cf.field_key)
+    ];
+
+    let rowsHtml = '';
+    listToExport.forEach(c => {
+      const cfData = c.custom_fields_data || {};
+      const cfCells = customFieldsList.map(cf => {
+        const key = cf.field_key || cf.name;
+        const val = cfData[key] !== undefined && cfData[key] !== null ? cfData[key] : '';
+        return `<td>${val}</td>`;
+      }).join('');
+
+      rowsHtml += `
+        <tr>
+          <td>${c.company_name || c.name || ''}</td>
+          <td>${c.tax_code || ''}</td>
+          <td>${c.industry || ''}</td>
+          <td>${c.company_size || ''}</td>
+          <td>${c.website || ''}</td>
+          <td>${c.status || ''}</td>
+          <td>${c.assigned_user_name || ''}</td>
+          <td>${c.parent_company_name || ''}</td>
+          <td>${Number(c.total_contract_value || 0)}</td>
+          ${cfCells}
+        </tr>
+      `;
+    });
+
+    const tableHtml = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+      <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+        <style>
+          table { border-collapse: collapse; font-family: Arial, sans-serif; font-size: 13px; }
+          th { background-color: #1677ff; color: #ffffff; font-weight: bold; border: 1px solid #0958d9; padding: 10px 14px; text-align: center; }
+          td { border: 1px solid #d9d9d9; padding: 8px 12px; }
+        </style>
+      </head>
+      <body>
+        <table>
+          <thead>
+            <tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>
+          </thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob([tableHtml], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `Danh_Sach_Khach_Hang_CRM_${new Date().toISOString().slice(0, 10)}.xls`;
+    link.click();
+    message.success(`Đã xuất thành công ${listToExport.length} khách hàng kèm các trường tùy chỉnh ra Excel!`);
   };
 
   const handleDownloadTemplate = () => {
@@ -518,6 +611,13 @@ export default function CustomerManagement() {
         return <ClockCircleOutlined style={{ color: '#8c8c8c', fontSize: 16 }} />;
     }
   };
+
+  // S2-08 AC 3: Lọc danh sách khách hàng theo trường tùy biến
+  const displayedCustomers = customers.filter(c => {
+    if (!customFieldFilterKey || !customFieldFilterValue.trim()) return true;
+    const cfVal = String(c.custom_fields_data?.[customFieldFilterKey] || '').toLowerCase();
+    return cfVal.includes(customFieldFilterValue.trim().toLowerCase());
+  });
 
   const columns = [
     {
@@ -692,12 +792,15 @@ export default function CustomerManagement() {
             {isTeamLeadOrAdmin && (
               <Button 
                 icon={<BranchesOutlined />} 
-                onClick={() => { setMasterCust(null); setDupCust(null); setMergeModalOpen(true); }}
+                onClick={() => { setMasterCust(null); setDupCust(null); setMergeModalOpen(true); fetchDuplicatePairs(); }}
                 style={{ borderColor: '#722ed1', color: '#722ed1', fontWeight: 500 }}
               >
                 Gộp Khách Hàng
               </Button>
             )}
+            <Button icon={<FileExcelOutlined style={{ color: '#52c41a' }} />} onClick={handleExportExcel}>
+              Xuất Excel
+            </Button>
             <Button icon={<UploadOutlined />} onClick={() => setImportExcelOpen(true)}>
               Nhập Excel
             </Button>
@@ -733,7 +836,7 @@ export default function CustomerManagement() {
           activeKey={activeTab} 
           onChange={setActiveTab}
           items={[
-            { key: 'customers', label: `Danh Sách Khách Hàng (${customers.length})` },
+            { key: 'customers', label: `Danh Sách Khách Hàng (${displayedCustomers.length})` },
             { key: 'care', label: <span><ClockCircleOutlined /> Khách Cần Chăm Sóc Định Kỳ ({careList.length})</span> }
           ]}
         />
@@ -792,6 +895,33 @@ export default function CustomerManagement() {
                 />
               </div>
 
+              {/* S2-08 AC 3: BỘ LỌC THEO TRƯỜNG TÙY BIẾN */}
+              {customFieldsList.length > 0 && (
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                  <Select 
+                    placeholder="Lọc trường tùy biến..." 
+                    allowClear 
+                    style={{ width: 170 }}
+                    value={customFieldFilterKey}
+                    onChange={(v) => { setCustomFieldFilterKey(v); }}
+                  >
+                    {customFieldsList.map(cf => (
+                      <Option key={cf.field_key || cf.name} value={cf.field_key || cf.name}>
+                        {cf.field_label || cf.label || cf.name}
+                      </Option>
+                    ))}
+                  </Select>
+                  {customFieldFilterKey && (
+                    <Input 
+                      placeholder="Giá trị cần tìm..." 
+                      style={{ width: 140 }} 
+                      value={customFieldFilterValue} 
+                      onChange={(e) => setCustomFieldFilterValue(e.target.value)} 
+                    />
+                  )}
+                </div>
+              )}
+
               {/* CỤM NÚT THAO TÁC LUÔN NẰM TRỌN BÊN TRONG CARD */}
               <div style={{ marginLeft: 'auto' }}>
                 <Space size="small">
@@ -832,7 +962,7 @@ export default function CustomerManagement() {
         {activeTab === 'customers' && (
           <Table 
             columns={columns} 
-            dataSource={customers} 
+            dataSource={displayedCustomers} 
             rowKey="id" 
             loading={loading}
             scroll={{ x: 1250 }}
@@ -1071,6 +1201,67 @@ export default function CustomerManagement() {
                       <p><b>Trực thuộc tập đoàn mẹ:</b> <Tag color="purple">{customer360Data.customer.parent_company_name}</Tag></p>
                     )}
                   </div>
+
+                  {/* S3-05 AC 2: BẢNG PHÂN RÃ DOANH SỐ CẢ TẬP ĐOÀN (MẸ + TẤT CẢ CÔNG TY CON) */}
+                  {customer360Data.groupBreakdown && customer360Data.groupBreakdown.length > 0 && (
+                    <div style={{ marginTop: 24 }}>
+                      <Divider orientation="left" style={{ margin: '16px 0', fontSize: 14 }}>
+                        <Space><BranchesOutlined style={{ color: '#52c41a' }} /> <b>Cơ Cấu Tập Đoàn & Phân Rã Doanh Số Hợp Đồng (S3-05)</b></Space>
+                      </Divider>
+                      <Table
+                        size="small"
+                        pagination={false}
+                        bordered
+                        dataSource={customer360Data.groupBreakdown}
+                        rowKey="id"
+                        columns={[
+                          {
+                            title: 'Pháp nhân',
+                            dataIndex: 'company_name',
+                            render: (text, r) => (
+                              <Space>
+                                <Tag color={r.is_parent ? 'purple' : 'blue'}>
+                                  {r.is_parent ? 'Công ty mẹ' : 'Công ty con'}
+                                </Tag>
+                                <span style={{ fontWeight: r.is_parent ? 700 : 500 }}>{text}</span>
+                              </Space>
+                            )
+                          },
+                          { title: 'MST', dataIndex: 'tax_code', width: 130, render: t => t || '---' },
+                          {
+                            title: 'Giá trị hợp đồng',
+                            dataIndex: 'contract_value',
+                            align: 'right',
+                            render: v => <span style={{ fontWeight: 600, color: '#1677ff' }}>{Number(v || 0).toLocaleString()} VNĐ</span>
+                          },
+                          {
+                            title: 'Tỷ trọng',
+                            align: 'right',
+                            width: 100,
+                            render: (_, r) => {
+                              const pct = customer360Data.groupTotalValue > 0 
+                                ? Math.round((r.contract_value / customer360Data.groupTotalValue) * 100) 
+                                : 0;
+                              return <Tag color="green">{pct}%</Tag>;
+                            }
+                          }
+                        ]}
+                        summary={() => (
+                          <Table.Summary.Row style={{ background: '#f6ffed', fontWeight: 'bold' }}>
+                            <Table.Summary.Cell index={0} colSpan={2}>
+                              TỔNG DOANH SỐ CẢ TẬP ĐOÀN (MẸ + CON)
+                            </Table.Summary.Cell>
+                            <Table.Summary.Cell index={2} align="right" style={{ color: '#52c41a', fontSize: 14 }}>
+                              {Number(customer360Data.groupTotalValue || 0).toLocaleString()} VNĐ
+                            </Table.Summary.Cell>
+                            <Table.Summary.Cell index={3} align="right">
+                              <Tag color="success">100%</Tag>
+                            </Table.Summary.Cell>
+                          </Table.Summary.Row>
+                        )}
+                      />
+                    </div>
+                  )}
                 </div>
               )
             },
@@ -1686,9 +1877,78 @@ export default function CustomerManagement() {
           </Button>
         ]}
       >
-        <p style={{ color: '#6b7280' }}>
-          Dữ liệu người liên hệ, yêu cầu hỗ trợ và cơ hội bán hàng từ bản ghi trùng sẽ tự động chuyển sang bản ghi chính trước khi xóa.
-        </p>
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <span style={{ fontWeight: 600, color: '#1e293b' }}>
+              🔍 Danh Sách Phát Hiện Trùng Tự Động (AC S3-04 - MST, Tên tương đồng, Website):
+            </span>
+            <Button size="small" icon={<ReloadOutlined />} onClick={fetchDuplicatePairs} loading={loadingDuplicates}>
+              Quét lại
+            </Button>
+          </div>
+
+          {duplicatePairs.length > 0 ? (
+            <Table
+              size="small"
+              bordered
+              dataSource={duplicatePairs}
+              rowKey={(_, idx) => `dup_${idx}`}
+              pagination={{ pageSize: 3 }}
+              columns={[
+                {
+                  title: 'Bản ghi 1',
+                  render: (_, r) => (
+                    <div>
+                      <b>{r.customer_a.company_name}</b>
+                      <div style={{ fontSize: 11, color: '#64748b' }}>MST: {r.customer_a.tax_code || '---'} | Web: {r.customer_a.website || '---'}</div>
+                      <div style={{ fontSize: 11, color: '#1677ff' }}>Phụ trách: {r.customer_a.assigned_user_name}</div>
+                    </div>
+                  )
+                },
+                {
+                  title: 'Bản ghi 2',
+                  render: (_, r) => (
+                    <div>
+                      <b>{r.customer_b.company_name}</b>
+                      <div style={{ fontSize: 11, color: '#64748b' }}>MST: {r.customer_b.tax_code || '---'} | Web: {r.customer_b.website || '---'}</div>
+                      <div style={{ fontSize: 11, color: '#1677ff' }}>Phụ trách: {r.customer_b.assigned_user_name}</div>
+                    </div>
+                  )
+                },
+                {
+                  title: 'Dấu hiệu trùng',
+                  render: (_, r) => (
+                    <Space direction="vertical" size={2}>
+                      {r.reasons.map((rs, i) => <Tag color="error" key={i}>{rs}</Tag>)}
+                    </Space>
+                  )
+                },
+                {
+                  title: 'Thao tác',
+                  width: 120,
+                  align: 'center',
+                  render: (_, r) => (
+                    <Button 
+                      type="primary" 
+                      size="small" 
+                      onClick={() => { setMasterCust(r.customer_a); setDupCust(r.customer_b); }}
+                    >
+                      Chọn để gộp
+                    </Button>
+                  )
+                }
+              ]}
+            />
+          ) : (
+            <Alert 
+              type="info" 
+              showIcon 
+              message="Hệ thống đã kiểm tra: Chưa phát hiện thêm cặp khách hàng nào bị trùng lặp theo Mã số thuế, Website hoặc Tên." 
+            />
+          )}
+        </div>
+
+        <Divider style={{ margin: '12px 0 16px' }} />
 
         <Row gutter={16} style={{ marginBottom: 16 }}>
           <Col span={12}>

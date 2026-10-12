@@ -228,7 +228,12 @@ const handleLogin = async (values) => {
     // Khi có lỗi (400, 401, 403 tài khoản bị khóa), TUYỆT ĐỐI KHÔNG LƯU RÁC VÀO LOCALSTORAGE
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    message.error(err.response?.data?.message || 'Đăng nhập thất bại!');
+    const resp = err.response?.data;
+    if (resp?.isTemporaryLock && resp?.remainingSeconds) {
+      setLockCountdown(resp.remainingSeconds);
+      localStorage.setItem('crm_locked_until', (Date.now() + resp.remainingSeconds * 1000).toString());
+    }
+    message.error(resp?.message || 'Đăng nhập thất bại!');
   } finally {
     setLoading(false);
   }
@@ -323,8 +328,8 @@ const handleSendResetLink = async (values) => {
             type="error"
             showIcon
             style={{ marginBottom: 20 }}
-            message="Tạm khóa đăng nhập"
-            description={`Bạn đã nhập sai quá 5 lần. Vui lòng chờ ${lockCountdown} giây để mở lại.`}
+            message="Tạm khóa đăng nhập 15 phút (AC S1-01)"
+            description={`Tài khoản đã nhập sai 5 lần liên tiếp. Vui lòng chờ ${Math.floor(lockCountdown / 60)} phút ${lockCountdown % 60} giây để thử lại.`}
           />
         )}
 

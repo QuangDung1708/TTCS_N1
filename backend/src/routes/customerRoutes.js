@@ -171,13 +171,37 @@ router.get('/', verifyToken, async (req, res) => {
     `;
     const params = [];
 
-    const role = (currentUser.role_code || currentUser.role || '').toLowerCase();
-    if (role === 'sale' || role === 'sales_rep') {
+    const role = (currentUser.role_code || currentUser.role || currentUser.role_name || '').toLowerCase().trim();
+    const dataScope = (currentUser.data_scope || '').toUpperCase().trim();
+
+    // S3-01 AC 4: Nhân viên chỉ thấy khách hàng mình sở hữu; trưởng nhóm thấy toàn nhóm
+    const isSalesExecutive = dataScope === 'OWN' || 
+                             role === 'sale' || 
+                             role === 'sales_rep' || 
+                             role === 'sales rep' || 
+                             role === 'sales executive' || 
+                             role === 'sales' || 
+                             role === 'nhân viên kinh doanh';
+
+    const isTeamLead = !isSalesExecutive && (
+                       dataScope === 'GROUP' || 
+                       role === 'team_lead' || 
+                       role === 'team lead' || 
+                       role === 'team leader' || 
+                       role === 'trưởng nhóm' || 
+                       role === 'trưởng nhóm kinh doanh');
+
+    let currentScope = 'ALL';
+    if (isSalesExecutive) {
+      currentScope = 'OWN';
       query += ` AND c.created_by = ?`;
       params.push(currentUser.id);
-    } else if (role === 'team_lead') {
-      query += ` AND (c.created_by = ? OR c.created_by IN (SELECT id FROM users WHERE group_id = ?))`;
-      params.push(currentUser.id, currentUser.group_id || 0);
+    } else if (isTeamLead) {
+      currentScope = 'GROUP';
+      query += ` AND (c.group_id = ? OR c.created_by = ? OR c.created_by IN (SELECT id FROM users WHERE group_id = ? AND group_id IS NOT NULL))`;
+      params.push(currentUser.group_id || 0, currentUser.id, currentUser.group_id || 0);
+    } else {
+      currentScope = 'ALL';
     }
 
     if (owner_id) {
@@ -224,7 +248,12 @@ router.get('/', verifyToken, async (req, res) => {
       };
     });
 
-    return res.json({ success: true, data: formatted });
+    return res.json({ 
+      success: true, 
+      scope: currentScope,
+      total: formatted.length,
+      data: formatted 
+    });
   } catch (error) {
     return res.status(500).json({ message: 'Lỗi nạp danh sách khách hàng: ' + error.message });
   }
@@ -375,6 +404,99 @@ router.post('/tickets', verifyToken, async (req, res) => {
 });
 
 // ==========================================
+// S3-04 AC 1: PHÁT HIỆN KHÁCH HÀNG TRÙNG (MST, TÊN GẦN GIỐNG, WEBSITE)
+// ==========================================
+router.get('/detect-duplicates', verifyToken, async (req, res) => {
+  try {
+    const [customers] = await db.query(`
+      SELECT c.id, COALESCE(c.company_name, c.name) AS company_name, c.tax_code, c.website, c.industry, c.total_contract_value,
+             COALESCE(u.full_name, u.email, 'Chưa phân công') AS assigned_user_name, c.created_by
+      FROM customers c
+      LEFT JOIN users u ON c.created_by = u.id
+      ORDER BY c.id ASC
+    `);
+
+    const normalizeName = (name) => {
+      if (!name) return '';
+      return name
+        .toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/công ty|cong ty|cổ phần|co phan|tnhh|trách nhiệm hữu hạn|trach nhiem huu han|tập đoàn|tap doan|chi nhánh|chi nhanh|doanh nghiệp|doanh nghiep/gi, '')
+        .replace(/[^a-z0-9]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    };
+
+    const cleanDomain = (url) => {
+      if (!url) return '';
+      return url
+        .toLowerCase()
+        .replace(/https?:\/\//i, '')
+        .replace(/^www\./i, '')
+        .split('/')[0]
+        .trim();
+    };
+
+    const getSimilarity = (s1, s2) => {
+      const n1 = normalizeName(s1);
+      const n2 = normalizeName(s2);
+      if (!n1 || !n2) return 0;
+      if (n1 === n2) return 1.0;
+      if (n1.includes(n2) || n2.includes(n1)) return 0.85;
+
+      const words1 = new Set(n1.split(' ').filter(w => w.length > 1));
+      const words2 = new Set(n2.split(' ').filter(w => w.length > 1));
+      if (words1.size === 0 || words2.size === 0) return 0;
+
+      const intersection = new Set([...words1].filter(x => words2.has(x)));
+      const union = new Set([...words1, ...words2]);
+      return intersection.size / union.size;
+    };
+
+    const duplicatePairs = [];
+    for (let i = 0; i < customers.length; i++) {
+      for (let j = i + 1; j < customers.length; j++) {
+        const c1 = customers[i];
+        const c2 = customers[j];
+        const reasons = [];
+
+        // 1. Trùng mã số thuế
+        if (c1.tax_code && c2.tax_code && c1.tax_code.trim() && c1.tax_code.trim() === c2.tax_code.trim()) {
+          reasons.push(`Trùng mã số thuế (${c1.tax_code.trim()})`);
+        }
+
+        // 2. Trùng website
+        const dom1 = cleanDomain(c1.website);
+        const dom2 = cleanDomain(c2.website);
+        if (dom1 && dom2 && dom1 === dom2) {
+          reasons.push(`Trùng website (${dom1})`);
+        }
+
+        // 3. Tên công ty gần giống
+        const sim = getSimilarity(c1.company_name, c2.company_name);
+        if (sim >= 0.7) {
+          reasons.push(`Tên công ty gần giống (${Math.round(sim * 100)}% khớp)`);
+        }
+
+        if (reasons.length > 0) {
+          duplicatePairs.push({
+            customer_a: c1,
+            customer_b: c2,
+            reasons: reasons,
+            similarity_score: Math.round(sim * 100)
+          });
+        }
+      }
+    }
+
+    return res.json({ success: true, count: duplicatePairs.length, data: duplicatePairs });
+  } catch (error) {
+    console.error('Lỗi detect-duplicates:', error);
+    return res.status(500).json({ message: 'Lỗi phát hiện trùng: ' + error.message });
+  }
+});
+
+// ==========================================
 // 7. HỒ SƠ 360 ĐỘ KHÁCH HÀNG
 // ==========================================
 router.get('/:id/360', verifyToken, async (req, res) => {
@@ -462,20 +584,30 @@ router.get('/:id/360', verifyToken, async (req, res) => {
     const signedValue = wonTotal > 0 ? wonTotal : Number(customer.total_contract_value || 0);
     const openDealsValue = customerDeals.filter(d => !isWonDeal(d) && !isLostDeal(d)).reduce((sum, d) => sum + Number(d.amount || 0), 0);
 
+    // S3-05 AC 2: Tính chính xác 100% tổng doanh số cả nhóm công ty mẹ + tất cả công ty con
     const rootCompanyId = customer.parent_id ? customer.parent_id : customer.id;
     const [groupCompanies] = await db.query(
-      'SELECT id, total_contract_value FROM customers WHERE id = ? OR parent_id = ?',
+      `SELECT c.id, COALESCE(c.company_name, c.name) AS company_name, c.tax_code, c.total_contract_value, c.parent_id
+       FROM customers c 
+       WHERE c.id = ? OR c.parent_id = ?`,
       [rootCompanyId, rootCompanyId]
     );
-    const groupCompanyIds = groupCompanies.map(gc => Number(gc.id));
 
-    const groupWonTotal = allDeals
-      .filter(d => groupCompanyIds.includes(Number(d.customer_id)) && isWonDeal(d))
-      .reduce((sum, d) => sum + Number(d.amount || 0), 0);
+    // Tính doanh số hợp đồng thực tế cho từng công ty trong tập đoàn
+    const groupBreakdown = groupCompanies.map(gc => {
+      const gcDeals = allDeals.filter(d => Number(d.customer_id) === Number(gc.id));
+      const gcWonTotal = gcDeals.filter(isWonDeal).reduce((sum, d) => sum + Number(d.amount || 0), 0);
+      const gcContractValue = gcWonTotal > 0 ? gcWonTotal : Number(gc.total_contract_value || 0);
+      return {
+        id: gc.id,
+        company_name: gc.company_name,
+        tax_code: gc.tax_code,
+        is_parent: gc.id === rootCompanyId,
+        contract_value: gcContractValue
+      };
+    });
 
-    const groupTotalValue = groupWonTotal > 0 
-      ? groupWonTotal 
-      : groupCompanies.reduce((sum, gc) => sum + Number(gc.total_contract_value || 0), 0);
+    const groupTotalValue = groupBreakdown.reduce((sum, item) => sum + item.contract_value, 0);
 
     return res.json({
       success: true,
@@ -487,11 +619,62 @@ router.get('/:id/360', verifyToken, async (req, res) => {
         signedValue,
         openDealsValue,
         groupTotalValue,
+        groupBreakdown,
         activities
       }
     });
   } catch (error) {
     return res.status(500).json({ message: 'Lỗi nạp hồ sơ 360: ' + error.message });
+  }
+});
+
+// ==========================================
+// 7.1 LẤY CHI TIẾT 1 KHÁCH HÀNG (RBAC KIỂM TRA PHẠM VI)
+// ==========================================
+router.get('/:id', verifyToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const currentUser = req.user || {};
+    const [rows] = await db.query('SELECT * FROM customers WHERE id = ?', [id]);
+    if (!rows.length) {
+      return res.status(404).json({ message: 'Không tìm thấy khách hàng' });
+    }
+    const customer = rows[0];
+
+    const role = (currentUser.role_code || currentUser.role || currentUser.role_name || '').toLowerCase().trim();
+    const dataScope = (currentUser.data_scope || '').toUpperCase().trim();
+
+    const isSalesExecutive = dataScope === 'OWN' || 
+                             role === 'sale' || 
+                             role === 'sales_rep' || 
+                             role === 'sales rep' || 
+                             role === 'sales executive' || 
+                             role === 'sales' || 
+                             role === 'nhân viên kinh doanh';
+
+    const isTeamLead = !isSalesExecutive && (
+                       dataScope === 'GROUP' || 
+                       role === 'team_lead' || 
+                       role === 'team lead' || 
+                       role === 'team leader' || 
+                       role === 'trưởng nhóm' || 
+                       role === 'trưởng nhóm kinh doanh');
+
+    if (isSalesExecutive && Number(customer.created_by) !== Number(currentUser.id)) {
+      return res.status(403).json({ 
+        message: 'Từ chối truy cập: Đây là dữ liệu riêng của nhân viên khác, bạn không có quyền xem!' 
+      });
+    }
+
+    if (isTeamLead && customer.group_id && Number(customer.group_id) !== Number(currentUser.group_id)) {
+      return res.status(403).json({ 
+        message: 'Từ chối truy cập: Đây là dữ liệu riêng của nhân viên khác, bạn không có quyền xem!' 
+      });
+    }
+
+    return res.json({ success: true, data: customer });
+  } catch (error) {
+    return res.status(500).json({ message: 'Lỗi nạp chi tiết khách hàng: ' + error.message });
   }
 });
 
@@ -799,6 +982,15 @@ router.post('/bulk-import', verifyToken, async (req, res) => {
 });
 
 router.post('/merge', verifyToken, async (req, res) => {
+  // S3-04 AC 4: Chỉ Trưởng nhóm trở lên được thực hiện gộp
+  const role = (req.user?.role_code || req.user?.role || req.user?.role_name || '').toLowerCase().trim();
+  const dataScope = (req.user?.data_scope || '').toUpperCase().trim();
+  const isSalesExecutive = (dataScope === 'OWN' || role === 'sale' || role === 'sales_rep' || role === 'sales rep' || role === 'sales executive') && 
+                           !['admin', 'director', 'team_lead', 'team lead', 'team leader'].includes(role);
+  if (isSalesExecutive) {
+    return res.status(403).json({ message: 'Chỉ Trưởng nhóm trở lên mới có quyền thực hiện gộp khách hàng trùng (AC S3-04)!' });
+  }
+
   const { master_id, duplicate_id } = req.body;
   const conn = await db.getConnection();
   try {

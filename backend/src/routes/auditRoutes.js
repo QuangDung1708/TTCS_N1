@@ -13,7 +13,13 @@ try {
 // 1. API LẤY 10 THÔNG BÁO CHO DROPDOWN CHUÔNG
 router.get('/notifications', safeAuth, async (req, res) => {
     try {
-        const [rows] = await db.execute('SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT 10');
+        const [rows] = await db.execute(`
+            SELECT a.*, COALESCE(a.user_name, u.full_name, u.email, 'Quản trị viên') AS user_name
+            FROM audit_logs a
+            LEFT JOIN users u ON a.user_id = u.id
+            ORDER BY a.created_at DESC, a.id DESC
+            LIMIT 10
+        `);
         return res.json({ data: rows });
     } catch (error) {
         return res.json({ data: [] });

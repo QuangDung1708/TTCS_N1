@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Popover, Badge, Button, Tag, Typography, List, Divider } from 'antd';
+import { Popover, Badge, Button, Tag, Typography, List, Divider, notification } from 'antd';
 import { 
     BellOutlined, ReloadOutlined, KeyOutlined, 
     PercentageOutlined, TrophyOutlined, SwapOutlined, 
@@ -32,6 +32,9 @@ export default function NotificationBell() {
     const [notifications, setNotifications] = useState([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [open, setOpen] = useState(false);
+    const [lastNotifiedId, setLastNotifiedId] = useState(() => {
+        return Number(sessionStorage.getItem('crm_last_notified_id') || 0);
+    });
     const navigate = useNavigate();
 
     // 1. NẠP THÔNG BÁO VÀ CHỈ ĐẾM SỐ THÔNG BÁO CHƯA ĐỌC
@@ -43,6 +46,23 @@ export default function NotificationBell() {
             });
             const list = res.data.data || [];
             setNotifications(list);
+
+            // Bắn Toast Notification cho sự kiện nhạy cảm mới nhất (S2-04)
+            if (list.length > 0) {
+                const latest = list[0];
+                const storedId = Number(sessionStorage.getItem('crm_last_notified_id') || 0);
+                if (latest.id > storedId && storedId !== 0) {
+                    const meta = getActionMeta(latest.action_type);
+                    notification.info({
+                        message: `🔔 Thông báo hệ thống: ${meta.title}`,
+                        description: latest.description || 'Có thao tác thay đổi trên dữ liệu nhạy cảm vừa thực hiện.',
+                        placement: 'topRight',
+                        duration: 4.5
+                    });
+                }
+                sessionStorage.setItem('crm_last_notified_id', latest.id.toString());
+                setLastNotifiedId(latest.id);
+            }
 
             // Lấy mốc thời gian lần cuối người dùng mở chuông
             const lastSeenTime = Number(localStorage.getItem('crm_last_seen_noti_time') || 0);

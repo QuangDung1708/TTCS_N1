@@ -11,13 +11,8 @@ try {
 } catch (err) {
     console.warn('Lưu ý: Chưa nạp được mailService, vui lòng kiểm tra file mailService.js');
 }
-const user = users[0];
-console.log('🔍 [DEBUG LOGIN] Trạng thái tài khoản trong DB:', {
-  email: user.email,
-  status: user.status
-});
 
-// 1. Đăng nhập
+// 1. Đăng nhập (S1-01: AC 1, AC 2, AC 3 Khóa tạm 15 phút sau 5 lần sai)
 const login = async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -26,24 +21,43 @@ const login = async (req, res) => {
             return res.status(400).json({ message: 'Vui lòng nhập đầy đủ email và mật khẩu.' });
         }
 
-        // Đảm bảo có lấy cột status:
-        const [users] = await db.query('SELECT * FROM users WHERE email = ?', [email.trim()]);
+        // Lấy thông tin người dùng kèm vai trò và phạm vi dữ liệu (data_scope)
+        const [users] = await db.query(`
+            SELECT u.*, r.role_name, r.data_scope 
+            FROM users u
+            LEFT JOIN roles r ON u.role_id = r.id
+            WHERE u.email = ?
+        `, [email.trim()]);
+
         if (users.length === 0) {
+            // AC 2: Không tiết lộ email có tồn tại hay không
             return res.status(401).json({ message: 'Tài khoản hoặc mật khẩu không chính xác.' });
         }
 
         const user = users[0];
 
-        if (user.status === 'Đã khóa') {
-  return res.status(403).json({ 
-    message: 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ Quản trị hệ thống!' 
-  });
-}
-
-        if (user.status === 'locked') {
-            return res.status(403).json({ message: 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ Admin.' });
+        // Kiểm tra khóa vĩnh viễn
+        const statusStr = String(user.status || '').toLowerCase().trim();
+        const isPermanentlyLocked = statusStr === 'đã khóa' || statusStr === 'inactive' || statusStr === 'locked' || statusStr === '0';
+        if (isPermanentlyLocked) {
+            return res.status(403).json({ 
+                message: 'Tài khoản của bạn đã bị khóa! Vui lòng liên hệ Quản trị hệ thống.' 
+            });
         }
 
+        // AC 3: Kiểm tra khóa tạm thời 15 phút
+        if (user.lock_until && new Date(user.lock_until) > new Date()) {
+            const remainingMs = new Date(user.lock_until) - new Date();
+            const remainingMin = Math.ceil(remainingMs / (60 * 1000));
+            const remainingSec = Math.ceil(remainingMs / 1000);
+            return res.status(403).json({
+                message: `Tài khoản tạm thời bị khóa do nhập sai 5 lần liên tiếp. Vui lòng thử lại sau ${remainingMin} phút!`,
+                isTemporaryLock: true,
+                remainingSeconds: remainingSec
+            });
+        }
+
+        // Kiểm tra mật khẩu
         let isMatch = false;
         try {
             isMatch = await bcrypt.compare(password, user.password);
@@ -57,27 +71,47 @@ const login = async (req, res) => {
         }
 
         if (!isMatch) {
-  return res.status(401).json({ message: 'Tài khoản hoặc mật khẩu không chính xác.' });
-}
+            // Tăng số lần đăng nhập sai
+            const failedAttempts = (user.failed_login_attempts || 0) + 1;
 
-// ⛔ THÊM ĐOẠN NÀY ĐỂ CHẶN TÀI KHOẢN BỊ KHÓA (HOÀN THÀNH AC 1):
-const statusStr = String(user.status || '').toLowerCase().trim();
-const isLocked = statusStr === 'đã khóa' || statusStr === 'inactive' || statusStr === 'locked' || statusStr === '0';
+            if (failedAttempts >= 5) {
+                // AC 3: Khóa 15 phút sau 5 lần sai liên tiếp
+                const lockUntil = new Date(Date.now() + 15 * 60 * 1000);
+                await db.execute(
+                    'UPDATE users SET failed_login_attempts = ?, lock_until = ? WHERE id = ?',
+                    [failedAttempts, lockUntil, user.id]
+                );
+                return res.status(403).json({
+                    message: 'Tài khoản đã bị tạm khóa 15 phút do nhập sai 5 lần liên tiếp!',
+                    isTemporaryLock: true,
+                    remainingSeconds: 15 * 60
+                });
+            } else {
+                await db.execute(
+                    'UPDATE users SET failed_login_attempts = ? WHERE id = ?',
+                    [failedAttempts, user.id]
+                );
+                const remaining = 5 - failedAttempts;
+                return res.status(401).json({
+                    message: `Tài khoản hoặc mật khẩu không chính xác. Bạn còn ${remaining} lần thử trước khi bị tạm khóa.`
+                });
+            }
+        }
 
-if (isLocked) {
-  console.log(` Đã chặn tài khoản bị khóa đăng nhập: ${user.email}`);
-  return res.status(403).json({ 
-    message: 'Tài khoản của bạn đã bị khóa! Vui lòng liên hệ Quản trị hệ thống.' 
-  });
-}
+        // Đăng nhập thành công -> Reset failed_login_attempts và lock_until
+        await db.execute('UPDATE users SET failed_login_attempts = 0, lock_until = NULL WHERE id = ?', [user.id]);
 
-const secretKey = process.env.JWT_SECRET || 'CRM_ENTERPRISE_SUPER_SECRET_KEY_2026';
-const token = jwt.sign(
+        const roleCode = user.role_name || user.role_code || 'Sales Executive';
+        const dataScope = user.data_scope || 'OWN';
 
+        const secretKey = process.env.JWT_SECRET || 'CRM_ENTERPRISE_SUPER_SECRET_KEY_2026';
+        const token = jwt.sign(
             {
                 id: user.id,
                 email: user.email,
-                role_code: user.role_code,
+                role_code: roleCode,
+                role_name: roleCode,
+                data_scope: dataScope,
                 group_id: user.group_id
             },
             secretKey,
@@ -91,8 +125,11 @@ const token = jwt.sign(
                 id: user.id,
                 full_name: user.full_name,
                 email: user.email,
-                role_code: user.role_code,
-                group_id: user.group_id
+                role_code: roleCode,
+                role_name: roleCode,
+                data_scope: dataScope,
+                group_id: user.group_id,
+                avatar: user.avatar_url || user.avatar_thumb_url || null
             }
         });
     } catch (error) {
@@ -101,12 +138,16 @@ const token = jwt.sign(
     }
 };
 
-// 2. Đăng xuất
+// 2. Đăng xuất (S1-02)
 const logout = async (req, res) => {
     return res.json({ message: 'Đăng xuất thành công' });
 };
 
-// 3. Quên mật khẩu - Gửi mã xác thực về Email thật
+// 3. Quên mật khẩu - S1-03:
+// AC 1: Liên kết đặt lại có hiệu lực 30 phút
+// AC 2: Liên kết chỉ dùng được 1 lần
+// AC 3: Email không tồn tại vẫn hiển thị cùng một thông báo
+// Ghi chú: Link API với bên thứ 3 để gửi pass/link về mail thật
 const forgotPassword = async (req, res) => {
     try {
         const { email } = req.body;
@@ -114,33 +155,41 @@ const forgotPassword = async (req, res) => {
             return res.status(400).json({ message: 'Vui lòng nhập địa chỉ email!' });
         }
 
-        const [users] = await db.execute('SELECT id, email, full_name FROM users WHERE email = ?', [email]);
-        if (users.length === 0) {
-            return res.status(404).json({ message: 'Địa chỉ email này không tồn tại trong hệ thống!' });
+        const [users] = await db.execute('SELECT id, email, full_name FROM users WHERE email = ?', [email.trim()]);
+        
+        // Nếu user tồn tại, tạo token và gửi email thật
+        if (users.length > 0) {
+            const token = crypto.randomBytes(24).toString('hex');
+            const expires = new Date(Date.now() + 30 * 60 * 1000); // 30 phút (AC 1)
+
+            await db.execute(
+                'UPDATE users SET reset_token = ?, reset_token_expires = ? WHERE id = ?',
+                [token, expires, users[0].id]
+            );
+
+            if (typeof sendResetPasswordEmail === 'function') {
+                try {
+                    await sendResetPasswordEmail(users[0].email, token);
+                    console.log(`[SMTP] Đã gửi email khôi phục mật khẩu thành công tới: ${users[0].email}`);
+                } catch (mailErr) {
+                    console.error('[SMTP ERROR] Lỗi khi gửi mail:', mailErr.message);
+                }
+            } else {
+                console.log(`[TEST TOKEN]: Mã xác thực cho ${users[0].email} là: ${token}`);
+            }
         }
 
-        const token = crypto.randomBytes(20).toString('hex');
-        const expires = new Date(Date.now() + 15 * 60 * 1000); // 15 phút
-
-        await db.execute(
-            'UPDATE users SET reset_token = ?, reset_token_expires = ? WHERE email = ?',
-            [token, expires, email]
-        );
-
-        if (typeof sendResetPasswordEmail === 'function') {
-            await sendResetPasswordEmail(email, token);
-        } else {
-            console.log(`[TEST TOKEN]: Mã xác thực cho ${email} là: ${token}`);
-        }
-
-        return res.json({ message: 'Đã gửi mã xác thực thành công! Vui lòng kiểm tra email của bạn.' });
+        // AC 3: Email không tồn tại vẫn hiển thị cùng một thông báo chung
+        return res.json({ 
+            message: 'Nếu địa chỉ email tồn tại trong hệ thống, hướng dẫn đặt lại mật khẩu (hiệu lực 30 phút) đã được gửi đến email của bạn.' 
+        });
     } catch (error) {
         console.error('Lỗi forgotPassword:', error);
         return res.status(500).json({ message: 'Lỗi gửi email xác thực. Vui lòng kiểm tra cấu hình SMTP!' });
     }
 };
 
-// 4. Đặt lại mật khẩu mới
+// 4. Đặt lại mật khẩu mới (S1-03: AC 2 - Liên kết chỉ dùng được 1 lần)
 const resetPassword = async (req, res) => {
     try {
         const { token, newPassword } = req.body;
@@ -158,6 +207,7 @@ const resetPassword = async (req, res) => {
         }
 
         const hashedPassword = await bcrypt.hash(newPassword, 10);
+        // AC 2: Hủy token ngay sau khi đổi mật khẩu để chỉ dùng được 1 lần
         await db.execute(
             'UPDATE users SET password = ?, reset_token = NULL, reset_token_expires = NULL WHERE id = ?',
             [hashedPassword, users[0].id]
