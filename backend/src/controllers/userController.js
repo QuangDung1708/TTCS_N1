@@ -7,6 +7,7 @@ const sharp = require('sharp');
 const path = require('path');
 const fs = require('fs');
 const { logAudit } = require('../utils/auditLogger');
+const nodemailer = require('nodemailer');
 
 // ==========================================
 // 1. LẤY DANH SÁCH NGƯỜI DÙNG (Phân trang mặc định 20, Tìm kiếm, Lọc)
@@ -38,56 +39,95 @@ const getUsers = async (req, res) => {
 // ==========================================
 // 2. TẠO TÀI KHOẢN MỚI (AC: Check trùng mail, tạo pass tạm, gửi mail)
 // ==========================================
-const createUser = async (req, res) => {
-    try {
-        const { email, full_name, role_id, group_id } = req.body;
+// Hàm thêm người dùng mới
+const createUser = async (req, res) => {    
+  const { full_name, email, phone, password, role_id, role, department_id, group_id } = req.body;
 
-        if (!email || !full_name || !role_id) {
-            return res.status(400).json({ message: 'Vui lòng cung cấp đầy đủ: Email, Họ và tên, và Vai trò!' });
-        }
+  if (!email || !full_name) {
+    return res.status(400).json({ message: 'Vui lòng điền đầy đủ họ tên và email!' });
+  }
 
-        // Tiêu chí AC: Email trùng bị từ chối kèm thông báo cụ thể
-        const [existing] = await db.execute('SELECT id FROM users WHERE email = ?', [email]);
-        if (existing.length > 0) {
-            return res.status(400).json({ 
-                message: 'Email này đã tồn tại trong hệ thống! Vui lòng chọn một email khác.' 
-            });
-        }
+  const cleanEmail = email.trim().toLowerCase();
+  // Mật khẩu khởi tạo: lấy mật khẩu quản trị viên nhập hoặc mặc định 123456@crm nếu để trống
+  const rawPassword = (password && password.trim() !== '') ? password.trim() : '123456@crm';
 
-        // Tiêu chí AC: Sinh mật khẩu tạm thời tự động (đảm bảo chữ + số, tối thiểu 8 ký tự)
-        const randomHex = crypto.randomBytes(3).toString('hex'); // 6 ký tự hex
-        const tempPassword = `Crm@${randomHex}`; // ví dụ: Crm@a1b2c3
+  // Chuẩn hóa role_id: mặc định là 3 (Nhân viên kinh doanh)
+  const finalRoleId = role_id || (role === 'Nhân viên kinh doanh' ? 3 : (Number(role) || 3));
 
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(tempPassword, salt);
-
-        // Chèn vào CSDL với trạng thái mặc định ACTIVE
-        const insertQuery = `
-            INSERT INTO users (email, password, full_name, role_id, group_id, status)
-            VALUES (?, ?, ?, ?, ?, 'ACTIVE')
-        `;
-        const [result] = await db.execute(insertQuery, [
-            email,
-            hashedPassword,
-            full_name,
-            role_id,
-            group_id || null
-        ]);
-
-        // Tiêu chí AC: Gửi email kích hoạt kèm mật khẩu tạm
-        await sendWelcomeEmail(email, full_name, tempPassword);
-
-        return res.status(201).json({
-            message: 'Tạo tài khoản người dùng thành công! Mật khẩu tạm đã được gửi tới email nhân sự.',
-            userId: result.insertId,
-            tempPassword // Trả về để tiện test hoặc hiển thị nhanh cho Admin
-        });
-    } catch (error) {
-        console.error('Lỗi khi tạo người dùng:', error);
-        return res.status(500).json({ message: 'Lỗi server khi tạo người dùng mới!' });
+  try {
+    // 1. Kiểm tra email đã tồn tại trong hệ thống chưa
+    const [existing] = await db.query('SELECT id FROM users WHERE email = ?', [cleanEmail]);
+    if (existing.length > 0) {
+      return res.status(400).json({ message: 'Email này đã tồn tại trong hệ thống!' });
     }
-};
 
+    // 2. Hash mật khẩu
+    const hashedPassword = await bcrypt.hash(rawPassword, 10);
+
+    // 3. Thêm vào bảng users (dùng role_id chuẩn)
+    const [result] = await db.query(
+      `INSERT INTO users (full_name, email, phone, password, role_id, status) 
+       VALUES (?, ?, ?, ?, ?, 'Hoạt động')`,
+      [full_name.trim(), cleanEmail, phone || null, hashedPassword, finalRoleId]
+    );
+
+    console.log(`[USER CREATED] Đã tạo thành công user ID: ${result.insertId} (${cleanEmail})`);
+
+    // 4. Gửi email kích hoạt chứa tài khoản và mật khẩu khởi tạo
+    try {
+      const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+          user: (process.env.SMTP_USER || '').trim(),
+          pass: (process.env.SMTP_PASS || '').trim()
+        }
+      });
+
+      const loginUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/login`;
+
+      await transporter.sendMail({
+        from: `"Enterprise CRM" <${process.env.SMTP_USER}>`,
+        to: cleanEmail,
+        subject: '[Enterprise CRM] Thông tin tài khoản và mật khẩu khởi tạo',
+        html: `
+          <div style="font-family: Arial, sans-serif; padding: 24px; border: 1px solid #e8e8e8; border-radius: 8px; max-width: 520px; color: #333;">
+            <h2 style="color: #1677ff; margin-top: 0;">Chào mừng bạn đến với Enterprise CRM</h2>
+            <p>Xin chào <b>${full_name.trim()}</b>,</p>
+            <p>Tài khoản nhân viên của bạn đã được quản trị viên khởi tạo thành công trên hệ thống. Dưới đây là thông tin đăng nhập:</p>
+            
+            <div style="background-color: #f6f8fa; padding: 16px; border-radius: 6px; margin: 18px 0; border-left: 4px solid #1677ff;">
+              <p style="margin: 6px 0;">• <b>Họ và tên:</b> ${full_name.trim()}</p>
+              <p style="margin: 6px 0;">• <b>Email đăng nhập:</b> <code>${cleanEmail}</code></p>
+              <p style="margin: 6px 0;">• <b>Mật khẩu khởi tạo:</b> <span style="background: #e6f4ff; color: #1677ff; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 15px;">${rawPassword}</span></p>
+            </div>
+
+            <p>Vui lòng nhấp vào liên kết bên dưới để đăng nhập và thay đổi mật khẩu trong lần đầu sử dụng:</p>
+            <div style="text-align: center; margin: 26px 0;">
+              <a href="${loginUrl}" style="background-color: #1677ff; color: #ffffff; padding: 12px 26px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+                Đăng Nhập Ngay
+              </a>
+            </div>
+            <p style="color: #888; font-size: 12px; margin-bottom: 0;">Email này được gửi tự động từ hệ thống quản trị Enterprise CRM.</p>
+          </div>
+        `
+      });
+
+      console.log(`✅ [MAIL SUCCESS] Đã gửi thông tin tài khoản tới: ${cleanEmail}`);
+    } catch (mailErr) {
+      console.error('⚠️ [MAIL ERROR] Không thể gửi email:', mailErr.message);
+    }
+
+    return res.status(201).json({
+      success: true,
+      message: 'Tạo tài khoản người dùng mới thành công! Thông tin đăng nhập đã được gửi về email.',
+      id: result.insertId
+    });
+
+  } catch (err) {
+    console.error('Lỗi khi tạo người dùng:', err);
+    return res.status(500).json({ message: 'Lỗi khi tạo người dùng: ' + err.message });
+  }
+};
 const updateUserRole = async (req, res) => {
     try {
         const db = require('../config/db');
@@ -492,11 +532,99 @@ const changePassword = async (req, res) => {
     }
 };
 
-module.exports = {
-    // ... giữ nguyên các hàm cũ
-    updateProfile,
-    changePassword
-};  
+// --- HÀM CẬP NHẬT TRẠNG THÁI & BÀN GIAO DỮ LIỆU (S1-10) ---
+const updateUserStatus = async (req, res) => {
+  const { id } = req.params;
+  const { status, handover_user_id } = req.body;
+  const adminId = req.user?.id || 1;
+
+  // Chuẩn hóa trạng thái lưu DB
+  const isLocking = (status === 'inactive' || status === 'Đã khóa');
+  const targetStatus = isLocking ? 'Đã khóa' : 'Hoạt động';
+
+  const connection = await db.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    // 1. Kiểm tra tài khoản cần cập nhật
+    const [targets] = await connection.query('SELECT full_name, email FROM users WHERE id = ?', [id]);
+    if (!targets.length) {
+      return res.status(404).json({ message: 'Không tìm thấy người dùng!' });
+    }
+    const targetUser = targets[0];
+
+    let handoverCount = 0;
+    let newOwnerInfo = null;
+
+    // 2. NẾU LÀ KHÓA TÀI KHOẢN (AC 2: BẮT BUỘC BÀN GIAO)
+    if (isLocking) {
+      if (!handover_user_id) {
+        return res.status(400).json({ message: 'Bắt buộc chọn người tiếp nhận bàn giao trước khi khóa tài khoản!' });
+      }
+
+      if (Number(id) === Number(handover_user_id)) {
+        return res.status(400).json({ message: 'Người tiếp nhận bàn giao không thể trùng với người bị khóa!' });
+      }
+
+      const [newOwners] = await connection.query(
+        'SELECT full_name, email FROM users WHERE id = ? AND status = "Hoạt động"', 
+        [handover_user_id]
+      );
+      if (!newOwners.length) {
+        return res.status(400).json({ message: 'Người nhận bàn giao không hợp lệ hoặc đang bị khóa!' });
+      }
+      newOwnerInfo = newOwners[0];
+
+      // Chuyển toàn bộ khách hàng sang cho người tiếp nhận (cột created_by)
+      const [updateCust] = await connection.query(
+        'UPDATE customers SET created_by = ? WHERE created_by = ?',
+        [handover_user_id, id]
+      );
+      handoverCount = updateCust.affectedRows || 0;
+
+      // Chuyển cơ hội (deals) nếu có
+      try {
+        await connection.query('UPDATE deals SET created_by = ? WHERE created_by = ?', [handover_user_id, id]);
+      } catch (dealErr) {
+        // Bỏ qua nếu bảng deals chưa có created_by
+      }
+    }
+
+    // 3. Cập nhật trạng thái người dùng trong DB
+    await connection.query('UPDATE users SET status = ? WHERE id = ?', [targetStatus, id]);
+
+    // 4. GHI NHẬT KÝ HỆ THỐNG (AC 3: AUDIT LOG)
+    try {
+      const actionName = isLocking ? 'LOCK_AND_HANDOVER_USER' : 'UNLOCK_USER';
+      const logDetail = isLocking
+        ? `Khóa tài khoản ${targetUser.full_name} (${targetUser.email}) và bàn giao ${handoverCount} khách hàng sang ${newOwnerInfo.full_name} (${newOwnerInfo.email})`
+        : `Mở khóa tài khoản cho ${targetUser.full_name} (${targetUser.email})`;
+
+      await connection.query(
+        `INSERT INTO audit_logs (user_id, action, details, ip_address) VALUES (?, ?, ?, ?)`,
+        [adminId, actionName, logDetail, req.ip || '127.0.0.1']
+      );
+    } catch (logErr) {
+      console.warn('⚠️ Ghi audit log bỏ qua nếu bảng audit_logs khác schema:', logErr.message);
+    }
+
+    await connection.commit();
+
+    return res.json({
+      success: true,
+      message: isLocking
+        ? `Đã khóa tài khoản và bàn giao thành công ${handoverCount} khách hàng sang ${newOwnerInfo.full_name}!`
+        : `Đã mở khóa tài khoản cho ${targetUser.full_name}!`
+    });
+
+  } catch (err) {
+    await connection.rollback();
+    console.error('Lỗi cập nhật trạng thái:', err);
+    return res.status(500).json({ message: 'Lỗi server: ' + err.message });
+  } finally {
+    connection.release();
+  }
+};
 
 module.exports = {
     getUsers,
@@ -511,5 +639,6 @@ module.exports = {
     executeImportUsers,
     uploadAvatar,
     updateProfile,
-    changePassword
+    changePassword,
+    updateUserStatus
 };
