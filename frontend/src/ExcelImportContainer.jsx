@@ -1,13 +1,17 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import ExcelUploadForm from './ExcelUploadForm'; // Import Component FE 1
+import ExcelErrorResult from './ExcelErrorResult'; // Import Component FE 2
 
+// FILE CHA: Quản lý State, gọi API Axios POST FormData và ghép nối FE 1 + FE 2
 const ExcelImportContainer = () => {
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
-  const [errorList, setErrorList] = useState([]);
+  const [errorList, setErrorList] = useState([]); // Mảng errors
 
+  // 1. Quản lý State chọn file
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
     setSuccessMsg('');
@@ -16,10 +20,11 @@ const ExcelImportContainer = () => {
     if (selectedFile) setFile(selectedFile);
   };
 
+  // 2. Viết hàm axios.post gửi FormData
   const handleUpload = async (e) => {
     e.preventDefault();
     if (!file) {
-      setErrorMsg('Vui lòng chọn file Excel!');
+      setErrorMsg('Vui lòng chọn file Excel trước!');
       return;
     }
 
@@ -33,30 +38,38 @@ const ExcelImportContainer = () => {
 
     try {
       const response = await axios.post('/api/v1/import-excel', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
       });
-      setSuccessMsg(response.data?.message || 'Import thành công!');
+
+      setSuccessMsg(response.data?.message || 'Import dữ liệu Excel thành công!');
       setFile(null);
     } catch (err) {
       if (err.response) {
         const data = err.response.data;
-        setErrorMsg(data.message || 'Import thất bại!');
+        setErrorMsg(data.message || 'Import thất bại, dữ liệu file có lỗi!');
+
+        // Nhận mảng errors trả về từ Backend
         if (data.errors && Array.isArray(data.errors)) {
           setErrorList(data.errors);
         }
       } else {
-        setErrorMsg('Lỗi kết nối máy chủ!');
+        setErrorMsg('Lỗi kết nối máy chủ! Vui lòng thử lại sau.');
       }
     } finally {
       setLoading(false);
     }
   };
 
+  // 3. Logic xuất mảng errors ra file .txt
   const handleDownloadErrorLog = () => {
     if (errorList.length === 0) return;
+
     const fileContent = "DANH SÁCH LỖI IMPORT EXCEL:\n\n" + errorList.join("\n");
     const blob = new Blob([fileContent], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
+
     const link = document.createElement('a');
     link.href = url;
     link.download = `danh_sach_loi_import_${Date.now()}.txt`;
@@ -67,34 +80,24 @@ const ExcelImportContainer = () => {
   };
 
   return (
-    <div style={{ maxWidth: '600px', margin: '40px auto', padding: '20px', border: '1px solid #ddd', borderRadius: '8px' }}>
-      <h2>Quản lý Import Excel (N1-225)</h2>
+    <div style={{ maxWidth: '650px', margin: '40px auto', padding: '24px', border: '1px solid #e0e0e0', borderRadius: '10px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', backgroundColor: '#fff' }}>
+      <h2 style={{ marginBottom: '20px', color: '#333' }}>[N1-225] Quản lý Import Excel</h2>
 
-      {successMsg && <div style={{ padding: '10px', backgroundColor: '#d4edda', color: '#155724', marginBottom: '15px' }}>{successMsg}</div>}
+      {/* Ghép nối FE 1: Form chọn & gửi file */}
+      <ExcelUploadForm
+        file={file}
+        loading={loading}
+        onFileChange={handleFileChange}
+        onSubmit={handleUpload}
+      />
 
-      {errorMsg && (
-        <div style={{ padding: '10px', backgroundColor: '#f8d7da', color: '#721c24', marginBottom: '15px' }}>
-          <strong>{errorMsg}</strong>
-          {errorList.length > 0 && (
-            <div style={{ marginTop: '10px' }}>
-              <ul style={{ maxHeight: '150px', overflowY: 'auto', textAlign: 'left' }}>
-                {errorList.map((err, idx) => <li key={idx}>{err}</li>)}
-              </ul>
-              <button type="button" onClick={handleDownloadErrorLog} style={{ backgroundColor: '#dc3545', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer' }}>
-                📥 Tải xuống danh sách lỗi (.txt)
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-
-      <form onSubmit={handleUpload}>
-        <input type="file" accept=".xlsx, .xls" onChange={handleFileChange} disabled={loading} style={{ marginBottom: '15px' }} />
-        <br />
-        <button type="submit" disabled={!file || loading} style={{ padding: '8px 16px', backgroundColor: !file || loading ? '#ccc' : '#28a745', color: '#fff', border: 'none', borderRadius: '4px' }}>
-          {loading ? 'Đang xử lý...' : 'Upload & Import'}
-        </button>
-      </form>
+      {/* Ghép nối FE 2: Hiển thị kết quả & Danh sách lỗi */}
+      <ExcelErrorResult
+        successMsg={successMsg}
+        errorMsg={errorMsg}
+        errorList={errorList}
+        onDownloadErrorLog={handleDownloadErrorLog}
+      />
     </div>
   );
 };
