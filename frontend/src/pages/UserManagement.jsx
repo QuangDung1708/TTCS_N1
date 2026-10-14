@@ -1,82 +1,60 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Input, Select, Button, Card, Typography, Space, Tag, message } from 'antd';
+import { Table, Input, Select, Button, Space, Tag, Card, Typography } from 'antd';
 import { SearchOutlined, UserAddOutlined, EditOutlined, LockOutlined } from '@ant-design/icons';
 
 const { Title } = Typography;
 const { Option } = Select;
 
 const UserManagement = () => {
-  const [loading, setLoading] = useState(false);
   const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [roleFilter, setRoleFilter] = useState('');
   const [page, setPage] = useState(1);
 
-  // Kỹ thuật Debounce 500ms cho ô tìm kiếm
   useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedSearch(search);
+    setLoading(true);
+    setTimeout(() => {
+      setUsers([
+        { id: 1, stt: 1, name: 'Nguyễn Văn A', email: 'a.nguyen@company.com', role: 'Admin', group: 'Ban Giám Đốc', status: 'Active' },
+        { id: 2, stt: 2, name: 'Trần Thị B', email: 'b.tran@company.com', role: 'Trưởng nhóm', group: 'Phòng Kinh Doanh 1', status: 'Active' },
+        { id: 3, stt: 3, name: 'Lê Văn C', email: 'c.le@company.com', role: 'Nhân viên', group: 'Phòng Kinh Doanh 1', status: 'Inactive' },
+        { id: 4, stt: 4, name: 'Phạm Thị D', email: 'd.pham@company.com', role: 'Nhân viên', group: 'Phòng Kỹ Thuật', status: 'Active' },
+      ]);
+      setLoading(false);
     }, 500);
-
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [search]);
-
-  // Gọi API lấy danh sách nhân viên
-  useEffect(() => {
-    const fetchUsers = async () => {
-      setLoading(true);
-      try {
-        setTimeout(() => {
-          const mockData = [
-            { key: '1', stt: 1, name: 'Nguyễn Văn A', email: 'a.nguyen@company.com', role: 'Admin', team: 'Ban Giám Đốc', status: 'Active' },
-            { key: '2', stt: 2, name: 'Trần Thị B', email: 'b.tran@company.com', role: 'Trưởng nhóm', team: 'Phòng Kinh Doanh 1', status: 'Active' },
-            { key: '3', stt: 3, name: 'Lê Văn C', email: 'c.le@company.com', role: 'Nhân viên', team: 'Phòng Kinh Doanh 1', status: 'Inactive' },
-            { key: '4', stt: 4, name: 'Phạm Thị D', email: 'd.pham@company.com', role: 'Nhân viên', team: 'Phòng Kỹ Thuật', status: 'Active' },
-          ];
-
-          const filtered = mockData.filter(item => {
-            const matchSearch = item.name.toLowerCase().includes(debouncedSearch.toLowerCase()) || 
-                                item.email.toLowerCase().includes(debouncedSearch.toLowerCase());
-            const matchRole = roleFilter ? item.role === roleFilter : true;
-            return matchSearch && matchRole;
-          });
-
-          setUsers(filtered);
-          setLoading(false);
-        }, 300);
-      } catch (error) {
-        message.error('Lỗi tải dữ liệu nhân viên');
-        setLoading(false);
-      }
-    };
-
-    fetchUsers();
-  }, [debouncedSearch, roleFilter, page]);
+  }, [search, page]);
 
   const columns = [
-    { title: 'STT', dataIndex: 'stt', key: 'stt', width: 70 },
-    { title: 'Họ và tên', dataIndex: 'name', key: 'name' },
-    { title: 'Email', dataIndex: 'email', key: 'email' },
+    { title: 'STT', dataIndex: 'stt', key: 'stt', align: 'center', width: 60 },
+    { title: 'Họ và tên', dataIndex: 'name', key: 'name', width: 180 },
+    { title: 'Email', dataIndex: 'email', key: 'email', width: 220 },
     { 
       title: 'Vai trò', 
       dataIndex: 'role', 
       key: 'role',
+      width: 150,
       render: (role) => (
-        <Tag color={role === 'Admin' ? 'red' : role === 'Trưởng nhóm' ? 'green' : 'blue'}>
+        <Tag style={{ color: '#0050b3', background: '#e6f7ff', borderColor: '#91d5ff', fontWeight: 500 }}>
           {role}
         </Tag>
       )
     },
-    { title: 'Nhóm', dataIndex: 'team', key: 'team' },
+    { title: 'Nhóm', dataIndex: 'group', key: 'group', width: 200 },
     { 
       title: 'Trạng thái', 
       dataIndex: 'status', 
       key: 'status',
+      width: 150,
+      align: 'center',
       render: (status) => (
-        <Tag color={status === 'Active' ? 'success' : 'default'}>
+        <Tag 
+          style={{ 
+            color: status === 'Active' ? '#003eb3' : '#595959', 
+            background: status === 'Active' ? '#bae7ff' : '#f5f5f5', 
+            borderColor: status === 'Active' ? '#1890ff' : '#d9d9d9',
+            fontWeight: 600 
+          }}
+        >
           {status === 'Active' ? 'Đang hoạt động' : 'Đã khóa'}
         </Tag>
       )
@@ -84,56 +62,63 @@ const UserManagement = () => {
     {
       title: 'Hành động',
       key: 'action',
+      align: 'center',
+      width: 150,
       render: (_, record) => (
-        <Space size="middle">
-          <Button type="link" icon={<EditOutlined />} onClick={() => message.info(`Sửa nhân viên: ${record.name}`)}>Sửa</Button>
-          <Button type="link" danger icon={<LockOutlined />} onClick={() => message.warning(`Khóa tài khoản: ${record.name}`)}>Khóa</Button>
+        <Space size="small">
+          <Button type="link" icon={<EditOutlined />} style={{ color: '#1890ff', fontWeight: 500 }}>Sửa</Button>
+          <Button type="link" danger icon={<LockOutlined />}>Khóa</Button>
         </Space>
       ),
     },
   ];
 
   return (
-    <Card bordered={false} style={{ margin: 24, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.03)', borderRadius: '8px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <Title level={3} style={{ margin: 0 }}>Quản lý danh sách nhân sự</Title>
-        <Button type="primary" icon={<UserAddOutlined />} onClick={() => message.success('Mở modal thêm nhân viên')}>
-          + Thêm nhân viên
-        </Button>
-      </div>
+    <div style={{ padding: '24px', background: '#e8f4ff', minHeight: '100vh' }}>
+      {/* Thêm viền xanh dương nhạt cho Card tổng */}
+      <Card style={{ borderRadius: '10px', boxShadow: '0 4px 12px rgba(24, 144, 255, 0.1)', border: '1px solid #bae7ff' }}>
+        
+        {/* Phần tiêu đề với điểm nhấn nền xanh dương nhẹ */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', background: '#f0f5ff', padding: '16px 20px', borderRadius: '8px' }}>
+          <Title level={3} style={{ margin: 0, color: '#003eb3' }}>Quản lý danh sách nhân sự</Title>
+          <Button type="primary" icon={<UserAddOutlined />} style={{ background: '#1890ff', borderColor: '#1890ff', height: '40px', fontWeight: 500 }}>
+            Thêm nhân viên
+          </Button>
+        </div>
 
-      <Space style={{ marginBottom: 20 }} wrap>
-        <Input
-          placeholder="Tìm kiếm theo tên hoặc email..."
-          prefix={<SearchOutlined />}
-          style={{ width: 280 }}
-          allowClear
-          onChange={(e) => setSearch(e.target.value)}
+        {/* Thanh tìm kiếm và bộ lọc bo góc với hiệu ứng xanh */}
+        <Space style={{ marginBottom: '20px', width: '100%', justifyContent: 'space-between' }} wrap>
+          <Input
+            placeholder="Tìm kiếm theo tên hoặc email..."
+            prefix={<SearchOutlined style={{ color: '#1890ff' }} />}
+            style={{ width: 320, borderRadius: '6px', borderColor: '#91d5ff' }}
+            onChange={(e) => setSearch(e.target.value)}
+            allowClear
+          />
+          <Select defaultValue="all" style={{ width: 180 }} className="custom-select">
+            <Option value="all">Tất cả vai trò</Option>
+            <Option value="admin">Admin</Option>
+            <Option value="staff">Staff</Option>
+          </Select>
+        </Space>
+
+        {/* Bảng dữ liệu với tiêu đề bảng phủ màu xanh dương nhạt chuyên nghiệp */}
+        <Table 
+          columns={columns} 
+          dataSource={users} 
+          rowKey="id"
+          loading={loading}
+          pagination={{ current: page, pageSize: 10, total: 4, onChange: (p) => setPage(p), showSizeChanger: false }}
+          bordered
+          size="middle"
+          components={{
+            header: {
+              cell: (props) => <th {...props} style={{ ...props.style, background: '#e6f7ff', fontWeight: 600, color: '#003eb3', borderBottom: '2px solid #91d5ff' }} />,
+            },
+          }}
         />
-        <Select
-          placeholder="Lọc theo vai trò"
-          style={{ width: 180 }}
-          allowClear
-          onChange={(value) => setRoleFilter(value || '')}
-        >
-          <Option value="Admin">Admin</Option>
-          <Option value="Trưởng nhóm">Trưởng nhóm</Option>
-          <Option value="Nhân viên">Nhân viên</Option>
-        </Select>
-      </Space>
-
-      <Table
-        dataSource={users}
-        columns={columns}
-        loading={loading}
-        pagination={{
-          current: page,
-          pageSize: 5,
-          total: users.length,
-          onChange: (p) => setPage(p),
-        }}
-      />
-    </Card>
+      </Card>
+    </div>
   );
 };
 
