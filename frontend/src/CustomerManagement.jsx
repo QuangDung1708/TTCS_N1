@@ -14,6 +14,7 @@ import {
   IdcardOutlined
 } from '@ant-design/icons';
 import axios from 'axios';
+import ExcelDraggerUpload from './components/ExcelDraggerUpload';
 
 const { Option } = Select;
 
@@ -1624,10 +1625,11 @@ export default function CustomerManagement() {
           )
         ]}
       >
-        <Upload.Dragger beforeUpload={handleFileUpload} accept=".xls, .xlsx, .csv" showUploadList={false}>
-          <p className="ant-upload-drag-icon"><FileExcelOutlined style={{ fontSize: 40, color: '#52c41a' }} /></p>
-          <p className="ant-upload-text">Nhấp hoặc kéo thả tệp Excel (.xls, .xlsx) hoặc CSV vào đây</p>
-        </Upload.Dragger>
+        {/* Task N1-230: Khu vực Kéo thả Upload Excel & Client Validation */}
+        <ExcelDraggerUpload
+          onFileSelect={handleFileUpload}
+          onFileRemove={() => setExcelPreviewData([])}
+        />
 
         <div style={{ marginTop: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Button type="link" icon={<DownloadOutlined />} onClick={handleDownloadTemplate}>
