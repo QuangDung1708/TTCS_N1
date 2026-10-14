@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import CustomerManagement from './pages/CustomerManagement';
 import ProductPriceManagement from './pages/ProductPriceManagement';
+import ExcelImportContainer from './ExcelImportContainer'; // Tích hợp Task N1-225
 
 function Home() {
   return (
@@ -13,6 +14,10 @@ function Home() {
         </Link>
         <Link to="/products" style={{ color: '#1677ff', fontWeight: 'bold', fontSize: '18px' }}>
           👉 [TASK 1 & 2] Quản trị Danh mục Sản phẩm & Bảng giá (/products)
+        </Link>
+        {/* Đường dẫn tới tính năng Import Excel mới */}
+        <Link to="/import-excel" style={{ color: '#52c41a', fontWeight: 'bold', fontSize: '18px' }}>
+          👉 [N1-225] Quản lý Import Excel & Tải file lỗi (/import-excel)
         </Link>
       </div>
     </div>
@@ -26,6 +31,8 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/customers" element={<CustomerManagement />} />
         <Route path="/products" element={<ProductPriceManagement />} />
+        {/* Route cho Task N1-225 */}
+        <Route path="/import-excel" element={<ExcelImportContainer />} />
       </Routes>
     </BrowserRouter>
   );
