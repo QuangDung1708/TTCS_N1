@@ -2,7 +2,9 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import CustomerManagement from './pages/CustomerManagement';
 import ProductPriceManagement from './pages/ProductPriceManagement';
-import ExcelImportContainer from './ExcelImportContainer'; // Tích hợp Task N1-225
+
+// 1. Thêm dòng import Component mới vừa tạo
+import ExcelImportContainer from './ExcelImportContainer';
 
 function Home() {
   return (
@@ -15,7 +17,7 @@ function Home() {
         <Link to="/products" style={{ color: '#1677ff', fontWeight: 'bold', fontSize: '18px' }}>
           👉 [TASK 1 & 2] Quản trị Danh mục Sản phẩm & Bảng giá (/products)
         </Link>
-        {/* Đường dẫn tới tính năng Import Excel mới */}
+        {/* Thêm link điều hướng ở Trang chủ để mở tính năng cho nhanh */}
         <Link to="/import-excel" style={{ color: '#52c41a', fontWeight: 'bold', fontSize: '18px' }}>
           👉 [N1-225] Quản lý Import Excel & Tải file lỗi (/import-excel)
         </Link>
@@ -31,7 +33,8 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/customers" element={<CustomerManagement />} />
         <Route path="/products" element={<ProductPriceManagement />} />
-        {/* Route cho Task N1-225 */}
+
+        {/* 2. Khai báo Route mới cho tính năng Import Excel */}
         <Route path="/import-excel" element={<ExcelImportContainer />} />
       </Routes>
     </BrowserRouter>
