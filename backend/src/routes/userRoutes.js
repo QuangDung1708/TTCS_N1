@@ -1,561 +1,386 @@
-const express = require('express');
-const router = express.Router();
-const db = require('../config/db');
-const bcrypt = require('bcryptjs');
-const authMiddleware = require('../middleware/authMiddleware');
-const userController = require('../controllers/userController');
-
-const verifyToken = typeof authMiddleware === 'function' 
-    ? authMiddleware 
-    : (authMiddleware.verifyToken || ((req, res, next) => next()));
-
-// =========================================================================
-// 1. API LẤY DANH SÁCH VAI TRÒ ĐỘNG TỪ DATABASE (Marketing, CSM, Kế toán, v.v.)
-// =========================================================================
-router.post('/', userController.createUser);
-router.put('/:id/status', verifyToken, userController.updateUserStatus);
-router.get('/roles/list', verifyToken, async (req, res) => {
-    try {
-        let roles = [];
-        // Thử lấy từ bảng roles nếu có
-        try {
-            const [rows] = await db.execute('SELECT * FROM roles ORDER BY id ASC');
-            if (rows.length > 0) {
-                roles = rows.map(r => ({
-                    code: r.code || r.role_code || r.name,
-                    name: r.name || r.code
-                }));
-            }
-        } catch (_) {}
-
-        // Quét thêm tất cả các vai trò thực tế đang có trong bảng users
-        try {
-            const [uRoles] = await db.execute('SELECT DISTINCT role_code FROM users WHERE role_code IS NOT NULL AND role_code != ""');
-            const userRoleCodes = uRoles.map(r => r.role_code);
-
-            const baseRoles = [
-                { code: 'Admin', name: 'Quản trị hệ thống (Admin)' },
-                { code: 'Director', name: 'Giám đốc kinh doanh (Director)' },
-                { code: 'Team Lead', name: 'Trưởng nhóm kinh doanh (Team Lead)' },
-                { code: 'Sales Rep', name: 'Nhân viên kinh doanh (Sales Rep)' },
-                { code: 'Marketing', name: 'Chuyên viên Marketing' },
-                { code: 'Accountant', name: 'Kế toán doanh nghiệp' },
-                { code: 'CSM', name: 'Chăm sóc khách hàng (CSM)' }
-            ];
-
-            baseRoles.forEach(br => {
-                if (!roles.some(r => r.code.toLowerCase() === br.code.toLowerCase())) {
-                    roles.push(br);
-                }
-            });
-
-            userRoleCodes.forEach(code => {
-                if (!roles.some(r => r.code.toLowerCase() === code.toLowerCase())) {
-                    roles.push({ code, name: code });
-                }
-            });
-        } catch (_) {}
-
-        return res.json({ data: roles });
-    } catch (err) {
-        return res.status(500).json({ message: 'Lỗi tải danh mục vai trò' });
-    }
-});
-
-// =========================================================================
-// 2. API LẤY DANH SÁCH NHÓM KINH DOANH
-// =========================================================================
-router.get('/groups/list', verifyToken, async (req, res) => {
-    try {
-        const [groups] = await db.execute('SELECT id, name FROM `groups`');
-        return res.json({ data: groups });
-    } catch (_) {
-        return res.json({ data: [] });
-    }
-});
-
-// =========================================================================
-// 3. API TẠO THỦ CÔNG NGƯỜI DÙNG MỚI (NÚT THÊM NGƯỜI DÙNG)
-// =========================================================================
-router.post('/', verifyToken, async (req, res) => {
-    try {
-        const { full_name, email, password, role_code, group_id, phone } = req.body;
-
-        if (!full_name || !email) {
-            return res.status(400).json({ message: 'Họ tên và email không được để trống!' });
-        }
-
-        // Kiểm tra trùng email
-        const [existing] = await db.execute('SELECT id FROM users WHERE email = ?', [email.trim().toLowerCase()]);
-        if (existing.length > 0) {
-            return res.status(400).json({ message: 'Email này đã tồn tại trong hệ thống!' });
-        }
-
-        const [colRows] = await db.execute('SHOW COLUMNS FROM users');
-        const existingCols = colRows.map(c => c.Field);
-        const pwdCol = existingCols.includes('password_hash') ? 'password_hash' : (existingCols.includes('password') ? 'password' : null);
-
-        const defaultPwd = password || '123456@crm';
-        const passwordHash = await bcrypt.hash(defaultPwd, 10);
-
-        const insertCols = ['full_name', 'email'];
-        const placeholders = ['?', '?'];
-        const values = [full_name.trim(), email.trim().toLowerCase()];
-
-        if (pwdCol) {
-            insertCols.push(pwdCol);
-            placeholders.push('?');
-            values.push(passwordHash);
-        }
-        if (existingCols.includes('role_code')) {
-            insertCols.push('role_code');
-            placeholders.push('?');
-            values.push(role_code || 'Sales Rep');
-        }
-        if (existingCols.includes('group_id')) {
-            insertCols.push('group_id');
-            placeholders.push('?');
-            values.push(group_id || null);
-        }
-        if (existingCols.includes('phone')) {
-            insertCols.push('phone');
-            placeholders.push('?');
-            values.push(phone || null);
-        }
-        if (existingCols.includes('status')) {
-            insertCols.push('status');
-            placeholders.push('?');
-            values.push('active');
-        }
-
-        const sql = `INSERT INTO users (${insertCols.join(', ')}) VALUES (${placeholders.join(', ')})`;
-        const [result] = await db.execute(sql, values);
-
-        // Ghi vết audit log
-        try {
-            await db.execute(`
-                INSERT INTO audit_logs (user_id, action_type, entity_name, description)
-                VALUES (?, 'CREATE_USER', 'Quản trị người dùng', ?)
-            `, [req.user?.id || 1, `Tạo thủ công người dùng: ${full_name} (${email}) - Vai trò: ${role_code}`]);
-        } catch (_) {}
-
-        return res.json({ message: 'Tạo tài khoản người dùng mới thành công!', id: result.insertId });
-    } catch (error) {
-        console.error('Lỗi tạo người dùng:', error);
-        return res.status(500).json({ message: error.message || 'Lỗi server khi tạo người dùng' });
-    }
-});
-
-// =========================================================================
-// 4. API PHÂN QUYỀN VAI TRÒ & ĐIỀU CHUYỂN NHÓM
-// =========================================================================
-router.put('/:id/role', verifyToken, async (req, res) => {
-    try {
-        const userId = req.params.id;
-        const { role_code, group_id } = req.body;
-
-        // 1. Lấy thông tin vai trò cũ trước khi cập nhật
-        const [oldUsers] = await db.execute('SELECT full_name, email, role_code FROM users WHERE id = ?', [userId]);
-        if (oldUsers.length === 0) return res.status(404).json({ message: 'Không tìm thấy người dùng' });
-        const targetUser = oldUsers[0];
-
-        // 2. Cập nhật vào MySQL
-        await db.execute('UPDATE users SET role_code = ?, group_id = ? WHERE id = ?', [
-            role_code, 
-            group_id || null, 
-            userId
-        ]);
-
-        // 3. TỰ ĐỘNG GHI NHẬT KÝ THAO TÁC NHẠY CẢM (AC S2-04)
-        const executor = req.user?.full_name ? `${req.user.full_name} (${req.user.role_code || 'Admin'})` : 'Quản trị viên';
-        await db.execute(`
-            INSERT INTO audit_logs (user_name, action_type, entity_type, entity_id, before_value, after_value, description)
-            VALUES (?, 'ROLE_CHANGE', 'Vai trò người dùng', ?, ?, ?, ?)
-        `, [
-            executor,
-            `U-00${userId}`,
-            targetUser.role_code || 'Chưa phân quyền',
-            role_code,
-            `${executor} đã điều chỉnh vai trò của [${targetUser.full_name} - ${targetUser.email}] từ [${targetUser.role_code}] thành [${role_code}]`
-        ]);
-
-        return res.json({ message: 'Cập nhật vai trò và đã lưu nhật ký thành công!' });
-    } catch (error) {
-        console.error('Lỗi cập nhật vai trò:', error);
-        return res.status(500).json({ message: 'Lỗi cập nhật vai trò' });
-    }
-});
-
-// =========================================================================
-// 5. API KHÓA / MỞ KHÓA TÀI KHOẢN & BÀN GIAO (S1-10)
-// =========================================================================
-router.put('/:id/status', verifyToken, async (req, res) => {
-    try {
-        const userId = req.params.id;
-        const { status, handover_user_id } = req.body;
-
-        if (req.user?.role_code !== 'Admin') {
-            return res.status(403).json({ message: 'Chỉ Quản trị viên mới có quyền đổi trạng thái tài khoản!' });
-        }
-
-        await db.execute('UPDATE users SET status = ? WHERE id = ?', [status, userId]);
-
-        let handoverMsg = '';
-        if (status === 'inactive' && handover_user_id) {
-            let custCount = 0;
-            let dealCount = 0;
-            try {
-                const [cRes] = await db.execute('UPDATE customers SET created_by = ? WHERE created_by = ?', [handover_user_id, userId]);
-                custCount = cRes.affectedRows || 0;
-            } catch (_) {}
-            try {
-                const [dRes] = await db.execute('UPDATE deals SET owner_id = ? WHERE owner_id = ?', [handover_user_id, userId]);
-                dealCount = dRes.affectedRows || 0;
-            } catch (_) {}
-            handoverMsg = `Đã bàn giao ${custCount} khách hàng và ${dealCount} cơ hội sang nhân sự mới.`;
-        }
-
-        try {
-            await db.execute(`
-                INSERT INTO audit_logs (user_id, action_type, entity_name, description)
-                VALUES (?, ?, 'Tài khoản #${userId}', ?)
-            `, [req.user.id, status === 'inactive' ? 'LOCK_ACCOUNT' : 'UNLOCK_ACCOUNT', status === 'inactive' ? `Khóa tài khoản. ${handoverMsg}` : 'Mở khóa tài khoản']);
-        } catch (_) {}
-
-        return res.json({ message: status === 'inactive' ? `Đã khóa tài khoản! ${handoverMsg}` : 'Đã mở khóa tài khoản!' });
-    } catch (error) {
-        return res.status(500).json({ message: 'Lỗi khi cập nhật trạng thái tài khoản' });
-    }
-});
-
-// =========================================================================
-// 6. API NHẬP HÀNG LOẠT (S2-01)
-// =========================================================================
-router.post('/import-batch', verifyToken, async (req, res) => {
-    try {
-        const { users } = req.body;
-        if (!Array.isArray(users) || users.length === 0) {
-            return res.status(400).json({ message: 'Danh sách tải lên trống!' });
-        }
-
-        const [colRows] = await db.execute('SHOW COLUMNS FROM users');
-        const existingCols = colRows.map(c => c.Field);
-        const pwdCol = existingCols.includes('password_hash') ? 'password_hash' : (existingCols.includes('password') ? 'password' : null);
-
-        const validRows = [];
-        const errorRows = [];
-        const defaultPasswordHash = await bcrypt.hash('123456@crm', 10);
-
-        const [existingUsers] = await db.execute('SELECT email FROM users');
-        const existingEmails = new Set(existingUsers.map(u => (u.email || '').toLowerCase()));
-
-        let groupMap = {};
-        try {
-            const [groups] = await db.execute('SELECT id, name FROM `groups`');
-            groups.forEach(g => { groupMap[g.name.toLowerCase().trim()] = g.id; });
-        } catch (_) {}
-
-        users.forEach((u, index) => {
-            const rowNum = u.row || (index + 1);
-            const email = (u.email || '').trim().toLowerCase();
-            const fullName = (u.full_name || '').trim();
-            const role = (u.role_code || 'Sales Rep').trim();
-            const group = (u.group_name || '').trim();
-
-            if (!fullName) {
-                errorRows.push({ row: rowNum, email, error: 'Thiếu họ và tên' });
-            } else if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-                errorRows.push({ row: rowNum, email, error: 'Email không đúng định dạng chuẩn' });
-            } else if (existingEmails.has(email)) {
-                errorRows.push({ row: rowNum, email, error: 'Email đã tồn tại trên hệ thống' });
-            } else {
-                existingEmails.add(email);
-                const groupId = groupMap[group.toLowerCase()] || null;
-                validRows.push({ fullName, email, role, groupId, originalRow: rowNum });
-            }
-        });
-
-        let insertedCount = 0;
-        for (const item of validRows) {
-            try {
-                const insertCols = ['full_name', 'email'];
-                const placeholders = ['?', '?'];
-                const values = [item.fullName, item.email];
-
-                if (pwdCol) {
-                    insertCols.push(pwdCol);
-                    placeholders.push('?');
-                    values.push(defaultPasswordHash);
-                }
-                if (existingCols.includes('role_code')) {
-                    insertCols.push('role_code');
-                    placeholders.push('?');
-                    values.push(item.role);
-                }
-                if (existingCols.includes('group_id')) {
-                    insertCols.push('group_id');
-                    placeholders.push('?');
-                    values.push(item.groupId);
-                }
-                if (existingCols.includes('status')) {
-                    insertCols.push('status');
-                    placeholders.push('?');
-                    values.push('active');
-                }
-
-                const sql = `INSERT INTO users (${insertCols.join(', ')}) VALUES (${placeholders.join(', ')})`;
-                await db.execute(sql, values);
-                insertedCount++;
-            } catch (dbErr) {
-                errorRows.push({ row: item.originalRow, email: item.email, error: 'Lỗi ghi DB: ' + dbErr.message });
-            }
-        }
-
-        try {
-            await db.execute(`
-                INSERT INTO audit_logs (user_id, action_type, entity_name, description)
-                VALUES (?, 'IMPORT_USERS', 'Quản trị người dùng', ?)
-            `, [req.user?.id || 1, `Nhập hàng loạt: ${insertedCount} thành công, ${errorRows.length} lỗi bị bỏ qua.`]);
-        } catch (_) {}
-
-        return res.json({
-            message: 'Hoàn tất tiến trình xử lý tệp!',
-            summary: {
-                total: users.length,
-                success: insertedCount,
-                failed: errorRows.length,
-                errors: errorRows
-            }
-        });
-    } catch (error) {
-        return res.status(500).json({ message: 'Lỗi server khi nhập dữ liệu' });
-    }
-});
-
-// =========================================================================
-// 7. API PROFILE & DANH SÁCH NGƯỜI DÙNG
-// =========================================================================
-router.get('/profile', verifyToken, async (req, res) => {
-    try {
-        const userId = req.user?.id || 1;
-        const [users] = await db.execute(`
-            SELECT u.id, u.full_name, u.email, u.phone, u.role_code, u.avatar, 
-                   u.email_signature, g.name AS group_name
-            FROM users u
-            LEFT JOIN \`groups\` g ON u.group_id = g.id
-            WHERE u.id = ?
-        `, [userId]);
-        return res.json({ user: users[0] || req.user });
-    } catch (err) {
-        return res.status(500).json({ message: 'Lỗi truy vấn hồ sơ' });
-    }
-});
-
-router.put('/profile', verifyToken, async (req, res) => {
-    try {
-        const userId = req.user?.id || 1;
-        const { full_name, phone, email_signature, avatar } = req.body;
-        if (phone && !/(84|0[3|5|7|8|9])+([0-9]{8})\b/.test(phone)) {
-            return res.status(400).json({ message: 'Số điện thoại Việt Nam không hợp lệ!' });
-        }
-        await db.execute(`
-            UPDATE users 
-            SET full_name = ?, phone = ?, email_signature = ?, avatar = ?
-            WHERE id = ?
-        `, [full_name, phone || null, email_signature || null, avatar || null, userId]);
-        const [users] = await db.execute('SELECT id, full_name, email, phone, role_code, avatar, email_signature FROM users WHERE id = ?', [userId]);
-        return res.json({ message: 'Cập nhật thành công!', user: users[0] });
-    } catch (err) {
-        return res.status(500).json({ message: 'Lỗi cập nhật hồ sơ' });
-    }
-});
-
-router.get('/', verifyToken, async (req, res) => {
-    try {
-        const [users] = await db.execute(`
-            SELECT u.id, u.full_name, u.email, u.phone, u.role_code, u.status, u.group_id,
-                   COALESCE(g.name, 'Chưa gán') AS group_name
-            FROM users u
-            LEFT JOIN \`groups\` g ON u.group_id = g.id
-            ORDER BY u.id DESC
-        `);
-        return res.json({ data: users, total: users.length });
-    } catch (error) {
-        return res.status(500).json({ message: 'Lỗi nạp danh sách người dùng' });
-    }
-});
-
-const updateUserRoleHandler = async (req, res) => {
-    try {
-        const userId = req.params.id;
-        const { role_code, role, group_id } = req.body;
-        const targetRole = role_code || role;
-
-        if (!targetRole) {
-            return res.status(400).json({ message: 'Vui lòng chọn vai trò phân quyền!' });
-        }
-
-        // 1. Lấy thông tin vai trò cũ
-        const [oldUsers] = await db.execute('SELECT full_name, email, role_code FROM users WHERE id = ?', [userId]);
-        if (oldUsers.length === 0) {
-            return res.status(404).json({ message: 'Không tìm thấy người dùng' });
-        }
-        const currentUser = oldUsers[0];
-
-        // 2. Cập nhật vào bảng users
-        await db.execute('UPDATE users SET role_code = ?, group_id = ? WHERE id = ?', [
-            targetRole,
-            group_id || null,
-            userId
-        ]);
-
-        // 3. Ghi log bất đồng bộ an toàn
-        const executor = req.user?.full_name ? `${req.user.full_name} (${req.user.role_code || 'Admin'})` : 'Dũng Quang (Admin)';
-        await logAudit({
-            userName: executor,
-            actionType: 'ROLE_CHANGE',
-            entityType: 'Vai trò người dùng',
-            entityId: `U-00${userId}`,
-            beforeValue: currentUser.role_code || 'Chưa phân quyền',
-            afterValue: targetRole,
-            description: `${executor} đã thay đổi vai trò của [${currentUser.full_name} - ${currentUser.email}] từ [${currentUser.role_code || 'Chưa phân quyền'}] thành [${targetRole}]`
-        });
-
-        return res.json({ message: 'Cập nhật vai trò người dùng thành công!' });
-    } catch (error) {
-        console.error('Lỗi cập nhật vai trò:', error);
-        return res.status(500).json({ message: error.message || 'Lỗi cập nhật vai trò' });
-    }
-};
-
-// 1. API CẬP NHẬT TRẠNG THÁI (KHÓA / MỞ KHÓA)
-router.put('/:id/status', async (req, res) => {
-    const { id } = req.params;
-    const { status } = req.body; // 'active' hoặc 'locked'
-    try {
-        const db = require('../config/db');
-        await db.execute('UPDATE users SET status = ? WHERE id = ?', [status, id]);
-        return res.json({ 
-            success: true, 
-            message: status === 'locked' ? 'Đã khóa tài khoản thành công!' : 'Đã mở khóa tài khoản!' 
-        });
-    } catch (err) {
-        console.error('Lỗi cập nhật status:', err);
-        return res.status(500).json({ message: 'Không thể cập nhật trạng thái người dùng.' });
-    }
-});
-
-// 2. API XÓA HẲN NGƯỜI DÙNG KHỎI DATABASE
-router.delete('/:id', async (req, res) => {
-    const { id } = req.params;
-    try {
-        const db = require('../config/db');
-        
-        // Tắt kiểm tra khóa ngoại tạm thời để xóa sạch không bị báo lỗi Foreign Key
-        await db.query('SET FOREIGN_KEY_CHECKS = 0');
-        await db.query('DELETE FROM password_resets WHERE email IN (SELECT email FROM users WHERE id = ?)', [id]).catch(() => {});
-        await db.query('DELETE FROM users WHERE id = ?', [id]);
-        await db.query('SET FOREIGN_KEY_CHECKS = 1');
-
-        return res.json({ success: true, message: 'Đã xóa vĩnh viễn người dùng khỏi cơ sở dữ liệu!' });
-    } catch (err) {
-        console.error('Lỗi xóa user:', err);
-        return res.status(500).json({ message: 'Lỗi máy chủ khi xóa người dùng.' });
-    }
-});
-
-router.put('/:id/role', verifyToken, updateUserRoleHandler);
-router.put('/:id', verifyToken, updateUserRoleHandler);
-// 1. API CẬP NHẬT TRẠNG THÁI (KHÓA / MỞ KHÓA)
-router.put('/:id/status', async (req, res) => {
-    const { id } = req.params;
-    const { status } = req.body;
-    try {
-        const db = require('../config/db');
-        await db.query('UPDATE users SET status = ? WHERE id = ?', [status, id]);
-        return res.json({ success: true, message: status === 'locked' ? 'Đã khóa tài khoản!' : 'Đã mở khóa tài khoản!' });
-    } catch (err) {
-        console.error('Lỗi cập nhật status:', err);
-        return res.status(500).json({ message: 'Lỗi cơ sở dữ liệu khi cập nhật trạng thái.' });
-    }
-});
-
-router.post('/', async (req, res) => {
-  const { full_name, email, phone, password, role, department_id } = req.body;
-
-  if (!full_name || !email || !role) {
-    return res.status(400).json({ message: 'Vui lòng điền đầy đủ các thông tin bắt buộc!' });
-  }
-
-  try {
-    // 1. Kiểm tra email trùng
-    const [existing] = await db.query('SELECT id FROM users WHERE email = ?', [email]);
-    if (existing.length > 0) {
-      return res.status(400).json({ message: 'Email này đã tồn tại trong hệ thống!' });
-    }
-
-    // 2. Mật khẩu khởi tạo: Lấy mật khẩu nhập vào hoặc dùng mặc định '123456@crm'
-    const rawPassword = (password && password.trim() !== '') ? password.trim() : '123456@crm';
-    const hashedPassword = await bcrypt.hash(rawPassword, 10);
-
-    // 3. Thêm vào bảng users
-    const [result] = await db.query(
-      `INSERT INTO users (full_name, email, phone, password, role, department_id, status) 
-       VALUES (?, ?, ?, ?, ?, ?, 'Hoạt động')`,
-      [full_name, email, phone || null, hashedPassword, role, department_id || null]
-    );
-
-    // 4. Gửi email kích hoạt kèm mật khẩu cho nhân viên
-    // Ngay sau câu lệnh INSERT INTO users thành công:
-try {
-  const nodemailer = require('nodemailer');
-  const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: (process.env.SMTP_USER || '').trim(),
-      pass: (process.env.SMTP_PASS || '').trim()
-    }
-  });
-
-  const loginUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/login`;
-  const defaultPass = (password && password.trim() !== '') ? password.trim() : '123456@crm';
-
-  await transporter.sendMail({
-    from: `"Enterprise CRM" <${process.env.SMTP_USER}>`,
-    to: email.trim(),
-    subject: '[Enterprise CRM] Thông tin tài khoản và mật khẩu khởi tạo',
-    html: `
-      <div style="font-family: Arial, sans-serif; padding: 24px; border: 1px solid #e8e8e8; border-radius: 8px; max-width: 500px;">
-        <h2 style="color: #1677ff; margin-top: 0;">Chào mừng bạn đến với Enterprise CRM</h2>
-        <p>Xin chào <b>${full_name}</b>,</p>
-        <p>Tài khoản nhân viên của bạn đã được khởi tạo trên hệ thống với thông tin đăng nhập sau:</p>
-        <div style="background-color: #f6f8fa; padding: 14px; border-radius: 6px; margin: 16px 0;">
-          <p style="margin: 4px 0;">• <b>Email:</b> ${email.trim()}</p>
-          <p style="margin: 4px 0;">• <b>Mật khẩu:</b> <b style="color: #1677ff;">${defaultPass}</b></p>
-        </div>
-        <div style="text-align: center; margin: 24px 0;">
-          <a href="${loginUrl}" style="background-color: #1677ff; color: #fff; padding: 10px 22px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
-            Đăng Nhập Ngay
-          </a>
-        </div>
-      </div>
-    `
-  });
-  console.log('✅ [MAIL SUCCESS] Đã gửi thông tin tài khoản tới:', email);
-} catch (mailErr) {
-  console.error('⚠️ [MAIL ERROR] Lỗi gửi mail:', mailErr.message);
-}
-
-    return res.status(201).json({ 
-      success: true, 
-      message: 'Tạo tài khoản thành công! Thông tin đăng nhập đã được gửi tới email.',
-      userId: result.insertId 
+const router = require("express").Router();
+const crypto = require("crypto");
+const fs = require("fs/promises");
+const path = require("path");
+const sharp = require("sharp");
+const { db, transaction, insert, update, audit } = require("../core/store");
+const { route, fail, id, text, email, phone, page } = require("../core/http");
+const {
+  authenticate,
+  bcrypt,
+  password,
+  queueMail,
+  identity,
+  hash,
+} = require("../core/auth");
+const { requireRoles, normalizeRole } = require("../core/access");
+const upload = require("../middleware/uploadMiddleware");
+router.use(authenticate);
+router.get(
+  "/profile",
+  route(async (req, res) => {
+    const [[u]] = await db.query("SELECT * FROM users WHERE id=?", [
+      req.user.id,
+    ]);
+    res.json({ user: await identity(db, u) });
+  }),
+);
+router.put(
+  "/profile",
+  route(async (req, res) => {
+    if (
+      ["email", "roles", "role_code", "role_id", "group_id"].some(
+        (k) => k in req.body,
+      )
+    )
+      fail(403, "Không tự đổi được email, nhóm hoặc vai trò.");
+    await update(db, "users", req.user.id, {
+      full_name: text(req.body.full_name, "Họ tên", 100),
+      phone: phone(req.body.phone),
+      email_signature: req.body.email_signature
+        ? text(req.body.email_signature, "Chữ ký", 5000)
+        : null,
     });
-
-  } catch (err) {
-    console.error('Lỗi tạo người dùng:', err);
-    return res.status(500).json({ message: 'Lỗi máy chủ: ' + err.message });
-  }
+    const [[u]] = await db.query("SELECT * FROM users WHERE id=?", [
+      req.user.id,
+    ]);
+    res.json({ user: await identity(db, u) });
+  }),
+);
+router.post(
+  "/profile/avatar",
+  upload.single("avatar"),
+  route(async (req, res) => {
+    if (!req.file) fail(400, "Thiếu ảnh.");
+    const image = sharp(req.file.buffer, { limitInputPixels: 16000000 });
+    let meta;
+    try {
+      meta = await image.metadata();
+    } catch {
+      fail(400, "Nội dung tệp không phải ảnh JPG/PNG hợp lệ.");
+    }
+    if (!["jpeg", "png"].includes(meta.format))
+      fail(400, "Chỉ chấp nhận JPG/PNG.");
+    const dir = path.join(__dirname, "../../uploads/avatars");
+    await fs.mkdir(dir, { recursive: true });
+    const name = crypto.randomUUID();
+    await image
+      .clone()
+      .resize(512, 512, { fit: "cover" })
+      .png()
+      .toFile(path.join(dir, name + ".png"));
+    await image
+      .clone()
+      .resize(96, 96, { fit: "cover" })
+      .png()
+      .toFile(path.join(dir, name + "-thumb.png"));
+    const data = {
+      avatar: `/uploads/avatars/${name}.png`,
+      avatar_thumbnail: `/uploads/avatars/${name}-thumb.png`,
+    };
+    await update(db, "users", req.user.id, data);
+    res.json(data);
+  }),
+);
+router.post("/avatar", (req, res, next) => {
+  req.url = "/profile/avatar";
+  router.handle(req, res, next);
 });
-
+router.use(requireRoles("Admin"));
+const roleNames = [
+  "Sales Rep",
+  "Team Lead",
+  "Director",
+  "Marketing",
+  "Cust. Success",
+  "Accountant",
+  "Admin",
+];
+router.get(
+  "/roles/list",
+  route(async (req, res) =>
+    res.json({
+      data: roleNames.map((code) => ({
+        code,
+        role_code: code,
+        role_name: code,
+        name: code,
+      })),
+    }),
+  ),
+);
+router.get(
+  "/groups/list",
+  route(async (req, res) => {
+    const [rows] = await db.query(
+      "SELECT id,name,parent_id FROM `groups` ORDER BY name",
+    );
+    res.json({ data: rows });
+  }),
+);
+async function validateRoles(c, body, current) {
+  let roles = body.roles || (body.role_code ? [body.role_code] : null);
+  if (!roles && body.role_id) {
+    const [[r]] = await c.query("SELECT * FROM roles WHERE id=?", [
+      id(body.role_id),
+    ]);
+    roles = [r?.code || r?.role_name || r?.name];
+  }
+  roles = roles || current?.roles || ["Sales Rep"];
+  if (!Array.isArray(roles) || !roles.length)
+    fail(400, "Cần ít nhất một vai trò.");
+  roles = [...new Set(roles.map(normalizeRole))];
+  if (roles.includes(null)) fail(400, "Vai trò không hợp lệ.");
+  const groupId =
+    body.group_id === undefined
+      ? current?.group_id || null
+      : body.group_id
+        ? id(body.group_id)
+        : null;
+  if (roles.includes("Team Lead") && !groupId)
+    fail(400, "Trưởng nhóm phải thuộc một nhóm cụ thể.");
+  if (groupId) {
+    const [[g]] = await c.query("SELECT id FROM `groups` WHERE id=?", [
+      groupId,
+    ]);
+    if (!g) fail(400, "Nhóm không tồn tại.");
+  }
+  return { roles, groupId };
+}
+async function createUser(c, actor, b) {
+  const mail = email(b.email);
+  const name = text(b.full_name, "Họ tên", 100);
+  const { roles, groupId } = await validateRoles(c, b);
+  const temp = crypto.randomBytes(18).toString("base64url") + "9a";
+  const uid = await insert(c, "users", {
+    email: mail,
+    full_name: name,
+    password: await bcrypt.hash(temp, 12),
+    phone: phone(b.phone),
+    group_id: groupId,
+    role_code: roles[0],
+    must_change_password: 1,
+  });
+  for (const role of roles)
+    await insert(c, "user_roles", { user_id: uid, role_code: role });
+  const activation = crypto.randomBytes(32).toString("hex");
+  await c.query(
+    "INSERT INTO auth_reset_tokens (token_hash,user_id,expires_at) VALUES (?,?,DATE_ADD(UTC_TIMESTAMP(),INTERVAL 30 MINUTE))",
+    [hash(activation), uid],
+  );
+  await queueMail(
+    c,
+    mail,
+    "Kích hoạt tài khoản CRM",
+    `Tài khoản: ${mail}\nMật khẩu tạm: ${temp}\nĐặt mật khẩu riêng tại ${(process.env.FRONTEND_URL || "http://localhost:5173").replace(/\/$/, "")}/reset-password?token=${activation} (30 phút).`,
+  );
+  await audit(c, actor, "CREATE", "users", uid, null, {
+    email: mail,
+    roles,
+    group_id: groupId,
+  });
+  return uid;
+}
+router.post(
+  "/",
+  route(async (req, res) =>
+    res.status(201).json({
+      id: await transaction((c) => createUser(c, req.user, req.body)),
+    }),
+  ),
+);
+router.get(
+  "/",
+  route(async (req, res) => {
+    const q = req.query;
+    let where = "1=1";
+    const args = [];
+    if (q.search) {
+      where += " AND (u.full_name LIKE ? OR u.email LIKE ?)";
+      args.push("%" + q.search + "%", "%" + q.search + "%");
+    }
+    for (const k of ["group_id", "status"])
+      if (q[k]) {
+        where += ` AND u.${k}=?`;
+        args.push(q[k]);
+      }
+    if (q.role || q.role_code) {
+      where +=
+        " AND EXISTS (SELECT 1 FROM user_roles ur WHERE ur.user_id=u.id AND ur.role_code=?)";
+      args.push(normalizeRole(q.role || q.role_code));
+    }
+    const p = page(q);
+    const [[count]] = await db.query(
+      `SELECT COUNT(*) total FROM users u WHERE ${where}`,
+      args,
+    );
+    const [rows] = await db.query(
+      `SELECT u.* FROM users u WHERE ${where} ORDER BY u.id LIMIT ? OFFSET ?`,
+      [...args, p.limit, p.offset],
+    );
+    res.json({
+      data: await Promise.all(
+        rows.map(async (u) => ({
+          ...(await identity(db, u)),
+          status: u.status,
+          is_active: !!u.is_active,
+          created_at: u.created_at,
+        })),
+      ),
+      total: count.total,
+      pageSize: p.limit,
+    });
+  }),
+);
+async function edit(req, res) {
+  const uid = id(req.params.id);
+  await transaction(async (c) => {
+    const [[u]] = await c.query("SELECT * FROM users WHERE id=? FOR UPDATE", [
+      uid,
+    ]);
+    if (!u) fail(404, "Không tìm thấy tài khoản.");
+    const old = await identity(c, u);
+    const { roles, groupId } = await validateRoles(c, req.body, old);
+    if (uid === req.user.id && !roles.includes("Admin"))
+      fail(403, "Không thể tự thu hồi vai trò quản trị.");
+    await update(c, "users", uid, {
+      email: req.body.email === undefined ? u.email : email(req.body.email),
+      full_name: req.body.full_name
+        ? text(req.body.full_name, "Họ tên", 100)
+        : u.full_name,
+      phone: req.body.phone === undefined ? u.phone : phone(req.body.phone),
+      group_id: groupId,
+      role_code: roles[0],
+    });
+    await c.query("DELETE FROM user_roles WHERE user_id=?", [uid]);
+    for (const role of roles)
+      await insert(c, "user_roles", { user_id: uid, role_code: role });
+    await audit(
+      c,
+      req.user,
+      "ROLE_CHANGE",
+      "users",
+      uid,
+      { roles: old.roles, group_id: u.group_id },
+      { roles, group_id: groupId },
+    );
+  });
+  res.json({ success: true });
+}
+router.put("/:id/role", route(edit));
+router.put("/:id", route(edit));
+router.put("/:id/lock", (req, res, next) => {
+  req.body.status = "inactive";
+  req.url = "/" + id(req.params.id) + "/status";
+  router.handle(req, res, next);
+});
+router.get(
+  "/:id/customers-count",
+  route(async (req, res) => {
+    const [[c]] = await db.query(
+      "SELECT COUNT(*) count FROM customers WHERE created_by=?",
+      [id(req.params.id)],
+    );
+    const [[d]] = await db.query(
+      "SELECT COUNT(*) count FROM deals WHERE owner_id=?",
+      [id(req.params.id)],
+    );
+    res.json({ count: c.count, customers: c.count, deals: d.count });
+  }),
+);
+router.put(
+  "/:id/status",
+  route(async (req, res) => {
+    const uid = id(req.params.id);
+    if (uid === req.user.id) fail(403, "Không thể tự khóa tài khoản.");
+    if (
+      ![
+        "active",
+        "Hoạt động",
+        "inactive",
+        "Đã khóa",
+        "locked",
+        true,
+        false,
+        0,
+        1,
+      ].includes(req.body.status ?? req.body.is_active)
+    )
+      fail(400, "Trạng thái tài khoản không hợp lệ.");
+    const disabled = ["inactive", "Đã khóa", "locked", false, 0].includes(
+      req.body.status ?? req.body.is_active,
+    );
+    await transaction(async (c) => {
+      const [[u]] = await c.query(
+        "SELECT id,status FROM users WHERE id=? FOR UPDATE",
+        [uid],
+      );
+      if (!u) fail(404, "Không tìm thấy tài khoản.");
+      if (disabled) {
+        const target = id(
+          req.body.transfer_to ||
+            req.body.handover_to ||
+            req.body.new_owner_id ||
+            req.body.receiver_id ||
+            req.body.handover_user_id,
+        );
+        if (target === uid)
+          fail(400, "Người tiếp nhận phải khác người nghỉ việc.");
+        const [[v]] = await c.query(
+          "SELECT id,group_id FROM users WHERE id=? AND is_active=1 FOR UPDATE",
+          [target],
+        );
+        if (!v) fail(400, "Người tiếp nhận không hoạt động.");
+        for (const [table, col] of [
+          ["customers", "created_by"],
+          ["deals", "owner_id"],
+          ["leads", "owner_id"],
+          ["quotes", "owner_id"],
+        ]) {
+          const [records] = await c.query(
+            `SELECT id FROM ${table} WHERE ${col}=? FOR UPDATE`,
+            [uid],
+          );
+          await c.query(
+            `UPDATE ${table} SET ${col}=?,group_id=? WHERE ${col}=?`,
+            [target, v.group_id, uid],
+          );
+          for (const row of records)
+            await audit(
+              c,
+              req.user,
+              "HANDOVER",
+              table,
+              row.id,
+              { owner_id: uid },
+              { owner_id: target },
+              "Bàn giao khi khóa tài khoản",
+            );
+        }
+        await c.query(
+          "UPDATE auth_sessions SET revoked_at=UTC_TIMESTAMP() WHERE user_id=?",
+          [uid],
+        );
+      }
+      await update(c, "users", uid, {
+        status: disabled ? "Đã khóa" : "Hoạt động",
+        is_active: !disabled,
+      });
+      await audit(c, req.user, "STATUS_CHANGE", "users", uid, u, {
+        status: disabled ? "Đã khóa" : "Hoạt động",
+      });
+    });
+    res.json({ success: true });
+  }),
+);
+router.delete(
+  "/:id",
+  route(async () =>
+    fail(
+      409,
+      "Khóa và bàn giao tài khoản để giữ lịch sử; không xóa người dùng.",
+    ),
+  ),
+);
 module.exports = router;
+module.exports.createUser = createUser;

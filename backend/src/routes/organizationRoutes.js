@@ -1,184 +1,171 @@
-const express = require('express');
-const router = express.Router();
-const db = require('../config/db');
-const authMiddleware = require('../middleware/authMiddleware');
-
-const verifyToken = typeof authMiddleware === 'function' 
-    ? authMiddleware 
-    : (authMiddleware.verifyToken || ((req, res, next) => next()));
-
-// 1. LẤY CÂY TỔ CHỨC KINH DOANH (AC S2-06)
-router.get('/tree', verifyToken, async (req, res) => {
-    try {
-        // Lấy danh sách nhóm kèm thông tin Trưởng nhóm, Khu vực và số lượng thành viên
-        const [groups] = await db.execute(`
-            SELECT g.id, g.parent_id, g.name, g.description, g.region_id, g.leader_id,
-                   r.name AS region_name,
-                   u.full_name AS leader_name, u.email AS leader_email,
-                   (SELECT COUNT(*) FROM users WHERE group_id = g.id) AS member_count
-            FROM \`groups\` g
-            LEFT JOIN regions r ON g.region_id = r.id
-            LEFT JOIN users u ON g.leader_id = u.id
-            ORDER BY g.id ASC
-        `);
-
-        // Lấy danh sách toàn bộ nhân sự để hiển thị thành viên theo nhóm
-        const [users] = await db.execute(`
-            SELECT id, full_name, email, role_code, group_id, status 
-            FROM users 
-            WHERE status != 'inactive'
-        `);
-
-        // Hàm đệ quy dựng cấu trúc cây cha - con
-        const buildTree = (parentId = null) => {
-            return groups
-                .filter(item => item.parent_id === parentId)
-                .map(item => {
-                    const children = buildTree(item.id);
-                    const members = users.filter(u => u.group_id === item.id);
-                    return {
-                        key: item.id,
-                        ...item,
-                        members,
-                        children: children.length > 0 ? children : undefined
-                    };
-                });
-        };
-
-        const treeData = buildTree(null);
-        return res.json({ 
-            treeData: treeData.length > 0 ? treeData : groups,
-            rawGroups: groups,
-            allUsers: users
-        });
-    } catch (error) {
-        console.error('Lỗi GET /api/organization/tree:', error);
-        return res.status(500).json({ message: 'Lỗi nạp cây tổ chức kinh doanh' });
+const router = require("express").Router();
+const { db, transaction, insert, update, audit } = require("../core/store");
+const { route, fail, id, text } = require("../core/http");
+const { authenticate } = require("../core/auth");
+const { authorize, normalizeRole } = require("../core/access");
+router.use(authenticate, authorize("CATEGORY"));
+router.get(
+  "/tree",
+  route(async (req, res) => {
+    const [rows] = await db.query(
+      "SELECT g.*,u.full_name leader_name,r.name region_name FROM `groups` g LEFT JOIN users u ON u.id=g.leader_id LEFT JOIN regions r ON r.id=g.region_id ORDER BY g.id",
+    );
+    const map = new Map(rows.map((g) => [g.id, { ...g, children: [] }]));
+    const data = [];
+    for (const g of map.values())
+      if (map.has(g.parent_id)) map.get(g.parent_id).children.push(g);
+      else data.push(g);
+    res.json({ data });
+  }),
+);
+router.get(
+  "/regions",
+  route(async (req, res) => {
+    const [data] = await db.query("SELECT * FROM regions ORDER BY name");
+    res.json({ data });
+  }),
+);
+router.post(
+  "/regions",
+  route(async (req, res) =>
+    res.status(201).json({
+      id: await insert(db, "regions", {
+        name: text(req.body.name, "Khu vực", 100),
+        code: req.body.code || null,
+      }),
+    }),
+  ),
+);
+async function save(req, res) {
+  const result = await transaction(async (c) => {
+    const bid = req.params.id ? id(req.params.id) : null;
+    let old = {};
+    if (bid) {
+      const [[r]] = await c.query(
+        "SELECT * FROM `groups` WHERE id=? FOR UPDATE",
+        [bid],
+      );
+      if (!r) fail(404, "Nhóm không tồn tại.");
+      old = r;
     }
-});
-
-// 2. LẤY DANH SÁCH KHU VỰC ĐỊA LÝ
-router.get('/regions', verifyToken, async (req, res) => {
-    try {
-        const [regions] = await db.execute('SELECT * FROM regions ORDER BY id ASC');
-        return res.json({ data: regions });
-    } catch (err) {
-        return res.status(500).json({ message: 'Lỗi nạp khu vực địa lý' });
+    const b = { ...old, ...req.body };
+    const parent = b.parent_id ? id(b.parent_id) : null;
+    const leader = b.leader_id ? id(b.leader_id) : null;
+    const region = b.region_id ? id(b.region_id) : null;
+    if (!leader) fail(400, "Mỗi nhóm phải có một trưởng nhóm.");
+    if (parent) {
+      const [[g]] = await c.query("SELECT id FROM `groups` WHERE id=?", [
+        parent,
+      ]);
+      if (!g) fail(400, "Nhóm cha không tồn tại.");
+      if (bid) {
+        const [tree] = await c.query(
+          "WITH RECURSIVE tree AS (SELECT id FROM `groups` WHERE id=? UNION DISTINCT SELECT g.id FROM `groups` g JOIN tree t ON g.parent_id=t.id) SELECT id FROM tree",
+          [bid],
+        );
+        if (tree.some((g) => g.id === parent))
+          fail(400, "Không được tạo vòng lặp tổ chức.");
+      }
     }
-});
-
-// 3. THÊM MỚI KHU VỰC ĐỊA LÝ
-router.post('/regions', verifyToken, async (req, res) => {
-    try {
-        if (req.user?.role_code !== 'Director' && req.user?.role_code !== 'Admin') {
-            return res.status(403).json({ message: 'Chỉ Giám đốc kinh doanh hoặc Admin mới có quyền khai báo khu vực!' });
-        }
-        const { name, code, description } = req.body;
-        if (!name || !code) return res.status(400).json({ message: 'Vui lòng điền đủ tên và mã khu vực!' });
-
-        await db.execute('INSERT INTO regions (name, code, description) VALUES (?, ?, ?)', [
-            name.trim(), code.trim().toUpperCase(), description || ''
-        ]);
-        return res.json({ message: 'Thêm khu vực địa lý thành công!' });
-    } catch (err) {
-        return res.status(500).json({ message: 'Lỗi khi tạo khu vực' });
+    if (region) {
+      const [[r]] = await c.query("SELECT id FROM regions WHERE id=?", [
+        region,
+      ]);
+      if (!r) fail(400, "Khu vực không tồn tại.");
     }
-});
-
-// 4. THÊM NHÓM KINH DOANH MỚI TRONG CÂY TỔ CHỨC
-router.post('/groups', verifyToken, async (req, res) => {
-    try {
-        if (req.user?.role_code !== 'Director' && req.user?.role_code !== 'Admin') {
-            return res.status(403).json({ message: 'Chỉ Giám đốc kinh doanh mới có quyền tạo nhánh tổ chức!' });
-        }
-        const { name, parent_id, leader_id, region_id, description } = req.body;
-        if (!name) return res.status(400).json({ message: 'Tên nhóm kinh doanh không được để trống!' });
-
-        const [result] = await db.execute(`
-            INSERT INTO \`groups\` (name, parent_id, leader_id, region_id, description)
-            VALUES (?, ?, ?, ?, ?)
-        `, [name.trim(), parent_id || null, leader_id || null, region_id || null, description || '']);
-
-        // Nếu có chỉ định Trưởng nhóm, gán luôn trưởng nhóm vào nhóm này
-        if (leader_id) {
-            await db.execute('UPDATE users SET group_id = ? WHERE id = ?', [result.insertId, leader_id]);
-        }
-
-        return res.json({ message: 'Thêm nhóm kinh doanh vào cây tổ chức thành công!' });
-    } catch (err) {
-        return res.status(500).json({ message: 'Lỗi khi tạo nhóm kinh doanh' });
+    if (leader) {
+      const [[u]] = await c.query(
+        "SELECT id FROM users WHERE id=? AND is_active=1 FOR UPDATE",
+        [leader],
+      );
+      if (!u) fail(400, "Trưởng nhóm không hoạt động.");
+      const [[g]] = await c.query(
+        "SELECT id FROM `groups` WHERE leader_id=? AND id<>?",
+        [leader, bid || 0],
+      );
+      if (g) fail(409, "Người này đã phụ trách nhóm khác.");
     }
-});
-
-// 5. CẬP NHẬT NHÓM KINH DOANH
-router.put('/groups/:id', verifyToken, async (req, res) => {
-    try {
-        if (req.user?.role_code !== 'Director' && req.user?.role_code !== 'Admin') {
-            return res.status(403).json({ message: 'Chỉ Giám đốc kinh doanh mới có quyền sửa cơ cấu tổ chức!' });
-        }
-        const { name, parent_id, leader_id, region_id, description } = req.body;
-        const groupId = req.params.id;
-
-        // Tránh chọn chính mình làm nhóm cha
-        if (Number(parent_id) === Number(groupId)) {
-            return res.status(400).json({ message: 'Không thể chọn chính nhóm này làm nhóm cha!' });
-        }
-
-        await db.execute(`
-            UPDATE \`groups\`
-            SET name = ?, parent_id = ?, leader_id = ?, region_id = ?, description = ?
-            WHERE id = ?
-        `, [name.trim(), parent_id || null, leader_id || null, region_id || null, description || '', groupId]);
-
-        // Cập nhật group_id cho Trưởng nhóm
-        if (leader_id) {
-            await db.execute('UPDATE users SET group_id = ? WHERE id = ?', [groupId, leader_id]);
-        }
-
-        return res.json({ message: 'Cập nhật nhóm kinh doanh thành công!' });
-    } catch (err) {
-        return res.status(500).json({ message: 'Lỗi cập nhật nhóm kinh doanh' });
+    const data = {
+      name: text(b.name, "Tên nhóm", 100),
+      parent_id: parent,
+      leader_id: leader,
+      region_id: region,
+      description: b.description || null,
+    };
+    let gid = bid;
+    if (gid) await update(c, "groups", gid, data);
+    else gid = await insert(c, "groups", data);
+    if (leader) {
+      await update(c, "users", leader, { group_id: gid });
+      await c.query(
+        "INSERT INTO user_roles (user_id,role_code) VALUES (?,'Team Lead') ON DUPLICATE KEY UPDATE role_code=VALUES(role_code)",
+        [leader],
+      );
     }
-});
-
-// 6. ĐIỀU CHUYỂN NHÂN SỰ VÀO NHÓM (MỖI NHÂN VIÊN THUỘC ĐÚNG 1 NHÓM - AC S2-06)
-router.post('/groups/:id/assign-member', verifyToken, async (req, res) => {
-    try {
-        if (req.user?.role_code !== 'Director' && req.user?.role_code !== 'Admin') {
-            return res.status(403).json({ message: 'Chỉ Giám đốc mới có quyền điều chuyển nhân sự!' });
-        }
-        const { user_id } = req.body;
-        const groupId = req.params.id;
-
-        await db.execute('UPDATE users SET group_id = ? WHERE id = ?', [groupId, user_id]);
-        return res.json({ message: 'Điều chuyển nhân viên vào nhóm thành công!' });
-    } catch (err) {
-        return res.status(500).json({ message: 'Lỗi gán nhân viên vào nhóm' });
-    }
-});
-
-// 7. XÓA NHÓM KINH DOANH
-router.delete('/groups/:id', verifyToken, async (req, res) => {
-    try {
-        if (req.user?.role_code !== 'Director' && req.user?.role_code !== 'Admin') {
-            return res.status(403).json({ message: 'Chỉ Giám đốc mới có quyền giải thể nhóm!' });
-        }
-        const groupId = req.params.id;
-
-        // Chặn nếu có nhóm con
-        const [children] = await db.execute('SELECT id FROM `groups` WHERE parent_id = ?', [groupId]);
-        if (children.length > 0) {
-            return res.status(400).json({ message: 'Không thể xóa nhóm này vì đang chứa các nhánh phòng ban con!' });
-        }
-
-        // Chuyển nhân sự nhóm này về trạng thái Chưa gán
-        await db.execute('UPDATE users SET group_id = NULL WHERE group_id = ?', [groupId]);
-        await db.execute('DELETE FROM `groups` WHERE id = ?', [groupId]);
-
-        return res.json({ message: 'Đã giải thể nhóm kinh doanh thành công!' });
-    } catch (err) {
-        return res.status(500).json({ message: 'Lỗi khi xóa nhóm' });
-    }
-});
-
+    await audit(c, req.user, "ORGANIZATION_CHANGE", "groups", gid, old, data);
+    return gid;
+  });
+  res.json({ id: result });
+}
+router.post("/groups", route(save));
+router.put("/groups/:id", route(save));
+router.post(
+  "/groups/:id/assign-member",
+  route(async (req, res) => {
+    await transaction(async (c) => {
+      const gid = id(req.params.id);
+      const [[g]] = await c.query("SELECT id FROM `groups` WHERE id=?", [gid]);
+      if (!g) fail(404, "Nhóm không tồn tại.");
+      const ids = req.body.user_ids || [req.body.user_id];
+      if (!Array.isArray(ids) || !ids.length) fail(400, "Thiếu người dùng.");
+      for (const uid of ids) {
+        const [[u]] = await c.query(
+          "SELECT id,group_id FROM users WHERE id=? FOR UPDATE",
+          [id(uid)],
+        );
+        if (!u) fail(400, "Người dùng không tồn tại.");
+        const [[leader]] = await c.query(
+          "SELECT id FROM `groups` WHERE leader_id=? AND id<>?",
+          [u.id, gid],
+        );
+        if (leader)
+          fail(409, "Phải thay trưởng nhóm cũ trước khi chuyển nhóm.");
+        await update(c, "users", u.id, { group_id: gid });
+        await audit(
+          c,
+          req.user,
+          "GROUP_CHANGE",
+          "users",
+          u.id,
+          { group_id: u.group_id },
+          { group_id: gid },
+        );
+      }
+    });
+    res.json({ success: true });
+  }),
+);
+router.delete(
+  "/groups/:id",
+  route(async (req, res) => {
+    await transaction(async (c) => {
+      const gid = id(req.params.id);
+      for (const [table, col] of [
+        ["users", "group_id"],
+        ["groups", "parent_id"],
+        ["customers", "group_id"],
+        ["deals", "group_id"],
+        ["leads", "group_id"],
+      ]) {
+        const [[r]] = await c.query(
+          `SELECT COUNT(*) n FROM \`${table}\` WHERE ${col}=?`,
+          [gid],
+        );
+        if (r.n) fail(409, "Nhóm đang được sử dụng.");
+      }
+      await c.query("DELETE FROM `groups` WHERE id=?", [gid]);
+    });
+    res.json({ success: true });
+  }),
+);
 module.exports = router;

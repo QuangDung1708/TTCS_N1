@@ -1,352 +1,444 @@
-const express = require('express');
-const router = express.Router();
-const db = require('../config/db');
-const authMiddleware = require('../middleware/authMiddleware');
-
-let logAudit = async () => {};
-try {
-    const logger = require('../utils/auditLogger');
-    if (logger && logger.logAudit) logAudit = logger.logAudit;
-} catch (e) {
-    console.warn('Chưa nạp được auditLogger:', e.message);
+const router = require("express").Router();
+const { db, transaction, insert, update, audit } = require("../core/store");
+const { route, fail, id, text, number, date, json } = require("../core/http");
+const { authenticate } = require("../core/auth");
+const {
+  authorize,
+  scope,
+  record,
+  ownerAllowed,
+  requireRoles,
+} = require("../core/access");
+const { saveDeal, transition, close } = require("../core/deals");
+router.use(authenticate, authorize("DEAL"));
+async function list(user, q, c = db) {
+  const s = await scope(user, "DEAL", "d", false, c, "owner_id");
+  let where = s.sql;
+  const args = [...s.params];
+  for (const k of ["owner_id", "group_id", "status", "stage_id", "customer_id"])
+    if (q[k]) {
+      where += ` AND d.${k}=?`;
+      args.push(q[k]);
+    }
+  if (q.from) {
+    where += " AND d.expected_close_date>=?";
+    args.push(date(q.from));
+  }
+  if (q.to) {
+    where += " AND d.expected_close_date<=?";
+    args.push(date(q.to));
+  }
+  if (q.search) {
+    where += " AND d.title LIKE ?";
+    args.push("%" + q.search + "%");
+  }
+  if (q.custom_fields) {
+    for (const [key, value] of Object.entries(json(q.custom_fields))) {
+      if (!/^[A-Za-z][A-Za-z0-9_]*$/.test(key))
+        fail(400, "Trường lọc không hợp lệ.");
+      where += " AND JSON_UNQUOTE(JSON_EXTRACT(d.custom_fields,?))=?";
+      args.push("$." + key, String(value));
+    }
+  }
+  const [data] = await c.query(
+    `SELECT d.*,c.company_name,c.name customer_name,u.full_name owner_name FROM deals d JOIN customers c ON c.id=d.customer_id LEFT JOIN users u ON u.id=d.owner_id WHERE ${where} ORDER BY d.id DESC`,
+    args,
+  );
+  return { data, total: data.length, scope: s.name };
 }
-
-const verifyToken = typeof authMiddleware === 'function' 
-    ? authMiddleware 
-    : (authMiddleware.verifyToken || ((req, res, next) => next()));
-
-// =========================================================================
-// 1. CÁC ROUTE GIAI ĐOẠN (STAGES) - PHẢI ĐẶT TRÊN CÙNG ĐỂ TRÁNH TRÙNG ROUTE
-// =========================================================================
-
-// Đổi thứ tự giai đoạn Lên (UP) / Xuống (DOWN) bằng mũi tên (S2-09)
-router.put('/stages/:id/swap-order', verifyToken, async (req, res) => {
-    try {
-        if (req.user?.role_code !== 'Director' && req.user?.role_code !== 'Admin') {
-            return res.status(403).json({ message: 'Chỉ Giám đốc kinh doanh hoặc Admin mới có quyền đổi thứ tự!' });
-        }
-
-        const { direction } = req.body; // 'UP' hoặc 'DOWN'
-        const stageId = req.params.id;
-
-        const [curRows] = await db.execute('SELECT id, sort_order FROM pipeline_stages WHERE id = ?', [stageId]);
-        if (curRows.length === 0) return res.status(404).json({ message: 'Không tìm thấy giai đoạn' });
-        const curItem = curRows[0];
-
-        const compareOp = direction === 'UP' ? '<' : '>';
-        const orderDir = direction === 'UP' ? 'DESC' : 'ASC';
-
-        const [adjRows] = await db.execute(`
-            SELECT id, sort_order 
-            FROM pipeline_stages 
-            WHERE sort_order ${compareOp} ? 
-            ORDER BY sort_order ${orderDir} 
-            LIMIT 1
-        `, [curItem.sort_order]);
-
-        if (adjRows.length === 0) {
-            return res.json({ message: 'Giai đoạn đã ở vị trí đầu/cuối cùng!' });
-        }
-
-        const targetItem = adjRows[0];
-
-        // Đổi chỗ thứ tự giữa 2 giai đoạn
-        await db.execute('UPDATE pipeline_stages SET sort_order = ? WHERE id = ?', [targetItem.sort_order, curItem.id]);
-        await db.execute('UPDATE pipeline_stages SET sort_order = ? WHERE id = ?', [curItem.sort_order, targetItem.id]);
-
-        return res.json({ message: 'Đã cập nhật thứ tự phễu bán hàng thành công!' });
-    } catch (error) {
-        console.error('Lỗi swap-order stage:', error);
-        return res.status(500).json({ message: 'Lỗi máy chủ khi đổi thứ tự giai đoạn' });
+router.get(
+  "/",
+  route(async (req, res) => {
+    const result = await list(req.user, req.query);
+    const [stages] = await db.query(
+      "SELECT * FROM pipeline_stages ORDER BY sort_order,id",
+    );
+    const [reasons] = await db.query("SELECT * FROM deal_reasons");
+    const [competitors] = await db.query("SELECT * FROM competitors");
+    res.json({ ...result, deals: result.data, stages, reasons, competitors });
+  }),
+);
+router.get(
+  "/export",
+  route(async (req, res) => {
+    const XLSX = require("xlsx");
+    const data = (await list(req.user, req.query)).data.map((d) => {
+      const row = { ...d, ...json(d.custom_fields) };
+      delete row.custom_fields;
+      for (const k of Object.keys(row))
+        if (typeof row[k] === "string" && /^[=+@\-\t\r]/.test(row[k]))
+          row[k] = "'" + row[k];
+      return row;
+    });
+    const book = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(book, XLSX.utils.json_to_sheet(data), "Deals");
+    res
+      .attachment("deals.xlsx")
+      .send(XLSX.write(book, { type: "buffer", bookType: "xlsx" }));
+  }),
+);
+router.get(
+  "/kanban",
+  route(async (req, res) => {
+    const result = await list(req.user, req.query);
+    const [stages] = await db.query(
+      "SELECT * FROM pipeline_stages ORDER BY sort_order,id",
+    );
+    res.json({
+      data: stages.map((s) => {
+        const deals = result.data.filter(
+          (d) => d.stage_id === s.id && d.status === "OPEN",
+        );
+        return {
+          ...s,
+          count: deals.length,
+          total: deals.reduce((sum, d) => sum + Number(d.amount), 0),
+          deals,
+        };
+      }),
+    });
+  }),
+);
+router.get(
+  "/flagged",
+  requireRoles("Admin", "Director", "Team Lead"),
+  route(async (req, res) => {
+    const result = await list(req.user, req.query);
+    res.json({
+      data: result.data.filter(
+        (d) => d.status === "OPEN" && (d.stagnant || d.overdue),
+      ),
+    });
+  }),
+);
+router.get(
+  "/forecast",
+  requireRoles("Admin", "Director", "Team Lead"),
+  route(async (req, res) => {
+    const s = await scope(req.user, "DEAL", "d", false, db, "owner_id");
+    const now = new Date();
+    const y = now.getUTCFullYear(),
+      m = now.getUTCMonth();
+    const iso = (d) => d.toISOString().slice(0, 10);
+    const periods = {
+      this_month: [
+        new Date(Date.UTC(y, m, 1)),
+        new Date(Date.UTC(y, m + 1, 1)),
+      ],
+      next_month: [
+        new Date(Date.UTC(y, m + 1, 1)),
+        new Date(Date.UTC(y, m + 2, 1)),
+      ],
+      this_quarter: [
+        new Date(Date.UTC(y, Math.floor(m / 3) * 3, 1)),
+        new Date(Date.UTC(y, Math.floor(m / 3) * 3 + 3, 1)),
+      ],
+    };
+    const result = {};
+    for (const [name, [from, to]] of Object.entries(periods)) {
+      const params = [iso(from), iso(to), iso(from), iso(to), ...s.params];
+      let filter = "";
+      if (req.query.owner_id) {
+        filter += " AND d.owner_id=?";
+        params.push(id(req.query.owner_id));
+      }
+      if (req.query.group_id) {
+        filter += " AND d.group_id=?";
+        params.push(id(req.query.group_id));
+      }
+      const [rows] = await db.query(
+        `SELECT d.owner_id,d.group_id,SUM(CASE WHEN d.status='OPEN' AND d.expected_close_date>=? AND d.expected_close_date<? THEN d.amount*s.win_probability/100 ELSE 0 END) forecast,SUM(CASE WHEN d.status='WON' AND d.signed_date>=? AND d.signed_date<? THEN d.actual_amount ELSE 0 END) actual FROM deals d LEFT JOIN pipeline_stages s ON s.id=d.stage_id WHERE (${s.sql}) ${filter} GROUP BY d.owner_id,d.group_id`,
+        params,
+      );
+      const us = await scope(req.user, "KPI", "u", false, db, "id");
+      const targetParams = [iso(from), iso(to), ...us.params];
+      let tf = "";
+      if (req.query.owner_id) {
+        tf += " AND u.id=?";
+        targetParams.push(id(req.query.owner_id));
+      }
+      if (req.query.group_id) {
+        tf += " AND u.group_id=?";
+        targetParams.push(id(req.query.group_id));
+      }
+      const [targets] = await db.query(
+        `SELECT u.id owner_id,u.group_id,SUM(t.amount) target FROM sales_targets t JOIN users u ON u.id=t.user_id WHERE t.start_date>=? AND t.end_date<? AND (${us.sql}) ${tf} GROUP BY u.id,u.group_id`,
+        targetParams,
+      );
+      const map = new Map(rows.map((r) => [r.owner_id, { ...r, target: 0 }]));
+      for (const t of targets)
+        map.set(t.owner_id, {
+          ...(map.get(t.owner_id) || {
+            owner_id: t.owner_id,
+            group_id: t.group_id,
+            forecast: 0,
+            actual: 0,
+          }),
+          target: Number(t.target),
+        });
+      const staff = [...map.values()];
+      const groups = new Map();
+      for (const r of staff) {
+        const g = groups.get(r.group_id) || {
+          group_id: r.group_id,
+          forecast: 0,
+          actual: 0,
+          target: 0,
+        };
+        for (const k of ["forecast", "actual", "target"]) g[k] += Number(r[k]);
+        groups.set(r.group_id, g);
+      }
+      result[name] = {
+        from: iso(from),
+        to_exclusive: iso(to),
+        users: staff,
+        groups: [...groups.values()],
+        forecast: staff.reduce((n, r) => n + Number(r.forecast), 0),
+        actual: staff.reduce((n, r) => n + Number(r.actual), 0),
+        target: staff.reduce((n, r) => n + Number(r.target), 0),
+      };
     }
-});
-
-// Thêm giai đoạn mới vào phễu (S2-09)
-router.post('/stages', verifyToken, async (req, res) => {
-    try {
-        if (req.user?.role_code !== 'Director' && req.user?.role_code !== 'Admin') {
-            return res.status(403).json({ message: 'Chỉ Giám đốc kinh doanh mới có quyền tạo giai đoạn mới!' });
-        }
-
-        const { name, code, probability, required_condition } = req.body;
-        if (!name || !code) {
-            return res.status(400).json({ message: 'Tên giai đoạn và mã định danh không được để trống!' });
-        }
-
-        const cleanCode = code.trim().toUpperCase();
-        const [existing] = await db.execute('SELECT id FROM pipeline_stages WHERE UPPER(code) = ?', [cleanCode]);
-        if (existing.length > 0) {
-            return res.status(400).json({ message: `Mã giai đoạn "${cleanCode}" đã tồn tại!` });
-        }
-
-        const [maxOrder] = await db.execute('SELECT COALESCE(MAX(sort_order), 0) + 1 AS next_order FROM pipeline_stages');
-        const sortOrder = maxOrder[0]?.next_order || 1;
-
-        await db.execute(`
-            INSERT INTO pipeline_stages (name, code, probability, sort_order, required_condition)
-            VALUES (?, ?, ?, ?, ?)
-        `, [name.trim(), cleanCode, Number(probability || 10), sortOrder, required_condition || null]);
-
-        return res.json({ message: 'Đã thêm giai đoạn mới vào phễu bán hàng!' });
-    } catch (error) {
-        console.error('Lỗi POST /stages:', error);
-        return res.status(500).json({ message: error.message || 'Lỗi khi tạo giai đoạn mới' });
-    }
-});
-
-// Giám đốc cập nhật xác suất & điều kiện của giai đoạn
-router.put('/stages/:id', verifyToken, async (req, res) => {
-    try {
-        if (req.user?.role_code !== 'Director' && req.user?.role_code !== 'Admin') {
-            return res.status(403).json({ message: 'Chỉ Giám đốc mới có quyền cấu hình Pipeline!' });
-        }
-        const { probability, required_condition } = req.body;
-        await db.execute('UPDATE pipeline_stages SET probability = ?, required_condition = ? WHERE id = ?', [
-            probability, 
-            required_condition || null, 
-            req.params.id
+    res.json({ data: result });
+  }),
+);
+router.post(
+  "/reassign",
+  requireRoles("Admin", "Director", "Team Lead"),
+  route(async (req, res) => {
+    const ids = req.body.ids;
+    if (!Array.isArray(ids) || !ids.length || ids.length > 500)
+      fail(400, "Danh sách cơ hội không hợp lệ.");
+    const reason = text(req.body.reason, "Lý do", 2000);
+    await transaction(async (c) => {
+      const owner = await ownerAllowed(c, req.user, "DEAL", req.body.owner_id);
+      for (const rid of [...new Set(ids.map(id))].sort((a, b) => a - b)) {
+        const d = await record(
+          c,
+          req.user,
+          "DEAL",
+          "deals",
+          rid,
+          true,
+          "owner_id",
+          true,
+        );
+        if (d.status !== "OPEN")
+          fail(409, "Cơ hội đã đóng; cần mở lại trước khi đổi chủ sở hữu.");
+        await update(c, "deals", d.id, {
+          owner_id: owner.id,
+          group_id: owner.group_id,
+        });
+        await audit(
+          c,
+          req.user,
+          "OWNER_CHANGE",
+          "deals",
+          d.id,
+          { owner_id: d.owner_id },
+          { owner_id: owner.id },
+          reason,
+        );
+      }
+    });
+    res.json({ success: true });
+  }),
+);
+router.post(
+  "/",
+  route(async (req, res) =>
+    res
+      .status(201)
+      .json({ id: await transaction((c) => saveDeal(c, req.user, req.body)) }),
+  ),
+);
+router.get(
+  "/:id",
+  route(async (req, res) => {
+    const deal = await record(
+      db,
+      req.user,
+      "DEAL",
+      "deals",
+      req.params.id,
+      false,
+      "owner_id",
+    );
+    const [items] = await db.query(
+      "SELECT i.*,p.name product_name FROM deal_items i JOIN products p ON p.id=i.product_id WHERE i.deal_id=?",
+      [deal.id],
+    );
+    res.json({
+      data: { ...deal, items, custom_fields_data: json(deal.custom_fields) },
+    });
+  }),
+);
+router.put(
+  "/:id",
+  route(async (req, res) =>
+    res.json({
+      id: await transaction((c) =>
+        saveDeal(c, req.user, req.body, id(req.params.id)),
+      ),
+    }),
+  ),
+);
+router.put(
+  "/:id/stage",
+  route(async (req, res) => {
+    await transaction((c) =>
+      ["WON", "LOST"].includes(String(req.body.stage).toUpperCase())
+        ? close(c, req.user, req.params.id, req.body)
+        : transition(
+            c,
+            req.user,
+            req.params.id,
+            req.body.stage_id || req.body.stage,
+            req.body,
+          ),
+    );
+    res.json({ success: true });
+  }),
+);
+router.post(
+  "/:id/close",
+  route(async (req, res) => {
+    await transaction((c) => close(c, req.user, req.params.id, req.body));
+    res.json({ success: true });
+  }),
+);
+router.post(
+  "/:id/reopen",
+  requireRoles("Admin", "Director", "Team Lead"),
+  route(async (req, res) => {
+    await transaction(async (c) => {
+      const d = await record(
+        c,
+        req.user,
+        "DEAL",
+        "deals",
+        req.params.id,
+        true,
+        "owner_id",
+        true,
+      );
+      if (d.status === "OPEN") fail(409, "Cơ hội đang mở.");
+      const reason = text(req.body.reason, "Lý do", 2000);
+      await update(c, "deals", d.id, {
+        status: "OPEN",
+        actual_amount: null,
+        signed_date: null,
+        win_reason_id: null,
+        loss_reason_id: null,
+        competitor_id: null,
+        loss_note: null,
+      });
+      await audit(
+        c,
+        req.user,
+        "REOPEN",
+        "deals",
+        d.id,
+        { status: d.status },
+        { status: "OPEN" },
+        reason,
+      );
+    });
+    res.json({ success: true });
+  }),
+);
+router.put(
+  "/:id/items",
+  route(async (req, res) => {
+    const items = req.body.items;
+    if (!Array.isArray(items) || items.length > 200)
+      fail(400, "Dòng sản phẩm không hợp lệ.");
+    await transaction(async (c) => {
+      const d = await record(
+        c,
+        req.user,
+        "DEAL",
+        "deals",
+        req.params.id,
+        true,
+        "owner_id",
+        true,
+      );
+      if (d.status !== "OPEN") fail(409, "Cơ hội đã đóng.");
+      const [old] = await c.query("SELECT * FROM deal_items WHERE deal_id=?", [
+        d.id,
+      ]);
+      await c.query("DELETE FROM deal_items WHERE deal_id=?", [d.id]);
+      for (const item of items) {
+        const [[p]] = await c.query("SELECT * FROM products WHERE id=?", [
+          id(item.product_id),
         ]);
-        return res.json({ message: 'Cập nhật cấu hình giai đoạn thành công!' });
-    } catch (error) {
-        return res.status(500).json({ message: 'Lỗi cập nhật cấu hình stage' });
-    }
-});
-
-// =========================================================================
-// 2. ROUTE LÝ DO THẮNG/THUA & ĐỐI THỦ CẠNH TRANH (S2-10)
-// =========================================================================
-
-// Thêm lý do thắng/thua
-// THÊM LÝ DO THẮNG / THUA (TỰ ĐỘNG THÍCH ỨNG CỘT DATABASE)
-router.post('/reasons', verifyToken, async (req, res) => {
-    try {
-        const { type, name, code, description } = req.body;
-        if (!name) {
-            return res.status(400).json({ message: 'Tên nguyên nhân không được để trống!' });
-        }
-
-        const cleanCode = (code || `REASON_${Date.now()}`).trim().toUpperCase();
-
-        // 1. Quét các cột thực tế đang có trong bảng deal_reasons
-        const [colRows] = await db.execute('SHOW COLUMNS FROM deal_reasons');
-        const existingCols = colRows.map(c => c.Field);
-
-        const insertCols = ['name'];
-        const placeholders = ['?'];
-        const values = [name.trim()];
-
-        if (existingCols.includes('type')) {
-            insertCols.push('type');
-            placeholders.push('?');
-            // Chuẩn hóa type thành 'WIN' hoặc 'LOSS'
-            const normType = (type === 'LOST' || type === 'THUA') ? 'LOSS' : (type || 'WIN');
-            values.push(normType);
-        }
-
-        if (existingCols.includes('code')) {
-            insertCols.push('code');
-            placeholders.push('?');
-            values.push(cleanCode);
-        }
-
-        if (existingCols.includes('description')) {
-            insertCols.push('description');
-            placeholders.push('?');
-            values.push(description || '');
-        }
-
-        if (existingCols.includes('status')) {
-            insertCols.push('status');
-            placeholders.push('?');
-            values.push('active');
-        }
-
-        // 2. Thực thi chèn dữ liệu an toàn
-        const sql = `INSERT INTO deal_reasons (${insertCols.join(', ')}) VALUES (${placeholders.join(', ')})`;
-        await db.execute(sql, values);
-
-        return res.json({ message: 'Khai báo lý do mới thành công!' });
-    } catch (error) {
-        console.error('Lỗi POST /api/deals/reasons:', error);
-        if (error.code === 'ER_DUP_ENTRY') {
-            return res.status(400).json({ message: `Mã lý do "${code}" đã tồn tại! Vui lòng chọn mã khác.` });
-        }
-        return res.status(500).json({ message: error.message || 'Lỗi máy chủ khi lưu lý do vào database' });
-    }
-});
-
-// Thêm đối thủ cạnh tranh
-router.post('/competitors', verifyToken, async (req, res) => {
-    try {
-        const { name, strengths, weaknesses } = req.body;
-        if (!name) return res.status(400).json({ message: 'Tên đối thủ không được để trống!' });
-
-        await db.execute(`
-            INSERT INTO competitors (name, strengths, weaknesses)
-            VALUES (?, ?, ?)
-        `, [name.trim(), strengths || '', weaknesses || '']);
-
-        return res.json({ message: 'Thêm đối thủ cạnh tranh thành công!' });
-    } catch (error) {
-        console.error('Lỗi POST /competitors:', error);
-        return res.status(500).json({ message: 'Lỗi khi lưu đối thủ vào database' });
-    }
-});
-
-// =========================================================================
-// 3. ROUTE DEALS CHÍNH (GET, POST, UPDATE STAGE)
-// =========================================================================
-
-// Lấy danh sách Deal và Stages
-router.get('/', verifyToken, async (req, res) => {
-    try {
-        const user = req.user || {};
-        let dealWhere = 'WHERE 1=1';
-        const params = [];
-
-        if (user.role_code === 'Sales Rep') {
-            dealWhere += ' AND owner_id = ?';
-            params.push(user.id);
-        } else if (user.role_code === 'Team Lead' && user.group_id) {
-            dealWhere += ' AND group_id = ?';
-            params.push(user.group_id);
-        }
-
-        let stages = [];
-        try {
-            const [stRows] = await db.execute('SELECT * FROM pipeline_stages ORDER BY sort_order ASC, id ASC');
-            stages = stRows;
-        } catch (_) {}
-
-        let deals = [];
-        try {
-            const [dRows] = await db.execute(`SELECT * FROM deals ${dealWhere} ORDER BY id DESC`, params);
-            deals = dRows;
-        } catch (_) {}
-
-        let customers = [];
-        let users = [];
-        let reasons = [];
-        let competitors = [];
-
-        try { const [c] = await db.execute('SELECT * FROM customers'); customers = c; } catch (_) {}
-        try { const [u] = await db.execute('SELECT id, full_name FROM users'); users = u; } catch (_) {}
-        try { const [r] = await db.execute('SELECT * FROM deal_reasons'); reasons = r; } catch (_) {}
-        try { const [comp] = await db.execute('SELECT * FROM competitors'); competitors = comp; } catch (_) {}
-
-        const custMap = {};
-        customers.forEach(c => { custMap[c.id] = c.company_name || c.name || `Khách hàng #${c.id}`; });
-
-        const userMap = {};
-        users.forEach(u => { userMap[u.id] = u.full_name; });
-
-        const reasonMap = {};
-        reasons.forEach(r => { reasonMap[r.id] = r.name; });
-
-        const compMap = {};
-        competitors.forEach(cp => { compMap[cp.id] = cp.name; });
-
-        const formattedDeals = deals.map(d => ({
-            ...d,
-            customer_name: custMap[d.customer_id] || 'Khách hàng vãng lai',
-            owner_name: userMap[d.owner_id] || 'Chưa gán',
-            win_reason_name: reasonMap[d.win_reason_id] || '',
-            loss_reason_name: reasonMap[d.loss_reason_id] || '',
-            competitor_name: compMap[d.competitor_id] || ''
-        }));
-
-        return res.json({ stages, deals: formattedDeals, reasons, competitors });
-    } catch (error) {
-        console.error('Lỗi GET /api/deals:', error);
-        return res.status(500).json({ message: 'Lỗi nạp dữ liệu Pipeline' });
-    }
-});
-
-// Tạo cơ hội mới
-router.post('/', verifyToken, async (req, res) => {
-    try {
-        const { title, customer_id, amount, stage } = req.body;
-        if (!title || !customer_id) {
-            return res.status(400).json({ message: 'Vui lòng điền tên cơ hội và chọn khách hàng!' });
-        }
-
-        await db.execute(`
-            INSERT INTO deals (title, customer_id, owner_id, group_id, amount, stage)
-            VALUES (?, ?, ?, ?, ?, ?)
-        `, [
-            title, 
-            customer_id, 
-            req.user?.id || 1, 
-            req.user?.group_id || null, 
-            amount || 0, 
-            stage || 'Discovery'
-        ]);
-
-        return res.json({ message: 'Tạo cơ hội kinh doanh mới thành công!' });
-    } catch (error) {
-        return res.status(500).json({ message: 'Lỗi khi tạo cơ hội' });
-    }
-});
-
-// Chuyển giai đoạn / Đóng Deal (Won/Lost S2-10)
-router.put('/:id/stage', verifyToken, async (req, res) => {
-    try {
-        const dealId = req.params.id;
-        const { stage, win_reason_id, loss_reason_id, competitor_id, loss_note } = req.body;
-
-        // 1. Lấy thông tin Deal hiện tại
-        const [dealRows] = await db.execute('SELECT title, amount, stage FROM deals WHERE id = ?', [dealId]);
-        if (dealRows.length === 0) {
-            return res.status(404).json({ message: 'Không tìm thấy cơ hội' });
-        }
-        const currentDeal = dealRows[0];
-
-        // 2. Cập nhật bảng deals an toàn theo các cột thực tế
-        const [cols] = await db.execute('SHOW COLUMNS FROM deals');
-        const existingCols = cols.map(c => c.Field);
-
-        const updateParts = ['stage = ?'];
-        const values = [stage];
-
-        if (existingCols.includes('win_reason_id')) { updateParts.push('win_reason_id = ?'); values.push(win_reason_id || null); }
-        if (existingCols.includes('loss_reason_id')) { updateParts.push('loss_reason_id = ?'); values.push(loss_reason_id || null); }
-        if (existingCols.includes('competitor_id')) { updateParts.push('competitor_id = ?'); values.push(competitor_id || null); }
-        if (existingCols.includes('loss_note')) { updateParts.push('loss_note = ?'); values.push(loss_note || null); }
-
-        values.push(dealId);
-        await db.execute(`UPDATE deals SET ${updateParts.join(', ')} WHERE id = ?`, values);
-
-        // 3. Ghi audit log an toàn
-        const executor = req.user?.full_name ? `${req.user.full_name} (${req.user.role_code || 'Sales'})` : 'Dũng Quang (Admin)';
-        const formattedAmount = Number(currentDeal.amount || 0).toLocaleString('vi-VN') + ' đ';
-
-        if (stage === 'Won') {
-            await logAudit({
-                userName: executor,
-                actionType: 'TARGET_UPDATE',
-                entityType: 'Chỉ tiêu doanh số',
-                entityId: `DEAL-${dealId}`,
-                beforeValue: `Giai đoạn: ${currentDeal.stage}`,
-                afterValue: 'Chốt thành công (Won)',
-                description: `${executor} đã chốt thành công hợp đồng cho cơ hội [${currentDeal.title}], ghi nhận doanh thu thực tế ${formattedAmount}`
-            });
-        } else if (stage === 'Lost') {
-            await logAudit({
-                userName: executor,
-                actionType: 'DISCOUNT_CHANGE',
-                entityType: 'Chiết khấu Deal',
-                entityId: `DEAL-${dealId}`,
-                beforeValue: `Giai đoạn: ${currentDeal.stage}`,
-                afterValue: 'Đóng thất bại (Lost)',
-                description: `${executor} đã báo đóng thất bại cơ hội [${currentDeal.title}] (${formattedAmount}). Ghi chú: ${loss_note || 'Thất bại trước đối thủ'}`
-            });
-        }
-
-        return res.json({ message: `Cơ hội đã chuyển sang giai đoạn [${stage}] thành công!` });
-    } catch (error) {
-        console.error('Lỗi cập nhật giai đoạn cơ hội:', error);
-        return res.status(500).json({ message: error.message || 'Lỗi cập nhật giai đoạn cơ hội' });
-    }
-});
-
+        if (!p || String(p.status).toUpperCase() !== "ACTIVE")
+          fail(400, "Sản phẩm không hoạt động.");
+        const qty = number(item.quantity, "Số lượng", 0.001, 1000000),
+          price = number(item.unit_price ?? p.list_price, "Đơn giá", 0, 1e12);
+        const periods =
+            p.type === "SUBSCRIPTION"
+              ? number(item.periods, "Số kỳ", 1, 1200)
+              : 1,
+          months =
+            p.type === "SUBSCRIPTION"
+              ? number(item.period_months || 1, "Số tháng/kỳ", 1, 120)
+              : 1;
+        if (!Number.isInteger(periods) || !Number.isInteger(months))
+          fail(400, "Số kỳ phải là số nguyên.");
+        if (qty * price * periods > 1e12)
+          fail(400, "Giá trị dòng sản phẩm vượt giới hạn cho phép.");
+        await c.query(
+          "INSERT INTO deal_items (deal_id,product_id,quantity,unit_price,periods,period_months,line_total) VALUES (?,?,?,?,?,?,ROUND(CAST(? AS DECIMAL(18,3))*CAST(? AS DECIMAL(18,2))*?,2))",
+          [d.id, p.id, qty, price, periods, months, qty, price, periods],
+        );
+      }
+      const [[total]] = await c.query(
+        "SELECT COALESCE(SUM(line_total),0) amount FROM deal_items WHERE deal_id=?",
+        [d.id],
+      );
+      if (Number(total.amount) > 1e12)
+        fail(400, "Tổng giá trị cơ hội vượt giới hạn cho phép.");
+      await c.query(
+        "UPDATE deals SET amount=(SELECT COALESCE(SUM(line_total),0) FROM deal_items WHERE deal_id=?),annual_value=(SELECT COALESCE(SUM(CASE WHEN p.type='SUBSCRIPTION' THEN i.quantity*i.unit_price*12/i.period_months ELSE i.line_total END),0) FROM deal_items i JOIN products p ON p.id=i.product_id WHERE i.deal_id=?) WHERE id=?",
+        [d.id, d.id, d.id],
+      );
+      await audit(c, req.user, "PRICE_CHANGE", "deals", d.id, old, items);
+    });
+    res.json({ success: true });
+  }),
+);
+router.post(
+  "/:id/activities",
+  route(async (req, res) => {
+    const rid = await transaction(async (c) => {
+      const d = await record(
+        c,
+        req.user,
+        "DEAL",
+        "deals",
+        req.params.id,
+        true,
+        "owner_id",
+        true,
+      );
+      if (d.status !== "OPEN") fail(409, "Cơ hội đã đóng.");
+      const type = text(req.body.activity_type, "Loại hoạt động", 50);
+      const rid = await insert(c, "customer_activities", {
+        customer_id: d.customer_id,
+        deal_id: d.id,
+        user_id: req.user.id,
+        activity_type: type,
+        content: text(req.body.content, "Nội dung", 10000),
+      });
+      await c.query(
+        "UPDATE deals SET last_activity_at=UTC_TIMESTAMP(),stagnant=0 WHERE id=?",
+        [d.id],
+      );
+      return rid;
+    });
+    res.status(201).json({ id: rid });
+  }),
+);
 module.exports = router;
+module.exports.list = list;

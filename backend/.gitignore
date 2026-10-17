@@ -1,3 +1,6 @@
 node_modules/
 uploads/avatars/*
 !uploads/avatars/.gitkeep
+
+uploads/customer-files/
+coverage/
