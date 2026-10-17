@@ -3,6 +3,7 @@
  */
 const { db } = require("../src/core/store");
 const { normalizeRole } = require("../src/core/access");
+const { reconcileLegacyGroups } = require("./reconcile-legacy-groups");
 const common = { created_at: "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP" };
 const owned = { created_by: "INT NULL", group_id: "INT NULL" };
 const schema = {
@@ -369,6 +370,12 @@ const schema = {
     last_run_at: "DATETIME NOT NULL",
   },
   crm_migrations: { version: "VARCHAR(100) NOT NULL", ...common },
+  crm_legacy_group_map: {
+    legacy_group_id: "INT NOT NULL",
+    group_id: "INT NOT NULL",
+    remap_users: "BOOLEAN NOT NULL DEFAULT FALSE",
+    users_remapped: "BOOLEAN NOT NULL DEFAULT FALSE",
+  },
 };
 const indexes = {
   users: [["uq_users_email", ["email"], true]],
@@ -410,6 +417,7 @@ const indexes = {
   ],
   crm_job_runs: [["uq_job_name", ["job_name"], true]],
   crm_migrations: [["uq_migration", ["version"], true]],
+  crm_legacy_group_map: [["uq_legacy_group", ["legacy_group_id"], true]],
 };
 const foreignKeys = [
   ["users", "group_id", "groups"],
@@ -477,40 +485,7 @@ async function migrate() {
           );
         }
     }
-    // Reconcile the repository's older groups_table FK without renumbering data.
-    const [legacyGroups] = await c.query(
-      "SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='groups_table'",
-    );
-    if (legacyGroups.length) {
-      const [legacy] = await c.query(
-        "SELECT id,group_name,description FROM groups_table",
-      );
-      for (const g of legacy) {
-        const [[existing]] = await c.query(
-          "SELECT id,name FROM `groups` WHERE id=?",
-          [g.id],
-        );
-        if (existing && existing.name !== g.group_name)
-          throw new Error(
-            "Conflicting legacy group ID " +
-              g.id +
-              "; no IDs or business records were overwritten. Reconcile group mapping before migration.",
-          );
-        if (!existing)
-          await c.query(
-            "INSERT INTO `groups` (id,name,description) VALUES (?,?,?)",
-            [g.id, g.group_name, g.description],
-          );
-      }
-      const [fks] = await c.query(
-        "SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='users' AND COLUMN_NAME='group_id' AND REFERENCED_TABLE_NAME='groups_table'",
-      );
-      for (const fk of fks)
-        await c.query(
-          "ALTER TABLE users DROP FOREIGN KEY " +
-            c.escapeId(fk.CONSTRAINT_NAME),
-        );
-    }
+    await reconcileLegacyGroups(c);
     // Copy known aliases only when their canonical column was newly introduced.
     for (const [table, aliases] of Object.entries({
       customer_contacts: {

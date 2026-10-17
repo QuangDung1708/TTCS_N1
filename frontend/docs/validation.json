@@ -15,8 +15,8 @@
     "clean_npm_ci": "passed"
   },
   "backend": {
-    "tests_passed": 86,
-    "tests_total": 86,
+    "tests_passed": 89,
+    "tests_total": 89,
     "suites_passed": 11,
     "coverage_percent": {
       "lines": 90.63,
@@ -56,5 +56,22 @@
     "concurrent_smtp_dispatch_verified": true,
     "frontend_e2e_rerun": false,
     "user_db_version_confirmed": false
+  },
+  "legacy_group_migration_fix": {
+    "mysql_version": "8.4.11",
+    "mysql_tests_passed": 89,
+    "mysql_tests_total": 89,
+    "migration_cases": [
+      "original_schema_repeatable",
+      "colliding_ids_preserve_both_groups_and_links",
+      "resume_after_fk_drop",
+      "reject_ambiguous_membership"
+    ],
+    "user_database_accessed": false,
+    "frontend_e2e_rerun": false,
+    "mariadb_version": "10.4.34",
+    "mariadb_tests_passed": 32,
+    "mariadb_tests_total": 32,
+    "mariadb_suites_passed": 4
   }
 }

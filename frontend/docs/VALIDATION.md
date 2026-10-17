@@ -9,7 +9,7 @@
 | Frontend `npm run build` | Thành công |
 | Playwright + Chromium + Express + MySQL thật | **23/23 test**, lượt chạy cuối 2,6 phút |
 | Backend lint | Thành công |
-| Backend Jest/MySQL | **86/86 test**, 11/11 suite |
+| Backend Jest/MySQL | **89/89 test**, 11/11 suite |
 | Backend coverage | 90.63% dòng; 76.50% nhánh; 91.2% hàm; 87.40% câu lệnh |
 | Server phát triển | Frontend HTTP 200, backend health HTTP 200; dùng crm_dev không nạp dữ liệu nghiệp vụ mẫu |
 
@@ -50,3 +50,7 @@ Chưa kết nối hoặc chạy migration vào database thật trong hai ảnh c
 ## Bản vá worker — 18-10-2026 (UTC+7)
 
 Tái hiện `ER_PARSE_ERROR` gần `SKIP LOCKED` trên MariaDB 10.4.34. Sau bản sửa: 86/86 test backend (11 suite) trên MySQL 8.4.11; 28/28 test liên quan (worker, security-runtime, leads-deals) trên MariaDB 10.4.34; backend lint thành công. Test SMTP dùng socket thật, chạy đồng thời hai worker và xác nhận không gửi lại thư đã hoàn tất. Kiểm thử trình duyệt 23/23 ở trên là kết quả trước bản vá; frontend không thay đổi và không chạy lại E2E cho bản vá này. Chưa xác nhận phiên bản database trên máy người dùng. Xem [hướng dẫn áp dụng](../../backend/docs/WORKER-COMPATIBILITY.md).
+
+## Bản vá migration nhóm — 18-10-2026 (UTC+7)
+
+Bổ sung ánh xạ nhóm cũ khi trùng ID và checkpoint để chạy lại sau bước bỏ FK. MySQL 8.4: 89/89 test backend (11 suite), lint đạt. MariaDB 10.4.34: 32/32 test liên quan (4 suite: migration, worker, security-runtime, leads-deals). Các ca mới kiểm tra giữ hai nhóm khác tên, giữ nhóm của khách hàng, chuyển đúng nhóm người dùng theo FK cũ, chạy lặp, phục hồi checkpoint và dừng khi thiếu căn cứ ánh xạ. Frontend không đổi; chưa chạy lại E2E. Xem [hướng dẫn migration nhóm](../../backend/docs/GROUP-MIGRATION.md).
