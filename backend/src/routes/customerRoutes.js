@@ -74,14 +74,10 @@ router.get(
 router.get(
   "/users-list",
   route(async (req, res) => {
-    const s = await scope(req.user, "CUSTOMER");
+    const s = await scope(req.user, "CUSTOMER", "u", false, db, "id");
     const [rows] = await db.query(
-      `SELECT id,full_name,email,role_code,group_id FROM users WHERE is_active=1${s.name === "OWN" ? " AND id=?" : s.name === "GROUP" ? " AND group_id=?" : ""}`,
-      s.name === "OWN"
-        ? [req.user.id]
-        : s.name === "GROUP"
-          ? [req.user.group_id]
-          : [],
+      `SELECT u.id,u.full_name,u.email,u.role_code,u.group_id,g.name group_name,(SELECT JSON_ARRAYAGG(ur.role_code) FROM user_roles ur WHERE ur.user_id=u.id) roles FROM users u LEFT JOIN \`groups\` g ON g.id=u.group_id WHERE u.is_active=1 AND (${s.sql}) ORDER BY u.full_name`,
+      s.params,
     );
     res.json({ data: rows });
   }),

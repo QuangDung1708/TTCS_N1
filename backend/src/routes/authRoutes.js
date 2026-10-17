@@ -92,8 +92,49 @@ router.get(
           req.user.group_id,
         ])
       : [[null]];
-    res.json({ user: { ...req.user, group: group || null }, permissions });
+    const { groups, has } = require("../core/access");
+    const managedGroupIds = has(req.user, "Team Lead")
+      ? await groups(req.user)
+      : [];
+    const [managedUsers] = managedGroupIds.length
+      ? await db.query(
+          `SELECT id FROM users WHERE group_id IN (${managedGroupIds.map(() => "?").join(",")})`,
+          managedGroupIds,
+        )
+      : [[]];
+    const grants = Object.fromEntries(
+      Object.keys(matrix).map((module) => [
+        module,
+        req.user.roles
+          .map((role) => ({ role, permission: matrix[module][role] }))
+          .filter((g) => g.permission !== "N"),
+      ]),
+    );
+    res.json({
+      user: { ...req.user, group: group || null },
+      permissions,
+      grants,
+      managed_group_ids: managedGroupIds,
+      managed_user_ids: managedUsers.map((u) => u.id),
+      self_registration: process.env.ALLOW_SELF_REGISTRATION === "true",
+    });
   }),
+);
+router.get(
+  "/role-matrix",
+  authenticate,
+  require("../core/access").authorize("USER_LOG"),
+  route(async (req, res) =>
+    res.json({ data: require("../config/roleMatrix") }),
+  ),
+);
+router.get(
+  "/options",
+  route(async (req, res) =>
+    res.json({
+      self_registration: process.env.ALLOW_SELF_REGISTRATION === "true",
+    }),
+  ),
 );
 router.post(
   "/forgot-password",

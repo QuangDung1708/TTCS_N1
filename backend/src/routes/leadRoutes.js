@@ -559,6 +559,26 @@ const escape = (s) =>
         c
       ],
   );
+// Public metadata lets the Ant Design form use the same signed anti-spam flow.
+publicRouter.get(
+  "/lead-forms/:key/meta",
+  route(async (req, res) => {
+    await rateLimit("public-form:" + req.ip, 60, 15);
+    const [[f]] = await db.query(
+      "SELECT name,public_key FROM lead_forms WHERE public_key=? AND is_active=1",
+      [req.params.key],
+    );
+    if (!f) fail(404, "Biểu mẫu không tồn tại.");
+    const stamp = String(Date.now());
+    const signature = crypto
+      .createHmac("sha256", process.env.JWT_SECRET)
+      .update(f.public_key + stamp)
+      .digest("hex");
+    res
+      .set("Cache-Control", "no-store")
+      .json({ name: f.name, stamp, signature });
+  }),
+);
 publicRouter.get(
   "/lead-forms/:key",
   route(async (req, res) => {

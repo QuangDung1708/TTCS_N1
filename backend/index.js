@@ -85,6 +85,14 @@ app.use("/api", system);
 app.get(
   "/api/audit-logs/notifications",
   require("./src/core/auth").authenticate,
+  (req, res, next) => {
+    try {
+      require("./src/core/access").permission(req.user, "AUTO");
+      next();
+    } catch (e) {
+      next(e);
+    }
+  },
   route(async (req, res) => {
     const [data] = await db.query(
       "SELECT id,message title,message AS `desc`,created_at FROM crm_notifications WHERE user_id=? ORDER BY id DESC LIMIT 100",

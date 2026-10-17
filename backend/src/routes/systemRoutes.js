@@ -7,10 +7,20 @@ const {
   requireRoles,
   ownerAllowed,
   has,
+  permission,
 } = require("../core/access");
 router.use(authenticate);
+const readNotifications = (req, res, next) => {
+  try {
+    permission(req.user, "AUTO");
+    next();
+  } catch (e) {
+    next(e);
+  }
+};
 router.get(
   "/notifications",
+  readNotifications,
   route(async (req, res) => {
     const [data] = await db.query(
       "SELECT * FROM crm_notifications WHERE user_id=? ORDER BY id DESC LIMIT 100",
@@ -21,6 +31,7 @@ router.get(
 );
 router.put(
   "/notifications/:id/read",
+  readNotifications,
   route(async (req, res) => {
     await db.query(
       "UPDATE crm_notifications SET read_at=UTC_TIMESTAMP() WHERE id=? AND user_id=?",

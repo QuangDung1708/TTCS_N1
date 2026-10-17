@@ -8,7 +8,7 @@ Tiền tố `/api`. JSON yêu cầu dùng `Content-Type: application/json`. API 
 | Xác thực         | `POST /auth/login`, `/logout`, `/refresh`; `GET /auth/me`                                               | Phiên server, vai trò/nhóm/quyền theo module                                                                                             |
 | Mật khẩu         | `POST /auth/forgot-password`, `/reset-password`; `PUT /auth/change-password`                            | Token 30 phút, dùng một lần; thu hồi phiên                                                                                               |
 | Đăng ký tùy chọn | `POST /auth/send-register-otp`, `/auth/register`                                                        | Chỉ bật qua cấu hình; OTP 10 phút, tối đa 5 lần thử                                                                                      |
-| Người dùng       | `GET/POST /users`; `PUT /users/:id`, `/:id/role`, `/:id/status`                                         | Admin; nhiều vai trò, tìm kiếm/phân trang, khóa có bàn giao                                                                              |
+| Người dùng       | `GET/POST /users`; `PUT /users/:id`, `/:id/role`, `/:id/status`                                         | Admin ghi; Admin/Director đọc; nhiều vai trò, tìm kiếm/phân trang, khóa có bàn giao                                                                              |
 | Hồ sơ            | `GET/PUT /users/profile`; `POST /users/profile/avatar`                                                  | Tự sửa tên/điện thoại/chữ ký; ảnh multipart `avatar`                                                                                     |
 | Tổ chức          | `/organization/tree`, `/regions`, `/groups`, `/groups/:id/assign-member`                                | Cây nhóm, khu vực, trưởng nhóm và nhân viên                                                                                              |
 | Danh mục         | `/products`, `/categories`, `/pipeline-stages`, `/deal-reasons`, `/competitors`, `/custom-fields`       | Đọc theo vai trò; ghi cấu hình theo ma trận; trường tùy chỉnh chỉ Admin sửa                                                              |
@@ -57,3 +57,11 @@ Khách hàng lọc bằng `status`, `industry`, `company_size`, `region`, `owner
 - `/deals/reassign`: `ids` là mảng ID, `owner_id`, `reason`. Tất cả thành công hoặc rollback toàn bộ.
 
 Các URL tương thích như `/users/avatar`, `/users/:id/lock`, `/groups`, `/deals/stages`, `/deals/reasons`, `/deals/competitors` được giữ qua cùng lớp kiểm tra quyền. Frontend cũ dùng JWT đời trước phải đăng nhập lại, và biểu mẫu tạo cơ hội phải bổ sung các trường bắt buộc theo AC.
+
+## Dữ liệu phục vụ giao diện
+
+`GET /auth/options` công khai chỉ trả cờ tự đăng ký. `GET /auth/me` trả grants theo module, managed_group_ids/managed_user_ids từ cây nhóm và danh tính đang có hiệu lực; frontend không tự quyết định vai trò. `GET /auth/role-matrix` chỉ Admin/Director đọc ma trận server.
+
+`GET /public/lead-forms/:key/meta` trả tên biểu mẫu, timestamp và chữ ký chống spam (no-store), dùng cùng POST công khai với biểu mẫu HTML tương thích cũ. Nguồn/campaign được lấy từ cấu hình biểu mẫu trên server.
+
+Thông báo cá nhân đòi quyền đọc AUTO; thao tác đánh dấu đã đọc không cấp quyền chỉnh cấu hình tự động hóa. Accountant không truy cập cả URL thông báo chuẩn và URL tương thích cũ.

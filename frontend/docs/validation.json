@@ -1,0 +1,44 @@
+{
+  "verified_at_utc": "2026-10-17T16:31:24.923032+00:00",
+  "runtime": {
+    "node": "24.19.0",
+    "mysql": "8.4.11",
+    "chromium": "154.0.8037.57",
+    "playwright": "1.56.1"
+  },
+  "frontend": {
+    "browser_tests_passed": 23,
+    "browser_tests_total": 23,
+    "mock_api": false,
+    "lint": "passed",
+    "build": "passed",
+    "clean_npm_ci": "passed"
+  },
+  "backend": {
+    "tests_passed": 86,
+    "tests_total": 86,
+    "suites_passed": 11,
+    "coverage_percent": {
+      "lines": 90.59,
+      "statements": 87.35,
+      "functions": 91.2,
+      "branches": 76.43
+    },
+    "lint": "passed"
+  },
+  "test_databases": [
+    "crm_test",
+    "crm_test_ui"
+  ],
+  "application_db_business_rows": {
+    "users": 0,
+    "customers": 0,
+    "leads": 0,
+    "deals": 0
+  },
+  "external_smtp_verified": false,
+  "user_database_migration_verified": false,
+  "staging_performance_verified": false,
+  "github_actions_result_verified": false,
+  "po_acceptance_verified": false
+}

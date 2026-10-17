@@ -86,7 +86,13 @@ router.post("/avatar", (req, res, next) => {
   req.url = "/profile/avatar";
   router.handle(req, res, next);
 });
-router.use(requireRoles("Admin"));
+router.use((req, res, next) =>
+  requireRoles(
+    ...(["GET", "HEAD", "OPTIONS"].includes(req.method)
+      ? ["Admin", "Director"]
+      : ["Admin"]),
+  )(req, res, next),
+);
 const roleNames = [
   "Sales Rep",
   "Team Lead",

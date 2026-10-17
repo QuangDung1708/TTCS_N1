@@ -1,5 +1,7 @@
 # HỆ THỐNG QUẢN LÝ KHÁCH HÀNG (CRM)
 
+> Bản triển khai Sprint 1–5: xem [hướng dẫn chạy frontend và backend](frontend/README.md), [đối chiếu AC](frontend/docs/AC-MATRIX.md), và [kết quả kiểm thử](frontend/docs/VALIDATION.md). Gói tải về và checksum nằm trong [delivery](delivery/README.md).
+
 > Dự án thực tập tốt nghiệp / môn học - Nhóm 4  
 > Mô hình triển khai: Scrum (8 Sprints × 1 tuần)
 
@@ -41,9 +43,9 @@ Hệ thống hỗ trợ 7 nhóm người dùng với cơ chế phân quyền d�
 ---
 
 ## 4. Công nghệ sử dụng (Tech Stack)
-- **Frontend:** [Điền công nghệ của nhóm, ví dụ: ReactJS / Next.js / Vue]
-- **Backend:** [Điền công nghệ của nhóm, ví dụ: Node.js (NestJS/Express) / Java Spring Boot / Python]
-- **Database:** [Điền hệ quản trị CSDL, ví dụ: PostgreSQL / MySQL]
+- **Frontend:** React 19, Vite 8, Ant Design 6, dnd-kit
+- **Backend:** Node.js 24, Express 5, mysql2
+- **Database:** MySQL 8 (đã kiểm thử trên MySQL 8.4)
 - **Quản lý dự án & Quy trình:** Jira Software (Scrum framework), Git / GitHub
 
 ---
@@ -66,15 +68,6 @@ Hệ thống hỗ trợ 7 nhóm người dùng với cơ chế phân quyền d�
 
 ---
 
-## 6. Hướng dẫn cài đặt & Chạy dự án (Getting Started)
-*(Cập nhật các lệnh chạy thực tế khi nhóm hoàn thiện mã nguồn)*
+## 6. Hướng dẫn cài đặt & chạy dự án
 
-### Yêu cầu môi trường:
-- Node.js >= 18.x / Java JDK >= 17 / Python >= 3.10
-- CSDL đã cài đặt và cấu hình kết nối
-
-### Các bước chạy cục bộ (Local Setup):
-1. **Clone repository:**
-   ```bash
-   git clone <link-repo-github>
-   cd <thu-muc-du-an>
+Xem [frontend/README.md](frontend/README.md) để chạy trên Windows/macOS/Linux, build và kiểm thử trình duyệt. Cấu hình MySQL, migration không nạp dữ liệu mẫu, tài khoản Admin và SMTP được mô tả trong [backend/README.md](backend/README.md).

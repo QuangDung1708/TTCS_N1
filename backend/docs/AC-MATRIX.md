@@ -1,6 +1,6 @@
 # Đối chiếu 151 AC — Sprint 1–5
 
-Nguồn: workbook “HỆ THỐNG QUẢN LÝ KHÁCH HÀNG.xlsx”, sheet Product Backlog và User Roles. Phạm vi phát triển hiện tại là backend; frontend chưa được sửa. ZIP vượt giới hạn tải 32 MiB nên chưa được so sánh với checkout TTCS_N1 đang sử dụng. Ảnh database chỉ chứng minh tên bảng, không xác nhận kiểu cột hay dữ liệu.
+Nguồn: workbook “HỆ THỐNG QUẢN LÝ KHÁCH HÀNG.xlsx”, sheet Product Backlog và User Roles. Bảng này ghi nhận phạm vi kiểm tra backend. Frontend đã được triển khai riêng; xem [đối chiếu frontend](../../frontend/docs/AC-MATRIX.md) và [kiểm chứng hiện tại](../../frontend/docs/VALIDATION.md). ZIP vượt giới hạn tải 32 MiB nên chưa được so sánh với checkout TTCS_N1 đang sử dụng. Ảnh database chỉ chứng minh tên bảng, không xác nhận kiểu cột hay dữ liệu.
 
 **Cách đọc:** “API có + test liên quan” xác nhận mã đã có và có các kiểm thử nghiệp vụ được dẫn tới; không có nghĩa mỗi câu AC đã được nghiệm thu độc lập trên staging. “Cần UI” là phần phải kiểm tra sau khi làm frontend. Tệp test nằm trong `test/integration/`, trừ `test/rbac.test.js`. Các bước có email ngoài hệ thống, hiệu năng trên máy chủ thật và nghiệm thu PO chưa được xác nhận.
 

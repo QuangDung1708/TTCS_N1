@@ -15,6 +15,12 @@ async function list(user, q) {
   );
   let where = s.sql;
   const args = [...s.params];
+  for (const key of ["customer_id", "deal_id"]) {
+    if (q[key]) {
+      where += ` AND a.${key}=?`;
+      args.push(id(q[key]));
+    }
+  }
   if (q.search) {
     where += " AND a.content LIKE ?";
     args.push("%" + q.search + "%");
