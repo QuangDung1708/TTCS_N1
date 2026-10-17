@@ -20,6 +20,7 @@ Cấu hình qua biến môi trường hoặc tệp `.env` cục bộ theo tên b
 - HTTP: `PORT` mặc định 5001, `BIND_HOST` mặc định 127.0.0.1; `FRONTEND_URL`, `PUBLIC_API_URL`, `CORS_ORIGINS` là các URL triển khai thực tế. Chỉ đặt `TRUST_PROXY_HOPS` khi biết số reverse proxy tin cậy.
 - Email: `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`. Không cấu hình SMTP thì thư nằm trong `mail_outbox`, không báo đã gửi ra ngoài. Worker dùng TLS/chứng chỉ mặc định của Nodemailer, không tắt xác minh.
 - Worker tự chạy cùng `npm start`, mỗi 30 giây xử lý phân bổ/SLA. Đánh giá cơ hội đình trệ mỗi ngày một lần, dựa trên mốc UTC và lưu trạng thái chạy trong database. Có thể dùng `RUN_WORKER=false` trên API và chạy `npm run worker` riêng. Advisory lock ngăn hai worker xử lý cùng lượt phân bổ.
+- Nếu XAMPP báo `worker_failed ER_PARSE_ERROR`: bản vá worker dùng `FOR UPDATE` cùng advisory lock, không còn yêu cầu `SKIP LOCKED` vốn chưa có trên MariaDB 10.4. Hàng đợi mail có khóa riêng để các worker không gửi đồng thời cùng bản ghi. Không cần tắt worker hoặc sửa App Password để xử lý lỗi cú pháp SQL này. Xem [bản vá và kiểm chứng](docs/WORKER-COMPATIBILITY.md); MySQL 8 vẫn là nền tảng kiểm thử đầy đủ.
 - Đăng ký công khai bằng OTP được giữ dưới tùy chọn `ALLOW_SELF_REGISTRATION=true`; tài khoản tự đăng ký chỉ có vai trò Sales Rep. Mặc định quản trị viên cấp tài khoản.
 
 Để chạy thử cục bộ với khóa phiên tạm thời (mọi phiên của lần chạy trước sẽ không dùng lại được):

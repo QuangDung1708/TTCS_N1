@@ -397,7 +397,13 @@ test("SMTP outbox sends over a real local SMTP socket and clears delivered secre
       .request(h.app)
       .post("/api/auth/forgot-password")
       .send({ email: h.getUsers()["Sales Rep"].email });
+    const [[pending]] = await h.db.query(
+      "SELECT COUNT(*) n FROM mail_outbox WHERE sent_at IS NULL AND next_attempt_at<=UTC_TIMESTAMP() AND attempts<10",
+    );
+    await Promise.all([mailJobs(), mailJobs()]);
+    expect(captured).toHaveLength(pending.n);
     await mailJobs();
+    expect(captured).toHaveLength(pending.n);
     expect(
       captured.some((body) =>
         body

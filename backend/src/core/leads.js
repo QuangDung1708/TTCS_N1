@@ -115,7 +115,9 @@ async function assign(c, lead, userId, actor, reason, sla = 60) {
 }
 async function assignPending(c) {
   const [leads] = await c.query(
-    "SELECT * FROM leads WHERE owner_id IS NULL AND status='NEW' ORDER BY id LIMIT 1000 FOR UPDATE SKIP LOCKED",
+    // businessJobs already holds the database-wide crm-worker advisory lock.
+    // Ordinary row locks also work on MariaDB 10.4 shipped with XAMPP.
+    "SELECT * FROM leads WHERE owner_id IS NULL AND status='NEW' ORDER BY id LIMIT 1000 FOR UPDATE",
   );
   const [rules] = await c.query(
     "SELECT * FROM lead_assignment_rules WHERE is_active=1 ORDER BY priority,id FOR UPDATE",

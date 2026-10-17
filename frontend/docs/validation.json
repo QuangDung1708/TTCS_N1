@@ -19,10 +19,10 @@
     "tests_total": 86,
     "suites_passed": 11,
     "coverage_percent": {
-      "lines": 90.59,
-      "statements": 87.35,
+      "lines": 90.63,
+      "statements": 87.4,
       "functions": 91.2,
-      "branches": 76.43
+      "branches": 76.5
     },
     "lint": "passed"
   },
@@ -40,5 +40,21 @@
   "user_database_migration_verified": false,
   "staging_performance_verified": false,
   "github_actions_result_verified": false,
-  "po_acceptance_verified": false
+  "po_acceptance_verified": false,
+  "worker_compatibility_fix": {
+    "mysql_version": "8.4.11",
+    "mysql_tests_passed": 86,
+    "mysql_tests_total": 86,
+    "mariadb_version": "10.4.34",
+    "mariadb_tests_passed": 28,
+    "mariadb_tests_total": 28,
+    "mariadb_suites": [
+      "worker",
+      "security-runtime",
+      "leads-deals"
+    ],
+    "concurrent_smtp_dispatch_verified": true,
+    "frontend_e2e_rerun": false,
+    "user_db_version_confirmed": false
+  }
 }

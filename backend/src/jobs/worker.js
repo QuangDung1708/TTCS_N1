@@ -1,4 +1,4 @@
-const { db, transaction } = require("../core/store");
+const { db } = require("../core/store");
 const { assignPending } = require("../core/leads");
 const nodemailer = require("nodemailer");
 async function businessJobs() {
@@ -70,10 +70,18 @@ async function mailJobs() {
     socketTimeout: 15000,
   });
   const c = await db.getConnection();
+  let locked = false;
   try {
+    // Serialize dispatch without SKIP LOCKED (unsupported on MariaDB 10.4).
+    // A second worker returns immediately instead of waiting during SMTP I/O.
+    const [[r]] = await c.query(
+      "SELECT GET_LOCK(CONCAT(DATABASE(),':crm-mail-worker'),0) acquired",
+    );
+    if (!r.acquired) return { configured: true, skipped: true };
+    locked = true;
     await c.beginTransaction();
     const [rows] = await c.query(
-      "SELECT * FROM mail_outbox WHERE sent_at IS NULL AND next_attempt_at<=UTC_TIMESTAMP() AND attempts<10 ORDER BY id LIMIT 10 FOR UPDATE SKIP LOCKED",
+      "SELECT * FROM mail_outbox WHERE sent_at IS NULL AND next_attempt_at<=UTC_TIMESTAMP() AND attempts<10 ORDER BY id LIMIT 10 FOR UPDATE",
     );
     for (const row of rows) {
       try {
@@ -101,8 +109,13 @@ async function mailJobs() {
     await c.rollback();
     throw e;
   } finally {
-    c.release();
-    transport.close();
+    try {
+      if (locked)
+        await c.query("SELECT RELEASE_LOCK(CONCAT(DATABASE(),':crm-mail-worker'))");
+    } finally {
+      c.release();
+      transport.close();
+    }
   }
 }
 function startWorker() {

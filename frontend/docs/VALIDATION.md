@@ -10,7 +10,7 @@
 | Playwright + Chromium + Express + MySQL thật | **23/23 test**, lượt chạy cuối 2,6 phút |
 | Backend lint | Thành công |
 | Backend Jest/MySQL | **86/86 test**, 11/11 suite |
-| Backend coverage | 90.59% dòng; 76.43% nhánh; 91.2% hàm; 87.35% câu lệnh |
+| Backend coverage | 90.63% dòng; 76.50% nhánh; 91.2% hàm; 87.40% câu lệnh |
 | Server phát triển | Frontend HTTP 200, backend health HTTP 200; dùng crm_dev không nạp dữ liệu nghiệp vụ mẫu |
 
 Môi trường: Node 24.19.0, MySQL 8.4.11, Chromium 154.0.8037.57, Playwright 1.56.1. Dữ liệu máy đọc ở [validation.json](validation.json). Có workflow CI cho backend và frontend; chưa theo dõi kết quả chạy GitHub Actions của lần push này.
@@ -46,3 +46,7 @@ Toàn bộ fixture QA chỉ được tạo trong `crm_test`/`crm_test_ui` với 
 Bảng [151 AC](AC-MATRIX.md) phân biệt mã đã triển khai, bằng chứng backend và kiểm tra trình duyệt. Kết quả trên không đồng nghĩa mọi câu AC đã được nghiệm thu độc lập trên dữ liệu sản xuất.
 
 Chưa kết nối hoặc chạy migration vào database thật trong hai ảnh của người dùng; chưa đối chiếu ZIP gốc vì giới hạn tải 32 MiB. Chưa kiểm tra hộp thư SMTP ngoài hoặc hiệu năng UI trên staging; yêu cầu hồ sơ khách hàng 360 dưới 1,5 giây với 500 hoạt động mới được đo ở tầng API cục bộ. Chưa có nghiệm thu PO. Các luồng tương tác chuyên biệt chưa có E2E riêng được ghi rõ trong bảng AC, dù đã có UI nối API và test backend liên quan.
+
+## Bản vá worker — 18-10-2026 (UTC+7)
+
+Tái hiện `ER_PARSE_ERROR` gần `SKIP LOCKED` trên MariaDB 10.4.34. Sau bản sửa: 86/86 test backend (11 suite) trên MySQL 8.4.11; 28/28 test liên quan (worker, security-runtime, leads-deals) trên MariaDB 10.4.34; backend lint thành công. Test SMTP dùng socket thật, chạy đồng thời hai worker và xác nhận không gửi lại thư đã hoàn tất. Kiểm thử trình duyệt 23/23 ở trên là kết quả trước bản vá; frontend không thay đổi và không chạy lại E2E cho bản vá này. Chưa xác nhận phiên bản database trên máy người dùng. Xem [hướng dẫn áp dụng](../../backend/docs/WORKER-COMPATIBILITY.md).
