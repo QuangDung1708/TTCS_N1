@@ -7,13 +7,13 @@
 | Frontend `npm ci` trên thư mục Linux sạch | Thành công từ package-lock.json |
 | Frontend `npm run lint` | Thành công, gồm cả source và test |
 | Frontend `npm run build` | Thành công |
-| Playwright + Chromium + Express + MySQL thật | **23/23 test**, lượt chạy cuối 2,6 phút |
+| Playwright + Chromium + Express + MariaDB 10.4 thật | **23/23 test**, lượt chạy lại sau bản vá directory |
 | Backend lint | Thành công |
 | Backend Jest/MySQL | **95/95 test**, 11/11 suite |
-| Backend coverage | 90.63% dòng; 76.50% nhánh; 91.2% hàm; 87.40% câu lệnh |
+| Backend coverage | 90.64% dòng; 76.50% nhánh; 91.2% hàm; 87.43% câu lệnh |
 | Server phát triển | Frontend HTTP 200, backend health HTTP 200; dùng crm_dev không nạp dữ liệu nghiệp vụ mẫu |
 
-Môi trường: Node 24.19.0, MySQL 8.4.11, Chromium 154.0.8037.57, Playwright 1.56.1. Dữ liệu máy đọc ở [validation.json](validation.json). Có workflow CI cho backend và frontend; chưa theo dõi kết quả chạy GitHub Actions của lần push này.
+Môi trường: Node 24.19.0, MySQL 8.4.11 / MariaDB 10.4.34, Chromium 154.0.8037.57, Playwright 1.56.1. Dữ liệu máy đọc ở [validation.json](validation.json). Có workflow CI cho backend và frontend; chưa theo dõi kết quả chạy GitHub Actions của lần push này.
 
 ## Những luồng đã được kiểm tra bằng trình duyệt
 
@@ -58,3 +58,11 @@ Bổ sung ánh xạ nhóm cũ khi trùng ID và checkpoint để chạy lại sa
 ## Bản vá tương thích khóa ngoại — 18-10-2026 (UTC+7)
 
 Kết quả cuối: **95/95 test backend MySQL 8.4** (11 suite), **38/38 test liên quan MariaDB 10.4** (4 suite), backend lint đạt. Có 10 ca migration trên mỗi engine. Đã tái hiện lỗi tạo FK với ID cha INT UNSIGNED/BIGINT UNSIGNED trước sửa, kiểm tra FK thật sau sửa, bảo toàn dữ liệu lịch sử và thuộc tính cột; chặn chuyển đổi âm sang UNSIGNED, thu hẹp kiểu có dữ liệu và engine chưa hỗ trợ. Đã sửa cleanup fixture lỗi để không ảnh hưởng các suite kế tiếp; lượt chạy cuối toàn bộ backend đạt. Chưa xác nhận metadata database trên máy người dùng, chưa chạy lại trình duyệt (frontend không đổi). Xem [hướng dẫn bản vá tổng hợp](../../backend/docs/FOREIGN-KEY-MIGRATION.md).
+
+## Kiểm thử sau khi vào dashboard — 18-10-2026 (UTC+7)
+
+Đã chạy 23/23 ca trình duyệt qua API/MySQL 8.4 ở đầu đợt. Khi mở rộng toàn bộ backend sang MariaDB 10.4, phát hiện 1/95 ca lỗi do `/api/customers/users-list` dùng JSON_ARRAYAGG chưa có trên phiên bản này. Đã đổi sang một JOIN có cùng scope và gom mảng vai trò trong Node.js; response không lặp tài khoản và giữ đủ vai trò thực.
+
+Sau bản sửa: **95/95 test backend trên MySQL 8.4**, **95/95 test backend trên MariaDB 10.4** (mỗi engine 11 suite), **23/23 test trình duyệt trên MariaDB 10.4**, backend lint đạt. Frontend không đổi. Bộ 23 ca trình duyệt MySQL ở đầu đợt chạy trước bản sửa query directory, chưa chạy lại bộ đó trên MySQL sau sửa. Smoke test database mới riêng trên từng engine xác nhận migration không tạo người dùng/dữ liệu nghiệp vụ, bootstrap Admin đầu tiên thành công, bootstrap lần hai bị từ chối, đăng nhập và auth/me thành công, dashboard zero, truy cập dashboard không đăng nhập bị chặn. Sau bootstrap chỉ có 1 Admin QA, 0 khách hàng/lead/cơ hội/sản phẩm.
+
+Dữ liệu QA nằm riêng trong crm_test, crm_test_ui, crm_test_compat, crm_test_uimaria và crm_test_bootstrap*. Không truy cập hoặc reset database trên máy người dùng; chưa kiểm chứng SMTP ngoài. Có cảnh báo Ant Design List deprecated không làm thất bại ca chức năng; chưa chuyển component trong đợt sửa API này. Xem [bản vá directory](../../backend/docs/DIRECTORY-COMPATIBILITY.md).

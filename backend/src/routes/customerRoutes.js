@@ -76,10 +76,17 @@ router.get(
   route(async (req, res) => {
     const s = await scope(req.user, "CUSTOMER", "u", false, db, "id");
     const [rows] = await db.query(
-      `SELECT u.id,u.full_name,u.email,u.role_code,u.group_id,g.name group_name,(SELECT JSON_ARRAYAGG(ur.role_code) FROM user_roles ur WHERE ur.user_id=u.id) roles FROM users u LEFT JOIN \`groups\` g ON g.id=u.group_id WHERE u.is_active=1 AND (${s.sql}) ORDER BY u.full_name`,
+      `SELECT u.id,u.full_name,u.email,u.role_code,u.group_id,g.name group_name,ur.role_code assigned_role FROM users u LEFT JOIN \`groups\` g ON g.id=u.group_id LEFT JOIN user_roles ur ON ur.user_id=u.id WHERE u.is_active=1 AND (${s.sql}) ORDER BY u.full_name,u.id,ur.role_code`,
       s.params,
     );
-    res.json({ data: rows });
+    // MariaDB 10.4 has no JSON_ARRAYAGG. Build arrays from the scoped join
+    // without truncating roles through GROUP_CONCAT or issuing per-user queries.
+    const users = new Map();
+    for (const { assigned_role, ...row } of rows) {
+      if (!users.has(row.id)) users.set(row.id, { ...row, roles: [] });
+      if (assigned_role) users.get(row.id).roles.push(assigned_role);
+    }
+    res.json({ data: [...users.values()] });
   }),
 );
 router.get(

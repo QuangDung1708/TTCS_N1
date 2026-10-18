@@ -4,7 +4,8 @@
     "node": "24.19.0",
     "mysql": "8.4.11",
     "chromium": "154.0.8037.57",
-    "playwright": "1.56.1"
+    "playwright": "1.56.1",
+    "mariadb": "10.4.34"
   },
   "frontend": {
     "browser_tests_passed": 23,
@@ -19,8 +20,8 @@
     "tests_total": 95,
     "suites_passed": 11,
     "coverage_percent": {
-      "lines": 90.63,
-      "statements": 87.4,
+      "lines": 90.64,
+      "statements": 87.43,
       "functions": 91.2,
       "branches": 76.5
     },
@@ -88,5 +89,31 @@
     "pre_fix_error_reproduced": true,
     "user_db_metadata_confirmed": false,
     "frontend_e2e_rerun": false
+  },
+  "dashboard_testing": {
+    "verified_at_utc": "2026-10-18T03:22:15.224068+00:00",
+    "mysql_backend": {
+      "passed": 95,
+      "total": 95,
+      "suites": 11
+    },
+    "mariadb_backend": {
+      "passed": 95,
+      "total": 95,
+      "suites": 11
+    },
+    "mysql_browser_before_directory_fix": {
+      "passed": 23,
+      "total": 23
+    },
+    "mariadb_browser_after_directory_fix": {
+      "passed": 23,
+      "total": 23
+    },
+    "fresh_database_smoke_mysql": "passed",
+    "fresh_database_smoke_mariadb": "passed",
+    "user_machine_accessed": false,
+    "directory_fix": "scoped JOIN and JavaScript roles arrays instead of JSON_ARRAYAGG",
+    "nonblocking_warning": "Ant Design List deprecated"
   }
 }

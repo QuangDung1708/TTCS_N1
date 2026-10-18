@@ -21,12 +21,15 @@ test("UI session grants are authoritative, distinguish read/write roles and incl
 });
 test("UI directory includes child-team members and only active scoped identities", async () => {
   const r = await h.api("Team Lead", "get", "/api/customers/users-list");
+  expect(r.status).toBe(200);
+  expect(r.body.data.every((u) => Array.isArray(u.roles))).toBe(true);
+  expect(new Set(r.body.data.map((u) => u.id)).size).toBe(r.body.data.length);
   expect(r.body.data.map((u) => u.id)).toContain(h.getUsers().salesChild.id);
   expect(r.body.data.map((u) => u.id)).not.toContain(h.getUsers().salesB.id);
   expect(r.body.data.every((u) => !("password" in u))).toBe(true);
   expect(
     r.body.data.find((u) => u.id === h.getUsers()["Sales Rep"].id).roles,
-  ).toContain("Sales Rep");
+  ).toEqual(expect.arrayContaining(["Sales Rep", "Accountant"]));
 });
 test("UI role matrix and real group member counts obey read authorization", async () => {
   expect(
