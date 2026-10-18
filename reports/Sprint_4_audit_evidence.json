@@ -1,0 +1,17 @@
+{
+  "ui_merge_status": 200,
+  "kept_histories": [
+    "History Audit A",
+    "History Audit B"
+  ],
+  "merged_lead_still_suggested": true,
+  "backend_tests": {
+    "passed": 47,
+    "total": 47,
+    "suites": 5,
+    "engine": "MariaDB 10.4"
+  },
+  "scope": "Sprint 4, 31 AC; deployed site and high-load assignment timing not verified",
+  "application_source": "b3025cc447cd585ce10c2bc790e77060007528cf",
+  "application_changed_in_this_audit": false
+}

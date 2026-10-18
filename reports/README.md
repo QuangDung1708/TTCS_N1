@@ -11,3 +11,8 @@ Nhật ký theo ngày là **dự thảo cần thành viên xác nhận**. File J
 Giữ Nguyễn Thùy Chang theo Jira (ảnh mẫu ghi Trang), và ghi N1-216/217 chưa phân công. Task UI/BE theo đúng Assignee, kể cả khi khác nhóm BE/FE trong ảnh.
 
 Tạo lại: `python reports/generate_reports.py /duong-dan/Jira_N1_cap_nhat_18-10-2026.xlsx` (cần `openpyxl`, `python-docx`). Script chỉ đọc tệp, không ghi vào Jira.
+
+
+## Bổ sung: test Sprint 4
+
+`Huong_dan_test_Sprint_4.docx` và bản Markdown: hướng dẫn từng bước cả 9 US, bảng rà 31 AC, test bằng vai trò phù hợp và kết quả mong đợi. `Sprint_4_audit_evidence.json` ghi 47/47 backend, ca trình duyệt gộp và phát hiện lead MERGED vẫn còn trong gợi ý trùng. Đợt này rà soát/tài liệu, chưa sửa mã ứng dụng. Thời gian phân bổ dưới tải lớn, website triển khai và cấu hình SLA 3 ngày cần xác nhận riêng.
