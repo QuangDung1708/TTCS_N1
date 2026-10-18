@@ -2,13 +2,21 @@
 
 [Tải gói source đầy đủ](https://github.com/QuangDung1708/TTCS_N1/raw/refs/heads/codex/frontend-sprint-1-5/delivery/TTCS_N1-fullstack.zip) · [Mở trang tệp trên GitHub](https://github.com/QuangDung1708/TTCS_N1/blob/codex/frontend-sprint-1-5/delivery/TTCS_N1-fullstack.zip) · [SHA-256](TTCS_N1-fullstack.zip.sha256)
 
-Nếu trình duyệt mở trang tệp, chọn **Download raw file**. Gói khoảng 821 KiB, chứa hai thư mục `frontend`/`backend`, lockfile, migration, test và tài liệu. Không kèm `.env`, node_modules, coverage, báo cáo trình duyệt hoặc tệp người dùng tải lên. Ứng dụng không seed dữ liệu nghiệp vụ mẫu; fixture QA chỉ chạy trong database kiểm thử có cờ reset rõ ràng.
+Nếu trình duyệt mở trang tệp, chọn **Download raw file**. Gói khoảng 858 KiB, chứa hai thư mục `frontend`/`backend`, lockfile, migration, test và tài liệu. Không kèm `.env`, node_modules, coverage, báo cáo trình duyệt hoặc tệp người dùng tải lên. Ứng dụng không seed dữ liệu nghiệp vụ mẫu; fixture QA chỉ chạy trong database kiểm thử có cờ reset rõ ràng.
 
 Giải nén vào thư mục mới và làm theo [hướng dẫn chạy](../frontend/README.md). Cần Node.js 24 LTS và MySQL 8. Cấu hình database hiện có của bạn trong `backend/.env`; giữ bản sao cấu hình và dữ liệu đang có. Dùng **backend trong cùng gói fullstack** với frontend này để khớp các API phân quyền, thông báo và cơ cấu tổ chức mới.
 
-Source ứng dụng: `9860a2cd176769b7c1f5bcc7e12b83369f92a44d`. `DELIVERY.json` bên trong ZIP liệt kê commit nguồn và SHA-256 của từng tệp. Gói đã kiểm tra CRC, đối chiếu byte từng tệp với source, và lint/build thành công từ mã giải nén.
+Source ứng dụng: `53ca0189e603b131acc6267908c9e7e5826721a5`. `DELIVERY.json` bên trong ZIP liệt kê commit nguồn và SHA-256 của từng tệp. Gói đã kiểm tra CRC, đối chiếu byte từng tệp với source, và lint/build thành công từ mã giải nén.
 
 Kiểm chứng cục bộ: **23/23 kiểm thử trình duyệt** qua API/MySQL thật, **95/95 kiểm thử backend**, lint/build thành công. Xem [kết quả và giới hạn xác minh](../frontend/docs/VALIDATION.md), [đối chiếu 151 AC](../frontend/docs/AC-MATRIX.md), [ảnh desktop](../frontend/docs/images/customers-desktop.png) và [ảnh 360px](../frontend/docs/images/customers-mobile-360.png).
+
+## Bản sửa theo phản hồi kiểm thử 18/10/2026
+
+[Tải ZIP chép đè backend/frontend](https://github.com/QuangDung1708/TTCS_N1/raw/refs/heads/codex/frontend-sprint-1-5/delivery/TTCS_N1-usability-fix.zip). Dừng server, chép hai thư mục vào TTCS_N1, giữ .env/uploads/database; chạy `npm ci` ở backend do thêm ExcelJS, sau đó chạy lại backend/frontend và Ctrl+F5. Không cần tạo lại DB/migration. Hướng dẫn đầy đủ ở UPDATE-UI-AND-DATA.md trong ZIP.
+
+Menu avatar, bảng thông báo/nhật ký có phân quyền, hồ sơ/đổi mật khẩu, Admin toàn quyền gồm giá vốn; dữ liệu chọn dùng chung, lựa chọn chiến dịch cho Sales không lộ ngân sách, phân bổ trong form; đổi trạng thái sản phẩm, form danh mục có hướng dẫn/mã tự sinh, cây nhóm và cây công ty riêng; mẫu/xuất Excel có bảng và hướng dẫn; email tài khoản/mật khẩu tạm và reset text/HTML qua SMTP.
+
+Kết quả kiểm thử và phạm vi xác minh: [VALIDATION.md](../frontend/docs/VALIDATION.md). SMTP đã thử qua máy chủ cục bộ thật; chưa xác minh Gmail/hộp thư trên máy người dùng. ZIP không có .env, mật khẩu, node_modules, uploads hay dữ liệu cá nhân.
 
 ## Bản cập nhật UI và dữ liệu kiểm thử
 
