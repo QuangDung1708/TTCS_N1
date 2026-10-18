@@ -60,6 +60,7 @@ import { useAction, useMedia, useResource } from "../lib/hooks";
 import {
   CustomFields,
   DataCard,
+  MoneyField,
   DateField,
   EmptyState,
   PageHeader,
@@ -714,9 +715,7 @@ function DealEditor({ open, onClose, record, stages, fields, users, onSaved }) {
               : undefined
           }
         >
-          <InputNumber
-            min={0}
-            max={1e12}
+          <MoneyField
             disabled={!!record?.items?.length}
             style={{ width: "100%" }}
           />
@@ -1119,7 +1118,7 @@ function DealDrawer({
                   label="Giá trị chốt thực tế"
                   rules={required}
                 >
-                  <InputNumber min={0} max={1e12} style={{ width: "100%" }} />
+                  <MoneyField />
                 </Form.Item>
                 <Form.Item name="signed_date" label="Ngày ký" rules={required}>
                   <DateField />
@@ -1293,11 +1292,7 @@ function ProductsEditor({ open, onClose, deal, onSaved }) {
                       label="Đơn giá"
                       rules={required}
                     >
-                      <InputNumber
-                        min={0}
-                        max={1e12}
-                        style={{ width: "100%" }}
-                      />
+                      <MoneyField style={{ width: "100%" }} />
                     </Form.Item>
                     {p?.type === "SUBSCRIPTION" && (
                       <>
@@ -1457,7 +1452,7 @@ function Forecast({ filters, users, groups }) {
           <DateField />
         </Form.Item>
         <Form.Item name="amount" label="Chỉ tiêu" rules={required}>
-          <InputNumber min={0} max={1e12} style={{ width: "100%" }} />
+          <MoneyField />
         </Form.Item>
       </EntityModal>
     </>

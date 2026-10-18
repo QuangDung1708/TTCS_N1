@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { Button, Form, Input, InputNumber, Table, Typography } from "antd";
+import { AutoComplete, Button, Form, Input, Table, Typography } from "antd";
+import dayjs from "dayjs";
 import { EditOutlined, PlusOutlined } from "@ant-design/icons";
 import { api, money, dateOnly } from "../lib/api";
 import { useAction, useResource } from "../lib/hooks";
 import {
   DataCard,
   DateField,
+  MoneyField,
   PageHeader,
   RefreshButton,
   ResourceError,
@@ -109,18 +111,49 @@ export default function Campaigns() {
             rules={required}
             className="full-span"
           >
-            <Input />
+            <Input maxLength={255} placeholder="Ví dụ: Tư vấn CRM tháng 11" />
           </Form.Item>
-          <Form.Item name="budget" label="Ngân sách" rules={required}>
-            <InputNumber min={0} style={{ width: "100%" }} />
+          <Form.Item name="budget" label="Ngân sách (VNĐ)" rules={required}>
+            <MoneyField />
           </Form.Item>
           <Form.Item name="channel" label="Kênh marketing" rules={required}>
-            <Input />
+            <AutoComplete
+              options={[
+                "Website",
+                "Email",
+                "Facebook",
+                "Google Ads",
+                "Hội thảo",
+                "Giới thiệu",
+              ].map((value) => ({ value }))}
+              placeholder="Chọn hoặc nhập kênh marketing"
+              maxLength={100}
+            />
           </Form.Item>
           <Form.Item name="start_date" label="Ngày bắt đầu" rules={required}>
             <DateField />
           </Form.Item>
-          <Form.Item name="end_date" label="Ngày kết thúc" rules={required}>
+          <Form.Item
+            name="end_date"
+            label="Ngày kết thúc"
+            dependencies={["start_date"]}
+            rules={[
+              ...required,
+              ({ getFieldValue }) => ({
+                validator: (_, value) =>
+                  !value ||
+                  !getFieldValue("start_date") ||
+                  !dayjs(value).isBefore(
+                    dayjs(getFieldValue("start_date")),
+                    "day",
+                  )
+                    ? Promise.resolve()
+                    : Promise.reject(
+                        new Error("Ngày kết thúc phải từ ngày bắt đầu trở đi."),
+                      ),
+              }),
+            ]}
+          >
             <DateField />
           </Form.Item>
         </div>

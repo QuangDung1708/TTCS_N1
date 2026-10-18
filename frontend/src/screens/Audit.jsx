@@ -2,7 +2,7 @@ import dayjs from "dayjs";
 import { useState } from "react";
 import { Button, DatePicker, Select, Table, Tag, Typography } from "antd";
 import { ClearOutlined } from "@ant-design/icons";
-import { dateTime, readJSON } from "../lib/api";
+import { dateTime } from "../lib/api";
 import { useResource } from "../lib/hooks";
 import {
   DataCard,
@@ -11,41 +11,23 @@ import {
   ResourceError,
   userOptions,
 } from "../ui/common";
-const entities = {
-  users: "Người dùng",
-  groups: "Nhóm kinh doanh",
-  products: "Sản phẩm",
-  deals: "Cơ hội",
-  customers: "Khách hàng",
-  leads: "Lead",
-  sales_targets: "Chỉ tiêu",
-  customer_contacts: "Người liên hệ",
-};
-const actions = {
-  ROLE_CHANGE: "Thay đổi vai trò",
-  GROUP_CHANGE: "Thay đổi nhóm",
-  HANDOVER: "Bàn giao",
-  OWNER_CHANGE: "Đổi người phụ trách",
-  PRICE_CHANGE: "Thay đổi giá",
-  TARGET_CHANGE: "Thay đổi chỉ tiêu",
-  STAGE_CHANGE: "Chuyển giai đoạn",
-  STAGE_OVERRIDE: "Ghi đè điều kiện",
-  CLOSE: "Đóng cơ hội",
-  REOPEN: "Mở lại cơ hội",
-  CREATE: "Tạo mới",
-  UPDATE: "Cập nhật",
-  DELETE: "Xóa",
-  STATUS_CHANGE: "Đổi trạng thái",
-  ORGANIZATION_CHANGE: "Thay đổi tổ chức",
-};
-function Value({ value }) {
-  const data = readJSON(value, value);
-  if (data == null)
-    return <Typography.Text type="secondary">—</Typography.Text>;
+import {
+  auditActions as actions,
+  auditEntities as entities,
+  auditEntries,
+} from "../lib/auditText";
+function Value({ value, other, users }) {
+  const entries = auditEntries(value, other, users);
+  if (!entries.length)
+    return <Typography.Text type="secondary">Chưa có</Typography.Text>;
   return (
-    <pre className="audit-value">
-      {typeof data === "object" ? JSON.stringify(data, null, 2) : String(data)}
-    </pre>
+    <div className="audit-details">
+      {entries.map(([label, text], i) => (
+        <p key={i}>
+          <strong>{label}:</strong> {text}
+        </p>
+      ))}
+    </div>
   );
 }
 export default function Audit() {
@@ -107,8 +89,8 @@ export default function Audit() {
             onChange={(_, d) =>
               setFilters((f) => ({
                 ...f,
-                from: d[0] || undefined,
-                to: d[1] || undefined,
+                from: d?.[0] || undefined,
+                to: d?.[1] || undefined,
               }))
             }
           />
@@ -127,7 +109,7 @@ export default function Audit() {
           rowKey="id"
           dataSource={r.rows}
           loading={r.loading}
-          scroll={{ x: 1400 }}
+          scroll={{ x: 980 }}
           pagination={{ pageSize: 15, showSizeChanger: true }}
           columns={[
             {
@@ -140,15 +122,18 @@ export default function Audit() {
               title: "Người thực hiện",
               dataIndex: "user_id",
               width: 170,
-              render: (v) =>
+              render: (v, row) =>
+                row.user_name ||
                 users.rows.find((u) => u.id === v)?.full_name ||
-                `Tài khoản #${v}`,
+                (v ? `Tài khoản #${v}` : "Hệ thống"),
             },
             {
               title: "Hành động",
               dataIndex: "action_type",
               width: 180,
-              render: (v) => <Tag color="blue">{actions[v] || v}</Tag>,
+              render: (v) => (
+                <Tag color="blue">{actions[v] || "Thao tác hệ thống"}</Tag>
+              ),
             },
             {
               title: "Đối tượng",
@@ -167,18 +152,25 @@ export default function Audit() {
               title: "Giá trị trước",
               dataIndex: "before_value",
               width: 290,
-              render: (v) => <Value value={v} />,
+              render: (v, row) => (
+                <Value value={v} other={row.after_value} users={users.rows} />
+              ),
             },
             {
               title: "Giá trị sau",
               dataIndex: "after_value",
               width: 290,
-              render: (v) => <Value value={v} />,
+              render: (v, row) => (
+                <Value value={v} other={row.before_value} users={users.rows} />
+              ),
             },
             {
-              title: "Lý do / Nội dung",
+              title: "Nội dung thay đổi",
               dataIndex: "description",
-              render: (v, row) => v || row.reason || "—",
+              render: (v, row) =>
+                v ||
+                row.reason ||
+                `${row.user_name || "Hệ thống"} đã thực hiện thao tác ${(actions[row.action_type] || "cập nhật dữ liệu").toLowerCase()} đối với ${(entities[row.entity_type] || "bản ghi").toLowerCase()} #${row.entity_id || "—"}.`,
             },
           ]}
         />

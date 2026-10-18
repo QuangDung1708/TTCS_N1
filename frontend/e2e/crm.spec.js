@@ -687,7 +687,7 @@ test("S1/S2: administrator creates, edits roles, locks with handover, and audits
     page.getByRole("cell", { name: "Thay đổi vai trò", exact: true }).first(),
   ).toBeVisible();
   await expect(
-    page.locator(".audit-value").filter({ hasText: "Marketing" }),
+    page.locator(".audit-details").filter({ hasText: "Marketing" }),
   ).toBeVisible();
 });
 test("S5: manager override requires reason, real forecast and bulk ownership transfer", async ({
@@ -880,4 +880,137 @@ test("S4-05: configure lead score using real source names and see automatic hot 
   const row = page.getByRole("row").filter({ hasText: "E2E Lead chấm điểm" });
   await expect(row).toContainText("50");
   await expect(row).toContainText("Nóng");
+});
+
+test("Header: avatar and bell open by pointer; profile, password and logout are available", async ({
+  page,
+}) => {
+  await login(page, "Admin");
+  await page.locator(".user-menu .ant-avatar").click();
+  for (const label of ["Hồ sơ cá nhân", "Đổi mật khẩu", "Đăng xuất"])
+    await expect(page.getByRole("menuitem", { name: label })).toBeVisible();
+  await page.getByRole("menuitem", { name: "Hồ sơ cá nhân" }).click();
+  await expect(
+    page.getByRole("dialog", { name: "Hồ sơ cá nhân" }),
+  ).toBeVisible();
+  await page.locator(".ant-drawer-close").click();
+  await page.getByRole("button", { name: "Tài khoản của tôi" }).click();
+  await page.getByRole("menuitem", { name: "Đổi mật khẩu" }).click();
+  await expect(dialog(page).getByLabel("Mật khẩu hiện tại")).toBeVisible();
+  await dialog(page).locator(".ant-modal-close").click();
+  await page.getByRole("button", { name: /Thông báo \(/ }).click();
+  await expect(
+    page.getByText("Thông báo của bạn", { exact: true }),
+  ).toBeVisible();
+  await page.keyboard.press("Escape");
+  await page.mouse.click(400, 200);
+  await page.getByRole("button", { name: "Tài khoản của tôi" }).click();
+  await page.getByRole("menuitem", { name: "Đăng xuất" }).click();
+  await expect(page).toHaveURL(/login/);
+});
+
+test("Campaign: grouped budget and actual calendar selection persist after reload; invalid date order is blocked", async ({
+  page,
+}) => {
+  await login(page, "Admin", "/campaigns");
+  await page
+    .getByRole("button", { name: "Tạo chiến dịch", exact: true })
+    .click();
+  await dialog(page)
+    .getByLabel("Tên chiến dịch", { exact: true })
+    .fill("E2E Chiến dịch lịch và tiền");
+  const budget = dialog(page).getByRole("spinbutton", {
+    name: "Ngân sách (VNĐ)",
+  });
+  await budget.fill("5000000");
+  await budget.press("Tab");
+  await expect(budget).toHaveValue("5.000.000");
+  await dialog(page)
+    .getByLabel("Kênh marketing", { exact: true })
+    .fill("Website");
+  const start = dialog(page).getByLabel("Ngày bắt đầu", { exact: true });
+  await start.click();
+  const day = new Date();
+  day.setDate(10);
+  const iso = day.toISOString().slice(0, 10);
+  await page.locator(`.ant-picker-dropdown:visible td[title="${iso}"]`).click();
+  await expect(start).toHaveValue(
+    iso.slice(8, 10) + "/" + iso.slice(5, 7) + "/" + iso.slice(0, 4),
+  );
+  await expect(page.locator(".ant-picker-dropdown:visible")).toHaveCount(0);
+  const end = dialog(page).getByLabel("Ngày kết thúc", { exact: true });
+  await end.click();
+  const endIso = iso.slice(0, 8) + "20";
+  await page
+    .locator(`.ant-picker-dropdown:visible td[title="${endIso}"]`)
+    .click();
+  await dialog(page).getByRole("button", { name: "Lưu thay đổi" }).click();
+  await expect(
+    page.getByRole("row").filter({ hasText: "E2E Chiến dịch lịch và tiền" }),
+  ).toContainText("5.000.000");
+  await page.reload();
+  await expect(
+    page.getByRole("row").filter({ hasText: "E2E Chiến dịch lịch và tiền" }),
+  ).toContainText("Website");
+  await page
+    .getByRole("button", { name: "Sửa chiến dịch E2E Chiến dịch lịch và tiền" })
+    .click();
+  await dialog(page)
+    .getByLabel("Ngày kết thúc", { exact: true })
+    .fill("01/" + iso.slice(5, 7) + "/" + iso.slice(0, 4));
+  await dialog(page)
+    .getByLabel("Ngày kết thúc", { exact: true })
+    .press("Enter");
+  await dialog(page).getByRole("button", { name: "Lưu thay đổi" }).click();
+  await expect(
+    page.getByText("Ngày kết thúc phải từ ngày bắt đầu trở đi."),
+  ).toBeVisible();
+});
+
+test("Audit: creation and campaign values are readable text instead of JSON or bootstrap codes", async ({
+  page,
+}) => {
+  await login(page, "Admin", "/audit-logs");
+  await expect(
+    page.getByRole("heading", { name: "Nhật ký thay đổi" }),
+  ).toBeVisible();
+  await expect(page.locator("pre")).toHaveCount(0);
+  await expect(page.locator(".audit-details").first()).toBeVisible();
+  await expect(page.locator(".ant-table")).not.toContainText('"created_by":');
+  await expect(page.locator(".ant-table")).not.toContainText("Tài khoản #null");
+  await expect(page.locator(".ant-table")).not.toContainText('"company_name":');
+});
+
+test("Account: password change updates real login credentials", async ({
+  page,
+}) => {
+  await login(page, "Sales Rep");
+  await page.getByRole("button", { name: "Tài khoản của tôi" }).click();
+  await page.getByRole("menuitem", { name: "Đổi mật khẩu" }).click();
+  const next = "ChangedOnlyForBrowser9!";
+  await dialog(page)
+    .getByLabel("Mật khẩu hiện tại", { exact: true })
+    .fill(password);
+  await dialog(page).getByLabel("Mật khẩu mới", { exact: true }).fill(next);
+  await dialog(page)
+    .getByLabel("Nhập lại mật khẩu mới", { exact: true })
+    .fill(next);
+  await dialog(page).getByRole("button", { name: "Cập nhật mật khẩu" }).click();
+  await expect(page.getByRole("dialog", { name: "Đổi mật khẩu" })).toHaveCount(
+    0,
+  );
+  const oldLogin = await page.request.post("/api/auth/login", {
+    data: { email: "test4@example.test", password },
+  });
+  expect(oldLogin.status()).toBe(401);
+  const newLogin = await page.request.post("/api/auth/login", {
+    data: { email: "test4@example.test", password: next },
+  });
+  expect(newLogin.ok()).toBeTruthy();
+  const token = (await newLogin.json()).token;
+  const restored = await page.request.put("/api/auth/change-password", {
+    headers: { Authorization: "Bearer " + token },
+    data: { currentPassword: next, newPassword: password },
+  });
+  expect(restored.ok()).toBeTruthy();
 });

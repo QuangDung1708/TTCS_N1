@@ -4,3 +4,6 @@ uploads/avatars/*
 
 uploads/customer-files/
 coverage/
+
+# Private local testing credentials
+.local-test-data/

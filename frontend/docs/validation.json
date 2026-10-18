@@ -8,8 +8,8 @@
     "mariadb": "10.4.34"
   },
   "frontend": {
-    "browser_tests_passed": 23,
-    "browser_tests_total": 23,
+    "browser_tests_passed": 27,
+    "browser_tests_total": 27,
     "mock_api": false,
     "lint": "passed",
     "build": "passed",
@@ -115,5 +115,21 @@
     "user_machine_accessed": false,
     "directory_fix": "scoped JOIN and JavaScript roles arrays instead of JSON_ARRAYAGG",
     "nonblocking_warning": "Ant Design List deprecated"
+  },
+  "ui_feedback_fix": {
+    "verified_at_utc": "2026-10-18T03:52:40.586062+00:00",
+    "browser_engine": "Chromium",
+    "database_engine": "MariaDB 10.4.34",
+    "browser_tests_passed": 27,
+    "browser_tests_total": 27,
+    "frontend_lint": "passed",
+    "frontend_build": "passed",
+    "backend_lint": "passed",
+    "example_data_provisioning": "passed on isolated crm_test_examples",
+    "example_data_rerun": "passed without duplicates or password resets",
+    "example_data_link_and_role_checks": "passed",
+    "examples_are_verified_real_identities": false,
+    "user_database_modified": false,
+    "backend_95_suite_rerun_this_change": false
   }
 }

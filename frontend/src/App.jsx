@@ -198,7 +198,8 @@ function Workspace() {
   const [collapsed, setCollapsed] = useState(false),
     [navOpen, setNavOpen] = useState(false),
     [profile, setProfile] = useState(false),
-    [password, setPassword] = useState(false);
+    [password, setPassword] = useState(false),
+    [accountOpen, setAccountOpen] = useState(false);
   const allowed = routes.filter(
     (r) => auth.can(r.module) && (!r.roles || auth.has(...r.roles)),
   );
@@ -316,6 +317,9 @@ function Workspace() {
           <Space size={12}>
             {auth.can("AUTO") && <Notifications />}
             <Dropdown
+              open={accountOpen}
+              onOpenChange={setAccountOpen}
+              getPopupContainer={() => document.body}
               trigger={["click"]}
               menu={{
                 items: [
@@ -338,6 +342,7 @@ function Workspace() {
                   },
                 ],
                 onClick: ({ key }) => {
+                  setAccountOpen(false);
                   if (key === "profile") setProfile(true);
                   if (key === "password") setPassword(true);
                   if (key === "logout")
@@ -349,7 +354,14 @@ function Workspace() {
                 },
               }}
             >
-              <button className="user-menu" aria-label="Tài khoản của tôi">
+              <button
+                type="button"
+                className="user-menu"
+                aria-label="Tài khoản của tôi"
+                aria-haspopup="menu"
+                aria-expanded={accountOpen}
+                onClick={() => setAccountOpen(!accountOpen)}
+              >
                 <Avatar
                   src={assetURL(auth.user.avatar)}
                   icon={<UserOutlined aria-hidden="true" />}
@@ -561,6 +573,7 @@ export default function App() {
   const reduced = useMedia("(prefers-reduced-motion: reduce)");
   return (
     <ConfigProvider
+      getPopupContainer={() => document.body}
       locale={viVN}
       theme={{
         algorithm: theme.defaultAlgorithm,
@@ -575,6 +588,9 @@ export default function App() {
           fontFamily:
             'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
           motion: !reduced,
+          motionDurationFast: "0.12s",
+          motionDurationMid: "0.2s",
+          motionDurationSlow: "0.28s",
         },
         components: {
           Layout: { headerBg: "#fff", bodyBg: "#f5f7fb" },

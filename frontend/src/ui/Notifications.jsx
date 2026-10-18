@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Badge, Button, Empty, List, Popover, Typography } from "antd";
 import { BellOutlined, ReloadOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
@@ -6,6 +6,7 @@ import { api, dateTime } from "../lib/api";
 import { useResource, useAction } from "../lib/hooks";
 import { ResourceError } from "./common";
 export default function Notifications() {
+  const [visible, setVisible] = useState(false);
   const resource = useResource("/notifications"),
     action = useAction(),
     nav = useNavigate();
@@ -18,6 +19,7 @@ export default function Notifications() {
     action.run(
       async () => {
         await api.put(`/notifications/${n.id}/read`);
+        setVisible(false);
         const [kind, id] = n.event_key.split(":");
         if (kind === "customer-risk") nav("/customers?customer=" + id);
         else if (kind.startsWith("lead-")) nav("/leads?lead=" + id);
@@ -64,11 +66,20 @@ export default function Notifications() {
     </div>
   );
   return (
-    <Popover trigger="click" placement="bottomRight" content={content}>
+    <Popover
+      trigger="click"
+      open={visible}
+      onOpenChange={setVisible}
+      getPopupContainer={() => document.body}
+      placement="bottomRight"
+      content={content}
+    >
       <Button
         type="text"
         shape="circle"
         aria-label={`Thông báo (${unread} chưa đọc)`}
+        aria-expanded={visible}
+        onClick={() => setVisible(!visible)}
       >
         <Badge count={unread} size="small">
           <BellOutlined

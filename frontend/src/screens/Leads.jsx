@@ -49,6 +49,7 @@ import {
 import { useAction, useMedia, useResource } from "../lib/hooks";
 import {
   DataCard,
+  MoneyField,
   DateField,
   PageHeader,
   RefreshButton,
@@ -774,7 +775,7 @@ function ConvertLead({ lead, onClose, onConverted }) {
           <Select options={options(stages.rows.filter((s) => s.is_active))} />
         </Form.Item>
         <Form.Item name={["deal", "amount"]} label="Giá trị dự kiến">
-          <InputNumber min={0} max={1e12} style={{ width: "100%" }} />
+          <MoneyField />
         </Form.Item>
         <Form.Item
           name={["deal", "expected_close_date"]}

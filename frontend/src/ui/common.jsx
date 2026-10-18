@@ -171,10 +171,30 @@ export function Guard({ module, roles, children }) {
   return children;
 }
 export function DateField({ value, onChange, ...props }) {
+  const selected = value ? dayjs(value) : null;
   return (
     <DatePicker
-      value={value ? dayjs(value) : null}
+      value={selected?.isValid() ? selected : null}
+      format={["DD/MM/YYYY", "YYYY-MM-DD"]}
+      placeholder="dd/mm/yyyy"
+      needConfirm={false}
+      getPopupContainer={() => document.body}
       onChange={(d) => onChange?.(d?.format("YYYY-MM-DD") || null)}
+      style={{ width: "100%" }}
+      {...props}
+    />
+  );
+}
+export function MoneyField(props) {
+  return (
+    <InputNumber
+      min={0}
+      max={1e12}
+      precision={0}
+      suffix="₫"
+      placeholder="0"
+      formatter={(v) => String(v ?? "").replace(/\B(?=(\d{3})+(?!\d))/g, ".")}
+      parser={(v) => String(v ?? "").replace(/[^\d-]/g, "")}
       style={{ width: "100%" }}
       {...props}
     />

@@ -28,6 +28,7 @@ import { api, money, readJSON } from "../lib/api";
 import { useAction, useResource } from "../lib/hooks";
 import {
   DataCard,
+  MoneyField,
   PageHeader,
   RefreshButton,
   ResourceError,
@@ -542,18 +543,18 @@ export default function Catalogs({ kind }) {
                     label="Giá niêm yết"
                     rules={required}
                   >
-                    <InputNumber min={0} max={1e12} style={{ width: "100%" }} />
+                    <MoneyField />
                   </Form.Item>
                   <Form.Item
                     name="floor_price"
                     label="Giá sàn"
                     rules={required}
                   >
-                    <InputNumber min={0} max={1e12} style={{ width: "100%" }} />
+                    <MoneyField />
                   </Form.Item>
                   {auth.has("Director") && (
                     <Form.Item name="cost_price" label="Giá vốn">
-                      <InputNumber min={0} style={{ width: "100%" }} />
+                      <MoneyField />
                     </Form.Item>
                   )}
                 </>

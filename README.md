@@ -71,3 +71,5 @@ Hệ thống hỗ trợ 7 nhóm người dùng với cơ chế phân quyền d�
 ## 6. Hướng dẫn cài đặt & chạy dự án
 
 Xem [frontend/README.md](frontend/README.md) để chạy trên Windows/macOS/Linux, build và kiểm thử trình duyệt. Cấu hình MySQL, migration không nạp dữ liệu mẫu, tài khoản Admin và SMTP được mô tả trong [backend/README.md](backend/README.md).
+
+Bản cập nhật UI và dữ liệu kiểm thử: xem `UPDATE-UI-AND-DATA.md`; hướng dẫn tài khoản ở `backend/docs/EXAMPLE-DATA.md`.

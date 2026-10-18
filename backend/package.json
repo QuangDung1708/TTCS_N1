@@ -13,7 +13,8 @@
     "bootstrap-admin": "node scripts/bootstrap-admin.js",
     "lint": "eslint .",
     "schema:report": "node scripts/schema-report.js",
-    "test:coverage": "jest --runInBand --detectOpenHandles --coverage"
+    "test:coverage": "jest --runInBand --detectOpenHandles --coverage",
+    "data:examples": "node scripts/create-example-data.js"
   },
   "keywords": [],
   "author": "",

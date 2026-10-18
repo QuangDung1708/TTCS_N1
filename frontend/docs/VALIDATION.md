@@ -7,7 +7,7 @@
 | Frontend `npm ci` trên thư mục Linux sạch | Thành công từ package-lock.json |
 | Frontend `npm run lint` | Thành công, gồm cả source và test |
 | Frontend `npm run build` | Thành công |
-| Playwright + Chromium + Express + MariaDB 10.4 thật | **23/23 test**, lượt chạy lại sau bản vá directory |
+| Playwright + Chromium + Express + MariaDB 10.4 thật | **27/27 test**, sau sửa UI/form/nhật ký |
 | Backend lint | Thành công |
 | Backend Jest/MySQL | **95/95 test**, 11/11 suite |
 | Backend coverage | 90.64% dòng; 76.50% nhánh; 91.2% hàm; 87.43% câu lệnh |
@@ -66,3 +66,11 @@ Kết quả cuối: **95/95 test backend MySQL 8.4** (11 suite), **38/38 test li
 Sau bản sửa: **95/95 test backend trên MySQL 8.4**, **95/95 test backend trên MariaDB 10.4** (mỗi engine 11 suite), **23/23 test trình duyệt trên MariaDB 10.4**, backend lint đạt. Frontend không đổi. Bộ 23 ca trình duyệt MySQL ở đầu đợt chạy trước bản sửa query directory, chưa chạy lại bộ đó trên MySQL sau sửa. Smoke test database mới riêng trên từng engine xác nhận migration không tạo người dùng/dữ liệu nghiệp vụ, bootstrap Admin đầu tiên thành công, bootstrap lần hai bị từ chối, đăng nhập và auth/me thành công, dashboard zero, truy cập dashboard không đăng nhập bị chặn. Sau bootstrap chỉ có 1 Admin QA, 0 khách hàng/lead/cơ hội/sản phẩm.
 
 Dữ liệu QA nằm riêng trong crm_test, crm_test_ui, crm_test_compat, crm_test_uimaria và crm_test_bootstrap*. Không truy cập hoặc reset database trên máy người dùng; chưa kiểm chứng SMTP ngoài. Có cảnh báo Ant Design List deprecated không làm thất bại ca chức năng; chưa chuyển component trong đợt sửa API này. Xem [bản vá directory](../../backend/docs/DIRECTORY-COMPATIBILITY.md).
+
+## Sửa UI và bộ dữ liệu kiểm thử — 18-10-2026 (UTC+7)
+
+Lượt cuối **27/27 ca trình duyệt trên MariaDB 10.4** (2,9 phút); frontend lint/build và backend lint đạt. Bốn ca mới kiểm tra bấm vào hình avatar, đủ menu hồ sơ/mật khẩu/đăng xuất, chuông rỗng vẫn mở, chọn cả hai ngày bằng lịch thật, ngân sách 5.000.000 giữ nguyên sau lưu/F5, chặn khoảng ngày sai, nhật ký không có JSON và đổi mật khẩu thực sự làm mật khẩu cũ bị từ chối. Ca cũ về tài khoản/nhật ký cũng chạy lại đạt sau khi phân biệt nhãn hành động lịch sử với hiện tại. Motion ngắn theo token Ant Design, chuyển trang/hover và tôn trọng reduced-motion.
+
+CLI `npm run data:examples` được chạy trên crm_test_examples riêng: 8 tài khoản thật có mật khẩu bcrypt và vai trò đúng; 2 nhóm; 4 khách hàng/liên hệ; 2 sản phẩm; 3 lead (2 lead giao hai Sales khác nhau); 2 cơ hội liên kết đúng khách hàng/liên hệ; 1 chiến dịch. Dữ liệu nghiệp vụ đi qua API thật, account provisioning là CLI cục bộ dùng core store/auth, không cần SMTP. Chạy lại không nhân đôi hoặc đổi mật khẩu khi checkpoint hoàn tất; kiểm tra SQL xác nhận role, liên kết và chủ sở hữu. Tệp mật khẩu riêng tư bị gitignore, không đưa vào gói bàn giao. Không tạo dữ liệu trên máy người dùng. Tên ví dụ không phải danh tính đã xác minh.
+
+Không sửa backend API nghiệp vụ trong đợt này; kết quả 95/95 backend trên hai engine ở đợt trước vẫn ghi riêng, không tuyên bố đã chạy lại suite đó cho CLI mới. Có cảnh báo AntD List deprecated và useForm chưa gắn khi form ẩn ở một số luồng; chúng không làm thất bại các ca chức năng, chưa đổi component ngoài phạm vi sửa. Chưa tái hiện đầy đủ cấu hình trình duyệt của người dùng; nút/popup được điều khiển rõ trạng thái và kiểm thử bằng con trỏ trên Chromium. Xem [hướng dẫn cập nhật](../../UPDATE-UI-AND-DATA.md) và [dữ liệu kiểm thử](../../backend/docs/EXAMPLE-DATA.md).
