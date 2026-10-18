@@ -14,7 +14,7 @@ XLSX: client tải bằng arraybuffer/blob, không parse JSON. Import dùng mult
 Đối chiếu: N1-3, N1-4; đối chiếu mã hiện hành.
 
 ### POST /api/auth/login
-200: token và thông tin người dùng; 401 nếu sai thông tin.
+200: token và thông tin người dùng; 401 nếu sai thông tin. Sau 5 lần sai liên tiếp: 429, Retry-After và details {code: LOGIN_TEMPORARILY_LOCKED, retry_after: số giây}. Khóa 15 giây theo yêu cầu điều chỉnh 18/10/2026; nhập đúng trong thời gian khóa vẫn bị chặn, hết hạn bắt đầu lại bộ đếm nếu tiếp tục nhập sai.
 ```json
 {
   "email": "user@example.test",

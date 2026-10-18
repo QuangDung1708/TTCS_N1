@@ -10,31 +10,108 @@ test("S1-01: rejects the legacy universal password and plaintext passwords", asy
     .send({ email: h.getUsers()["Admin"].email, password: "123456" });
   expect(r.status).toBe(401);
 });
-test("S1-01: fifth failure locks for 15 minutes, including correct credentials", async () => {
-  const email = h.getUsers()["salesB"].email;
-  for (let i = 0; i < 5; i++)
-    expect(
-      (
-        await h
-          .request(h.app)
-          .post("/api/auth/login")
-          .send({ email, password: "WrongPassword9" })
-      ).status,
-    ).toBe(401);
-  const [[u]] = await h.db.query(
-    "SELECT failed_login_attempts,TIMESTAMPDIFF(MINUTE,UTC_TIMESTAMP(),lock_until) remaining FROM users WHERE email=?",
+test("S1-01 override: fifth failure locks for 15 seconds, correct password cannot bypass and expiry unlocks", async () => {
+  const email = h.getUsers().salesB.email;
+  const login = (password) =>
+    h.request(h.app).post("/api/auth/login").send({ email, password });
+  for (let i = 0; i < 4; i++)
+    expect((await login("WrongPassword9")).status).toBe(401);
+  const fifth = await login("WrongPassword9");
+  expect(fifth.status).toBe(429);
+  expect(fifth.headers["retry-after"]).toBe("15");
+  expect(fifth.body.details).toEqual({
+    code: "LOGIN_TEMPORARILY_LOCKED",
+    retry_after: 15,
+  });
+  const [[before]] = await h.db.query(
+    "SELECT failed_login_attempts,lock_until,TIMESTAMPDIFF(SECOND,UTC_TIMESTAMP(),lock_until) remaining FROM users WHERE email=?",
     [email],
   );
-  expect(u.failed_login_attempts).toBe(5);
-  expect(u.remaining).toBeGreaterThanOrEqual(14);
-  expect(
-    (
-      await h
-        .request(h.app)
-        .post("/api/auth/login")
-        .send({ email, password: h.password })
-    ).status,
-  ).toBe(401);
+  expect(before.failed_login_attempts).toBe(5);
+  expect(before.remaining).toBeGreaterThanOrEqual(13);
+  expect(before.remaining).toBeLessThanOrEqual(15);
+  expect((await login(h.password)).status).toBe(429);
+  const [[during]] = await h.db.query(
+    "SELECT lock_until FROM users WHERE email=?",
+    [email],
+  );
+  expect(during.lock_until).toBe(before.lock_until);
+  await new Promise((resolve) => setTimeout(resolve, 15500));
+  expect((await login(h.password)).status).toBe(200);
+  const [[after]] = await h.db.query(
+    "SELECT failed_login_attempts,lock_until FROM users WHERE email=?",
+    [email],
+  );
+  expect(after.failed_login_attempts).toBe(0);
+  expect(after.lock_until).toBeNull();
+}, 22000);
+test("Login success resets consecutive failures; concurrent failures lock exactly at five", async () => {
+  const email = h.getUsers().Admin.email;
+  const login = (password) =>
+    h.request(h.app).post("/api/auth/login").send({ email, password });
+  expect((await login(h.password)).status).toBe(200);
+  for (let i = 0; i < 4; i++)
+    expect((await login("WrongPassword9")).status).toBe(401);
+  expect((await login(h.password)).status).toBe(200);
+  const responses = await Promise.all(
+    Array.from({ length: 5 }, () => login("WrongPassword9")),
+  );
+  expect(responses.filter((r) => r.status === 401)).toHaveLength(4);
+  expect(responses.filter((r) => r.status === 429)).toHaveLength(1);
+  const [[saved]] = await h.db.query(
+    "SELECT failed_login_attempts FROM users WHERE email=?",
+    [email],
+  );
+  expect(saved.failed_login_attempts).toBe(5);
+});
+test("Legacy locks are capped at 15 seconds; expiry resets count and cannot unlock an inactive account", async () => {
+  const email = h.getUsers()["Cust. Success"].email;
+  const login = (password) =>
+    h.request(h.app).post("/api/auth/login").send({ email, password });
+  await h.db.query(
+    "UPDATE users SET failed_login_attempts=5,lock_until=DATE_ADD(UTC_TIMESTAMP(),INTERVAL 15 MINUTE) WHERE email=?",
+    [email],
+  );
+  expect((await login(h.password)).body.details.retry_after).toBe(15);
+  const [[capped]] = await h.db.query(
+    "SELECT TIMESTAMPDIFF(SECOND,UTC_TIMESTAMP(),lock_until) remaining FROM users WHERE email=?",
+    [email],
+  );
+  expect(capped.remaining).toBeLessThanOrEqual(15);
+  await h.db.query(
+    "UPDATE users SET lock_until=DATE_SUB(UTC_TIMESTAMP(),INTERVAL 1 SECOND) WHERE email=?",
+    [email],
+  );
+  expect((await login("WrongPassword9")).status).toBe(401);
+  const [[fresh]] = await h.db.query(
+    "SELECT failed_login_attempts,lock_until FROM users WHERE email=?",
+    [email],
+  );
+  expect(fresh.failed_login_attempts).toBe(1);
+  expect(fresh.lock_until).toBeNull();
+  const [[original]] = await h.db.query(
+    "SELECT is_active,status FROM users WHERE email=?",
+    [email],
+  );
+  try {
+    await h.db.query(
+      "UPDATE users SET is_active=0,status='Đã khóa',lock_until=DATE_SUB(UTC_TIMESTAMP(),INTERVAL 1 SECOND) WHERE email=?",
+      [email],
+    );
+    expect((await login(h.password)).status).toBe(401);
+    const [[locked]] = await h.db.query(
+      "SELECT is_active,status FROM users WHERE email=?",
+      [email],
+    );
+    expect(locked.is_active).toBe(0);
+    expect(locked.status).toBe("Đã khóa");
+  } finally {
+    await h.db.query("UPDATE users SET is_active=?,status=? WHERE email=?", [
+      original.is_active,
+      original.status,
+      email,
+    ]);
+  }
 });
 test("S1-02: logout revokes the token server-side", async () => {
   expect((await h.api("Marketing", "post", "/api/auth/logout")).status).toBe(

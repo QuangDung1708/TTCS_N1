@@ -92,10 +92,29 @@ export function LoginScreen() {
     location = useLocation();
   const [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
-    [forgot, setForgot] = useState(false);
+    [forgot, setForgot] = useState(false),
+    [loginLock, setLoginLock] = useState(null),
+    [loginNow, setLoginNow] = useState(Date.now);
   const option = useResource("/auth/options");
   const [forgotForm] = Form.useForm();
   const [loginForm] = Form.useForm();
+  const loginEmail = Form.useWatch("email", loginForm);
+  const loginRemaining =
+    loginLock?.email ===
+    String(loginEmail || "")
+      .trim()
+      .toLowerCase()
+      ? Math.max(0, Math.ceil((loginLock.until - loginNow) / 1000))
+      : 0;
+  useEffect(() => {
+    if (!loginLock) return;
+    const timer = setInterval(() => {
+      const now = Date.now();
+      setLoginNow(now);
+      if (now >= loginLock.until) clearInterval(timer);
+    }, 250);
+    return () => clearInterval(timer);
+  }, [loginLock]);
   const demo = useResource("/auth/test-accounts");
   const action = useAction();
   return (
@@ -111,21 +130,45 @@ export function LoginScreen() {
           title="Phiên làm việc đã hết hạn. Vui lòng đăng nhập lại."
         />
       )}
-      {error && (
-        <Alert type="error" title={error} showIcon className="section-gap" />
+      {loginRemaining > 0 ? (
+        <Alert
+          type="warning"
+          title={`Đăng nhập tạm khóa sau 5 lần sai liên tiếp. Thử lại sau ${loginRemaining} giây.`}
+          showIcon
+          className="section-gap"
+        />
+      ) : (
+        error && (
+          <Alert type="error" title={error} showIcon className="section-gap" />
+        )
       )}
       <Form
         form={loginForm}
         layout="vertical"
         requiredMark={false}
+        onValuesChange={(changed) => {
+          if (Object.hasOwn(changed, "email")) setError("");
+        }}
         onFinish={async (values) => {
+          if (loginRemaining > 0) return;
           setBusy(true);
           setError("");
           try {
             await auth.login(values);
             nav(location.state?.from || "/", { replace: true });
           } catch (e) {
-            setError(errorText(e));
+            const details = e.response?.data?.details;
+            if (
+              details?.code === "LOGIN_TEMPORARILY_LOCKED" &&
+              Number(details.retry_after) > 0
+            ) {
+              const now = Date.now();
+              setLoginNow(now);
+              setLoginLock({
+                email: values.email.trim().toLowerCase(),
+                until: now + Number(details.retry_after) * 1000,
+              });
+            } else setError(errorText(e));
           } finally {
             setBusy(false);
           }
@@ -165,10 +208,11 @@ export function LoginScreen() {
           type="primary"
           htmlType="submit"
           loading={busy}
+          disabled={loginRemaining > 0}
           icon={<ArrowRightOutlined aria-hidden="true" />}
           iconPlacement="end"
         >
-          Đăng nhập
+          {loginRemaining > 0 ? `Thử lại sau ${loginRemaining}s` : "Đăng nhập"}
         </Button>
       </Form>
       {!!demo.rows.length && (

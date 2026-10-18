@@ -16,3 +16,6 @@ Tạo lại: `python reports/generate_reports.py /duong-dan/Jira_N1_cap_nhat_18-
 ## Bổ sung: test Sprint 4
 
 `Huong_dan_test_Sprint_4.docx` và bản Markdown: hướng dẫn từng bước cả 9 US, bảng rà 31 AC, test bằng vai trò phù hợp và kết quả mong đợi. `Sprint_4_audit_evidence.json` ghi 47/47 backend, ca trình duyệt gộp và phát hiện lead MERGED vẫn còn trong gợi ý trùng. Đợt này rà soát/tài liệu, chưa sửa mã ứng dụng. Thời gian phân bổ dưới tải lớn, website triển khai và cấu hình SLA 3 ngày cần xác nhận riêng.
+
+
+API doc được bổ sung hợp đồng khóa đăng nhập 15 giây theo yêu cầu mới; đây là thay đổi S1 riêng sau đợt rà Sprint 4. Thời gian 15 giây thay AC gốc 15 phút, không phải trạng thái Jira đã được tự cập nhật.

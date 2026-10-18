@@ -16,7 +16,7 @@ Mã: `src/routes/authRoutes.js` (các đường `core/`, `jobs/` tương đối 
 | --------- | -------------------------------------------------------------------------------- | -------------------------------------- |
 | S1-01.AC1 | Đăng nhập đúng thì vào được trang chủ tương ứng với vai trò                      | API hỗ trợ; cần UI/nghiệm thu đầu cuối |
 | S1-01.AC2 | Sai thông tin hiển thị thông báo chung, không tiết lộ email có tồn tại hay không | API có + test liên quan                |
-| S1-01.AC3 | Khoá tạm 15 phút sau 5 lần sai liên tiếp                                         | API có + test liên quan                |
+| S1-01.AC3 | Khoá sau 5 lần sai liên tiếp: AC gốc 15 phút; yêu cầu điều chỉnh ngày 18/10/2026 là **15 giây**                                         | API có + test liên quan                |
 
 ## S1-02
 

@@ -41,7 +41,7 @@ source_note = ('Nguồn: '+source.name+' / Danh sách Jira, ảnh chụp trạng
 # API contract: curated workflows plus a mechanically checked route inventory.
 sections = [
  ('Xác thực và thư thật','N1-3, N1-4; đối chiếu mã hiện hành',[
- ('POST','/api/auth/login',{'email':'user@example.test','password':'YourPassword9!'},'200: token và thông tin người dùng; 401 nếu sai thông tin.'),
+ ('POST','/api/auth/login',{'email':'user@example.test','password':'YourPassword9!'},'200: token và thông tin người dùng; 401 nếu sai thông tin. Sau 5 lần sai liên tiếp: 429, Retry-After và details {code: LOGIN_TEMPORARILY_LOCKED, retry_after: số giây}. Khóa 15 giây theo yêu cầu điều chỉnh 18/10/2026; nhập đúng trong thời gian khóa vẫn bị chặn, hết hạn bắt đầu lại bộ đếm nếu tiếp tục nhập sai.'),
  ('POST','/api/auth/forgot-password',{'email':'user@example.test'},'Yêu cầu email khôi phục; không đồng nhất SMTP chấp nhận với thư đã đến hộp thư.'),
  ('POST','/api/auth/send-register-otp',{'email':'new@example.test'},'OTP email; giới hạn gửi lại 60 giây. Email đã có không được đăng ký mới.'),
  ('POST','/api/auth/register',{'full_name':'Người dùng mới','email':'new@example.test','otp_code':'123456','password':'YourPassword9!','confirm_password':'YourPassword9!'},'Vai trò cố định Sales Rep; xác minh OTP và mật khẩu theo cấu hình backend. Mã OTP dùng trường otp_code; xác nhận mật khẩu dùng confirm_password.'),

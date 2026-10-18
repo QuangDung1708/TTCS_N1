@@ -1,5 +1,5 @@
 {
-  "verified_at_utc": "2026-10-18T13:18:24.759818+00:00",
+  "verified_at_utc": "2026-10-18T14:07:17.221698+00:00",
   "runtime": {
     "node": "24.19.0",
     "mysql": "8.4.11",
@@ -14,16 +14,17 @@
     "lint": "passed",
     "build": "passed",
     "clean_npm_ci": "passed",
-    "full_suite_is_from_previous_release": false,
+    "full_suite_is_from_previous_release": true,
     "full_suite_before_final_org_ellipsis": true,
     "final_affected_browser_tests": {
       "passed": 4,
-      "total": 4
+      "total": 4,
+      "scope": "login, forgot-password, registration and 15-second lock"
     }
   },
   "backend": {
-    "tests_passed": 119,
-    "tests_total": 119,
+    "tests_passed": 121,
+    "tests_total": 121,
     "suites_passed": 14,
     "coverage_percent": {
       "lines": 90.64,
@@ -436,5 +437,31 @@
     "reports_jira_issues": 199,
     "reports_member_day_drafts": 120,
     "reports_do_not_claim_daily_history": true
+  },
+  "login_15_second_lock": {
+    "requirement_override": "User requested 15 seconds instead of original AC 15 minutes on 2026-10-18",
+    "backend_mysql": {
+      "passed": 121,
+      "total": 121,
+      "suites": 14
+    },
+    "backend_mariadb": {
+      "passed": 121,
+      "total": 121,
+      "suites": 14
+    },
+    "affected_browser": {
+      "passed": 4,
+      "total": 4
+    },
+    "fifth_failure_http_429": true,
+    "correct_password_during_lock_denied": true,
+    "countdown_after_refresh_verified": true,
+    "real_time_expiry_login_verified": true,
+    "expired_counter_restarts": true,
+    "concurrent_failure_serialization_verified": true,
+    "legacy_temporary_lock_capped": true,
+    "administrative_disabled_account_not_unlocked": true,
+    "schema_change_required": false
   }
 }

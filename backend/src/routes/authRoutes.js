@@ -17,6 +17,8 @@ const registrationEnabled = () =>
   process.env.ALLOW_SELF_REGISTRATION !== "false" &&
   (process.env.NODE_ENV !== "production" ||
     process.env.ALLOW_SELF_REGISTRATION === "true");
+const LOGIN_FAILURE_LIMIT = 5;
+const LOGIN_LOCK_SECONDS = 15;
 const generic = "Nếu email tồn tại, hướng dẫn sẽ được gửi đến hộp thư của bạn.";
 router.post(
   "/login",
@@ -26,7 +28,7 @@ router.post(
     const supplied = text(req.body.password, "Mật khẩu", 200);
     const result = await transaction(async (c) => {
       const [rows] = await c.query(
-        "SELECT * FROM users WHERE email=? FOR UPDATE",
+        "SELECT *,TIMESTAMPDIFF(MICROSECOND,UTC_TIMESTAMP(6),lock_until) lock_remaining_us FROM users WHERE email=? FOR UPDATE",
         [mail],
       );
       const u = rows[0];
@@ -34,20 +36,37 @@ router.post(
         await bcrypt.hash(supplied, 10);
         return null;
       }
-      if (
-        !active(u) ||
-        (u.lock_until && Date.parse(u.lock_until + "Z") > Date.now())
-      )
-        return null;
+      if (!active(u)) return null;
+      const remaining = Number(u.lock_remaining_us || 0) / 1e6;
+      if (remaining > 0) {
+        // Old releases stored 15-minute locks. Cap those on first retry without
+        // touching administrative locks, passwords or existing sessions.
+        if (remaining > LOGIN_LOCK_SECONDS)
+          await c.query(
+            "UPDATE users SET lock_until=DATE_ADD(UTC_TIMESTAMP(),INTERVAL ? SECOND) WHERE id=?",
+            [LOGIN_LOCK_SECONDS, u.id],
+          );
+        return {
+          loginLocked: true,
+          retryAfter: Math.min(LOGIN_LOCK_SECONDS, Math.ceil(remaining)),
+        };
+      }
       const valid = await bcrypt
         .compare(supplied, u.password)
         .catch(() => false);
       if (!valid) {
+        // Expiry starts a new run of consecutive failures, rather than locking
+        // again immediately on the first mistake after the waiting period.
+        const attempts =
+          (u.lock_until ? 0 : Number(u.failed_login_attempts || 0)) + 1;
+        const locked = attempts >= LOGIN_FAILURE_LIMIT;
         await c.query(
-          "UPDATE users SET failed_login_attempts=failed_login_attempts+1,lock_until=IF(failed_login_attempts>=5,DATE_ADD(UTC_TIMESTAMP(),INTERVAL 15 MINUTE),NULL) WHERE id=?",
-          [u.id],
+          "UPDATE users SET failed_login_attempts=?,lock_until=IF(?,DATE_ADD(UTC_TIMESTAMP(),INTERVAL ? SECOND),NULL) WHERE id=?",
+          [attempts, locked ? 1 : 0, LOGIN_LOCK_SECONDS, u.id],
         );
-        return null;
+        return locked
+          ? { loginLocked: true, retryAfter: LOGIN_LOCK_SECONDS }
+          : null;
       }
       await c.query(
         "UPDATE users SET failed_login_attempts=0,lock_until=NULL WHERE id=?",
@@ -55,6 +74,14 @@ router.post(
       );
       return issue(c, u);
     });
+    if (result?.loginLocked) {
+      res.set("Retry-After", String(result.retryAfter));
+      fail(
+        429,
+        `Đăng nhập tạm khóa sau ${LOGIN_FAILURE_LIMIT} lần sai liên tiếp. Vui lòng thử lại sau ${result.retryAfter} giây.`,
+        { code: "LOGIN_TEMPORARILY_LOCKED", retry_after: result.retryAfter },
+      );
+    }
     if (!result)
       fail(
         401,
@@ -186,12 +213,10 @@ router.post(
       );
     });
     const delivery = queued.length ? await requireDelivery(queued) : null;
-    res
-      .status(delivery?.queued ? 202 : 200)
-      .json({
-        message: generic,
-        ...(delivery?.queued ? { delivery: "queued" } : {}),
-      });
+    res.status(delivery?.queued ? 202 : 200).json({
+      message: generic,
+      ...(delivery?.queued ? { delivery: "queued" } : {}),
+    });
   }),
 );
 router.post(

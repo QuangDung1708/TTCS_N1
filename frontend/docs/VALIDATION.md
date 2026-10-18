@@ -7,9 +7,9 @@
 | Frontend `npm ci` trên thư mục Linux sạch | Thành công từ package-lock.json |
 | Frontend `npm run lint` | Thành công, gồm cả source và test |
 | Frontend `npm run build` | Thành công |
-| Playwright + Chromium + Express + MariaDB 10.4 thật | **48/48 ca** sau sửa import; **4/4 luồng ảnh hưởng trên mã cuối** gồm import trùng, tải Excel Pipeline, điểm tự tính và cây tổ chức. Gồm gộp khách hàng, đăng ký email, animation, cây tổ chức và kéo chốt Won/Lost |
+| Playwright + Chromium + Express + MariaDB 10.4 thật | Bản Excel/cây tổ chức **48/48 ca** và **4/4 ca ảnh hưởng**; bản khóa đăng nhập hiện tại chạy **4/4 ca auth** gồm đăng nhập, quên mật khẩu, đăng ký và khóa 15 giây. Chưa chạy lại toàn bộ browser suite cho bản khóa. Gồm gộp khách hàng, đăng ký email, animation, cây tổ chức và kéo chốt Won/Lost |
 | Backend lint | Thành công |
-| Backend Jest/MySQL | **119/119 test**, 14/14 suite trên MySQL 8.4 và MariaDB 10.4 |
+| Backend Jest/MySQL | **121/121 test**, 14/14 suite trên MySQL 8.4 và MariaDB 10.4 |
 | Backend coverage của bản trước | 90.64% dòng; 76.50% nhánh; 91.2% hàm; 87.43% câu lệnh; chưa đo lại cho phần Excel/mail mới |
 | Server phát triển | Frontend HTTP 200, backend health HTTP 200; dùng crm_dev không nạp dữ liệu nghiệp vụ mẫu |
 
@@ -145,3 +145,10 @@ SMTP môi trường hiện tại thiếu SMTP_HOST. Chưa xác minh hộp thư b
 - S4-05: quy tắc/ngưỡng tính lại lead đang có và khi thông tin thay đổi; payload score không ghi đè điểm tự tính. Admin/Director chỉnh qua cấu hình, không thêm sửa tay từng score.
 - Cây tổ chức: kiểm tra nút mở rộng và nhãn cùng dòng ở nhiều cấp, mở/thu gọn và nhân sự nhánh; mã cuối bổ sung rút gọn tên dài.
 - Tài liệu: đọc đủ 199 issue, 135 Done / 9 In Progress / 55 To Do; kiểm tra XML DOCX/XLSX và 120 dòng nhật ký dự thảo cho 10 thành viên. Không suy ngày làm việc từ Updated, không ghi Sprint 4 To Do thành Done.
+
+
+## Khóa đăng nhập — yêu cầu điều chỉnh 15 giây
+
+Sau 5 lần sai liên tiếp, API trả 429 với Retry-After và details.code=LOGIN_TEMPORARILY_LOCKED. Giao diện có đếm ngược theo email. Kiểm tra API và trình duyệt thật: mật khẩu đúng trước hạn vẫn bị chặn, refresh không bỏ khóa, hết thời gian mới vào được. Kiểm tra thêm đăng nhập đúng reset số lần, sai sau hết hạn bắt đầu từ 1, 5 yêu cầu đồng thời không lách bộ đếm, rút khóa tạm cũ còn tối đa 15 giây và không tự mở tài khoản bị quản trị viên vô hiệu hóa. Thay đổi này theo yêu cầu người dùng, khác thời gian 15 phút của AC gốc.
+
+Rà riêng Sprint 4: 47/47 kiểm tra API liên quan và ca trình duyệt gộp lead xác nhận lịch sử còn đủ. Phát hiện lead MERGED vẫn còn trong gợi ý trùng; đã ghi báo cáo, chưa sửa trong bản khóa đăng nhập. Hướng dẫn 9 US/31 AC trong reports/Huong_dan_test_Sprint_4.docx ở bộ tài liệu.

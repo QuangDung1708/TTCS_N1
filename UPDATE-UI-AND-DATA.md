@@ -1,5 +1,16 @@
 # Cập nhật import Excel, Pipeline và cây tổ chức — 18/10/2026
 
+## Bổ sung mới nhất: khóa đăng nhập 15 giây sau 5 lần sai
+
+Thời gian 15 giây thay cho AC gốc 15 phút theo yêu cầu mới ngày 18/10/2026. Khóa theo tài khoản ở backend, có lưu trong DB; tải lại trang, đổi trình duyệt hoặc nhập đúng mật khẩu khi chưa hết khóa đều không vượt qua được. Lần sai thứ 5 trả HTTP 429, Retry-After và mã LOGIN_TEMPORARILY_LOCKED. UI hiển thị đếm ngược và khóa nút đăng nhập của email đó; vẫn có thể đăng nhập tài khoản khác.
+
+Hết thời gian được thử lại; đăng nhập thành công xóa bộ đếm. Nếu nhập sai sau khi hết khóa, bắt đầu lại từ lần 1. Các khóa tạm 15 phút của bản cũ được rút còn tối đa 15 giây khi thử đăng nhập lại; tài khoản bị Admin vô hiệu hóa/khóa vẫn không tự mở.
+
+Chép đè bản ZIP cập nhật, khởi động lại backend/frontend và Ctrl+F5; giữ DB, `.env`, uploads, không cần đổi SMTP/nạp lại dữ liệu/migration. Test bằng tài khoản kiểm thử: sai 4 lần vẫn thử được; lần 5 phải thấy đếm ngược, đúng mật khẩu trước hạn vẫn bị chặn; chờ hết 15 giây rồi đăng nhập đúng phải thành công.
+
+Hướng dẫn test cả 9 US Sprint 4 và bảng rà 31 AC nằm trong tài liệu riêng `reports/Huong_dan_test_Sprint_4.docx`. Lưu ý S4-04 hiện vẫn gợi ý lại lead MERGED sau gộp; báo cáo rà soát chưa sửa điểm này.
+
+
 ## Bản mới: chặn trùng Excel, mẫu cơ hội và cây tổ chức
 
 Dừng backend/frontend, giải nén `TTCS_N1-import-excel-organization-fix.zip`, chép đè nội dung vào thư mục dự án (nơi có hai thư mục backend/frontend), rồi khởi động lại cả hai và Ctrl+F5. Giữ nguyên `.env`, uploads và DB. Bản này không đổi dependency/schema, không cần nạp lại dữ liệu hoặc cấu hình lại SMTP đã gửi được thư. Nếu đang dùng bản rất cũ, chạy `npm ci` trong backend và frontend trước khi khởi động; không reset DB.
