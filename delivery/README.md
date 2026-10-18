@@ -2,13 +2,21 @@
 
 [Tải gói source đầy đủ](https://github.com/QuangDung1708/TTCS_N1/raw/refs/heads/codex/frontend-sprint-1-5/delivery/TTCS_N1-fullstack.zip) · [Mở trang tệp trên GitHub](https://github.com/QuangDung1708/TTCS_N1/blob/codex/frontend-sprint-1-5/delivery/TTCS_N1-fullstack.zip) · [SHA-256](TTCS_N1-fullstack.zip.sha256)
 
-Nếu trình duyệt mở trang tệp, chọn **Download raw file**. Gói khoảng 858 KiB, chứa hai thư mục `frontend`/`backend`, lockfile, migration, test và tài liệu. Không kèm `.env`, node_modules, coverage, báo cáo trình duyệt hoặc tệp người dùng tải lên. Ứng dụng không seed dữ liệu nghiệp vụ mẫu; fixture QA chỉ chạy trong database kiểm thử có cờ reset rõ ràng.
+Nếu trình duyệt mở trang tệp, chọn **Download raw file**. Gói khoảng 871 KiB, chứa hai thư mục `frontend`/`backend`, lockfile, migration, test và tài liệu. Không kèm `.env`, node_modules, coverage, báo cáo trình duyệt hoặc tệp người dùng tải lên. Ứng dụng không seed dữ liệu nghiệp vụ mẫu; fixture QA chỉ chạy trong database kiểm thử có cờ reset rõ ràng.
 
 Giải nén vào thư mục mới và làm theo [hướng dẫn chạy](../frontend/README.md). Cần Node.js 24 LTS và MySQL 8. Cấu hình database hiện có của bạn trong `backend/.env`; giữ bản sao cấu hình và dữ liệu đang có. Dùng **backend trong cùng gói fullstack** với frontend này để khớp các API phân quyền, thông báo và cơ cấu tổ chức mới.
 
-Source ứng dụng: `53ca0189e603b131acc6267908c9e7e5826721a5`. `DELIVERY.json` bên trong ZIP liệt kê commit nguồn và SHA-256 của từng tệp. Gói đã kiểm tra CRC, đối chiếu byte từng tệp với source, và lint/build thành công từ mã giải nén.
+Source ứng dụng: `bd3d8f925107bdeca3f9dafcd94a97b23ca0cca5`. `DELIVERY.json` bên trong ZIP liệt kê commit nguồn và SHA-256 của từng tệp. Gói đã kiểm tra CRC, đối chiếu byte từng tệp với source, và lint/build thành công từ mã giải nén.
 
-Kiểm chứng cục bộ: **23/23 kiểm thử trình duyệt** qua API/MySQL thật, **95/95 kiểm thử backend**, lint/build thành công. Xem [kết quả và giới hạn xác minh](../frontend/docs/VALIDATION.md), [đối chiếu 151 AC](../frontend/docs/AC-MATRIX.md), [ảnh desktop](../frontend/docs/images/customers-desktop.png) và [ảnh 360px](../frontend/docs/images/customers-mobile-360.png).
+Kiểm chứng cục bộ: **39/39 kiểm thử trình duyệt** qua API/MariaDB thật, **104/104 kiểm thử backend trên từng engine MySQL 8.4 và MariaDB 10.4**, lint/build thành công. Xem [kết quả và giới hạn xác minh](../frontend/docs/VALIDATION.md), [đối chiếu 151 AC](../frontend/docs/AC-MATRIX.md), [ảnh desktop](../frontend/docs/images/customers-desktop.png) và [ảnh 360px](../frontend/docs/images/customers-mobile-360.png).
+
+## Bản mới nhất: dropdown và Excel
+
+[Tải ZIP chép đè backend/frontend](https://github.com/QuangDung1708/TTCS_N1/raw/refs/heads/codex/frontend-sprint-1-5/delivery/TTCS_N1-dropdown-excel-fix.zip) · [SHA-256](TTCS_N1-dropdown-excel-fix.zip.sha256). Gói khoảng 281 KiB, gồm các bản sửa UI trước đó và hướng dẫn `UPDATE-UI-AND-DATA.md`. Dừng server, chép hai thư mục vào TTCS_N1, giữ .env/uploads/database; chạy `npm ci` tại backend rồi khởi động lại backend/frontend và Ctrl+F5. Không reset DB hay chạy migration cho bản này.
+
+Bộ chọn mở bằng mũi tên và tìm theo tên không dấu/hoa thường, lấy dữ liệu DB theo quyền. Backend khởi tạo danh mục chuẩn một lần, giữ cấu hình sẵn có, không tạo user/khách hàng/lead/cơ hội. Form quy mô ghi rõ khoảng nhân sự và có liên kết mở form doanh nghiệp có tên. XLSX khách hàng/lead/báo giá dùng worksheet đơn giản, tiêu đề/bộ lọc/cố định hàng đầu; mẫu user có sáu cột theo ví dụ. Loading/success và animation thẻ được kiểm tra bằng request lưu thật.
+
+Kiểm chứng: 39/39 ca Chromium + MariaDB, 104/104 backend trên mỗi engine MySQL/MariaDB; lint/build đạt. XML và openpyxl đọc được ba file tải từ trình duyệt, byte khớp API. Chưa kiểm tra trực tiếp Microsoft Excel/Cốc Cốc Windows trên máy người dùng. Tải lại file mới sau khi cập nhật. Chi tiết trong [VALIDATION.md](../frontend/docs/VALIDATION.md).
 
 ## Bản sửa theo phản hồi kiểm thử 18/10/2026
 
