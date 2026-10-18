@@ -15,8 +15,8 @@
     "clean_npm_ci": "passed"
   },
   "backend": {
-    "tests_passed": 89,
-    "tests_total": 89,
+    "tests_passed": 95,
+    "tests_total": 95,
     "suites_passed": 11,
     "coverage_percent": {
       "lines": 90.63,
@@ -73,5 +73,20 @@
     "mariadb_tests_passed": 32,
     "mariadb_tests_total": 32,
     "mariadb_suites_passed": 4
+  },
+  "foreign_key_migration_fix": {
+    "verified_at_utc": "2026-10-18T02:46:27.617415+00:00",
+    "mysql_version": "8.4.11",
+    "mysql_tests_passed": 95,
+    "mysql_tests_total": 95,
+    "mysql_suites_passed": 11,
+    "mariadb_version": "10.4.34",
+    "mariadb_tests_passed": 38,
+    "mariadb_tests_total": 38,
+    "mariadb_suites_passed": 4,
+    "migration_tests_per_engine": 10,
+    "pre_fix_error_reproduced": true,
+    "user_db_metadata_confirmed": false,
+    "frontend_e2e_rerun": false
   }
 }

@@ -37,6 +37,8 @@ Một database mới cần tài khoản quản trị thật. Cấp `CRM_ADMIN_EM
 
 Migration thêm bảng/cột/index/khóa ngoại còn thiếu, không DROP bảng/cột hay nạp dữ liệu demo. Có backfill tên cột tương đương, ánh xạ nhóm cũ, vai trò và trạng thái thắng/thua. Các giá trị enum trạng thái cũ được mở rộng sang VARCHAR để giữ nguyên giá trị. FK `users.group_id → groups_table` cũ được thay bằng FK tới `groups`. Khi ID trùng nhưng tên khác, giữ nhóm hiện có và sao chép nhóm cũ sang ID mới, lưu ánh xạ trong `crm_legacy_group_map`; chỉ chuyển liên kết người dùng khi FK xác nhận nguồn nhóm cũ. Xem [bản vá migration nhóm](docs/GROUP-MIGRATION.md).
 
+Trước khi thêm FK, migration đọc kiểu ID và engine thực tế. Cột số nguyên liên kết được đồng bộ kiểu/UNSIGNED với ID cha nếu giữ nguyên được dữ liệu, NULL/default/comment và không thu hẹp số bit của cột đang có bản ghi. Không đổi ID cha, không tự xóa bản ghi mồ côi hay đổi engine. Lỗi còn lại ghi rõ hai cột và engine để chẩn đoán. Xem [bản vá khóa ngoại](docs/FOREIGN-KEY-MIGRATION.md).
+
 **Sao lưu database trước khi áp dụng lên dữ liệu thật, dừng API và worker trong suốt migration:** MySQL DDL không rollback toàn bộ như transaction dữ liệu. Migration dừng khi liên kết nhóm không xác định được nguồn, có tham chiếu nhóm cũ chưa được hỗ trợ, mã số thuế trùng, dữ liệu mồ côi hoặc kiểu cột không tương thích; không tự xóa hoặc chọn một bản ghi thay người dùng. Đối với database chỉ có ảnh danh sách bảng, chưa thể khẳng định cấu trúc cột và toàn bộ dữ liệu tương thích. `npm run schema:report` chỉ xuất metadata cột, không xuất nội dung khách hàng hoặc bí mật.
 
 ## Quyền và phiên

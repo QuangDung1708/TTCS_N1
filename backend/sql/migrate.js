@@ -1,9 +1,11 @@
 /* Additive migration for MySQL 8.0+. No demo/business records are inserted.
- * Existing columns are never dropped or narrowed. Conflicting unique data fails explicitly.
+ * Existing values are never dropped or truncated. Populated integer columns are not narrowed.
+ * Conflicting unique data fails explicitly.
  */
 const { db } = require("../src/core/store");
 const { normalizeRole } = require("../src/core/access");
 const { reconcileLegacyGroups } = require("./reconcile-legacy-groups");
+const { ensureForeignKey } = require("./ensure-foreign-key");
 const common = { created_at: "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP" };
 const owned = { created_by: "INT NULL", group_id: "INT NULL" };
 const schema = {
@@ -580,21 +582,7 @@ async function migrate() {
           );
     }
     for (const [table, column, parent] of foreignKeys) {
-      const [existing] = await c.query(
-        "SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? AND COLUMN_NAME=? AND REFERENCED_TABLE_NAME=?",
-        [table, column, parent],
-      );
-      if (existing.length) continue;
-      const [[orphans]] = await c.query(
-        `SELECT COUNT(*) n FROM \`${table}\` child LEFT JOIN \`${parent}\` parent ON parent.id=child.\`${column}\` WHERE child.\`${column}\` IS NOT NULL AND parent.id IS NULL`,
-      );
-      if (orphans.n)
-        throw new Error(
-          `Cannot add ${table}.${column} reference: ${orphans.n} orphaned records. Existing records were preserved.`,
-        );
-      await c.query(
-        `ALTER TABLE \`${table}\` ADD CONSTRAINT \`fk_crm_${table}_${column}\` FOREIGN KEY (\`${column}\`) REFERENCES \`${parent}\` (id) ON DELETE RESTRICT`,
-      );
+      await ensureForeignKey(c, table, column, parent);
     }
     await c.query(
       "INSERT INTO crm_migrations (version) VALUES ('001_sprint_1_5') ON DUPLICATE KEY UPDATE version=VALUES(version)",
