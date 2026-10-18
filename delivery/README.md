@@ -2,13 +2,21 @@
 
 [Tải gói source đầy đủ](https://github.com/QuangDung1708/TTCS_N1/raw/refs/heads/codex/frontend-sprint-1-5/delivery/TTCS_N1-fullstack.zip) · [Mở trang tệp trên GitHub](https://github.com/QuangDung1708/TTCS_N1/blob/codex/frontend-sprint-1-5/delivery/TTCS_N1-fullstack.zip) · [SHA-256](TTCS_N1-fullstack.zip.sha256)
 
-Nếu trình duyệt mở trang tệp, chọn **Download raw file**. Gói khoảng 807 KiB, chứa hai thư mục `frontend`/`backend`, lockfile, migration, test và tài liệu. Không kèm `.env`, node_modules, coverage, báo cáo trình duyệt hoặc tệp người dùng tải lên. Ứng dụng không seed dữ liệu nghiệp vụ mẫu; fixture QA chỉ chạy trong database kiểm thử có cờ reset rõ ràng.
+Nếu trình duyệt mở trang tệp, chọn **Download raw file**. Gói khoảng 821 KiB, chứa hai thư mục `frontend`/`backend`, lockfile, migration, test và tài liệu. Không kèm `.env`, node_modules, coverage, báo cáo trình duyệt hoặc tệp người dùng tải lên. Ứng dụng không seed dữ liệu nghiệp vụ mẫu; fixture QA chỉ chạy trong database kiểm thử có cờ reset rõ ràng.
 
 Giải nén vào thư mục mới và làm theo [hướng dẫn chạy](../frontend/README.md). Cần Node.js 24 LTS và MySQL 8. Cấu hình database hiện có của bạn trong `backend/.env`; giữ bản sao cấu hình và dữ liệu đang có. Dùng **backend trong cùng gói fullstack** với frontend này để khớp các API phân quyền, thông báo và cơ cấu tổ chức mới.
 
-Source ứng dụng: `f00d61a82fa01e60107528b4d1050b551f8243d8`. `DELIVERY.json` bên trong ZIP liệt kê commit nguồn và SHA-256 của từng tệp. Gói đã kiểm tra CRC, đối chiếu byte từng tệp với source, và lint/build thành công từ mã giải nén.
+Source ứng dụng: `9860a2cd176769b7c1f5bcc7e12b83369f92a44d`. `DELIVERY.json` bên trong ZIP liệt kê commit nguồn và SHA-256 của từng tệp. Gói đã kiểm tra CRC, đối chiếu byte từng tệp với source, và lint/build thành công từ mã giải nén.
 
 Kiểm chứng cục bộ: **23/23 kiểm thử trình duyệt** qua API/MySQL thật, **95/95 kiểm thử backend**, lint/build thành công. Xem [kết quả và giới hạn xác minh](../frontend/docs/VALIDATION.md), [đối chiếu 151 AC](../frontend/docs/AC-MATRIX.md), [ảnh desktop](../frontend/docs/images/customers-desktop.png) và [ảnh 360px](../frontend/docs/images/customers-mobile-360.png).
+
+## Bản cập nhật UI và dữ liệu kiểm thử
+
+[Tải ZIP để chép đè vào folder đang dùng](https://github.com/QuangDung1708/TTCS_N1/raw/refs/heads/codex/frontend-sprint-1-5/delivery/TTCS_N1-ui-data-fix.zip). Có hai thư mục backend/frontend và hướng dẫn UPDATE-UI-AND-DATA.md. Dừng server, chép hai thư mục vào TTCS_N1, giữ .env/node_modules/uploads/database. Không cần migration hay dependency mới. Chạy backend `npm run data:examples` nếu muốn tạo dữ liệu kiểm thử; sau đó khởi động lại backend/frontend và Ctrl+F5.
+
+Sửa cách mở avatar/chuông bằng nút có trạng thái, menu Hồ sơ/Đổi mật khẩu/Đăng xuất, popup lịch và định dạng ngày Việt Nam, định dạng tiền nhóm nghìn, kiểm tra thứ tự ngày chiến dịch, nhật ký tiếng Việt thay JSON, motion ngắn và reduced-motion. Kiểm chứng: **27/27 ca trình duyệt trên MariaDB 10.4**, lint frontend/backend và frontend build đạt; CLI tạo dữ liệu, đúng vai trò/liên kết/phân quyền và chạy lại không nhân đôi đã kiểm tra trên database QA riêng. Chưa truy cập máy người dùng.
+
+Lệnh data:examples tạo 8 tài khoản, 2 nhóm, 4 khách hàng và liên hệ, 2 sản phẩm, 3 lead, 2 cơ hội và 1 chiến dịch trong MySQL. Đây là ví dụ kiểm thử có tiền tố KT, không phải danh tính đã xác minh. Mật khẩu ngẫu nhiên được ghi vào tệp riêng tư trên máy chạy lệnh, không kèm trong ZIP. Xem [hướng dẫn dữ liệu](../backend/docs/EXAMPLE-DATA.md).
 
 ## Bản vá danh sách người phụ trách — sau kiểm thử dashboard
 
