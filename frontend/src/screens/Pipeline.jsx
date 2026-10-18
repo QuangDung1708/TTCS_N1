@@ -136,7 +136,6 @@ function DealCard({ deal, onOpen, draggable }) {
 function Column({ stage, rows, children }) {
   const { setNodeRef, isOver } = useDroppable({
     id: stage.id,
-    disabled: stage.closed,
   });
   return (
     <section
@@ -438,13 +437,23 @@ export default function Pipeline() {
           <>
             <Typography.Paragraph type="secondary" style={{ fontSize: 12 }}>
               Kéo thẻ bằng tay nắm để chuyển giai đoạn; hoặc mở cơ hội và chọn
-              “Chuyển giai đoạn”.
+              “Chuyển giai đoạn”. Kéo sang Thành công / Thất bại để mở form
+              chốt; trạng thái chỉ đổi sau khi lưu.
             </Typography.Paragraph>
             <DndContext
               sensors={sensors}
               onDragEnd={({ active, over }) => {
                 const d = r.rows.find((d) => d.id === active.id);
-                if (over && d?.stage_id !== over.id) transition(d.id, over.id);
+                if (
+                  !over ||
+                  !d ||
+                  d.status !== "OPEN" ||
+                  !auth.can("DEAL", "write", d)
+                )
+                  return;
+                if (["WON", "LOST"].includes(over.id))
+                  setParams({ deal: d.id, result: over.id });
+                else if (d.stage_id !== over.id) transition(d.id, over.id);
               }}
             >
               <div className="kanban-board">
@@ -539,6 +548,8 @@ export default function Pipeline() {
       />
       <DealDrawer
         id={detail}
+        result={params.get("result")}
+        onResultHandled={() => setParams({ deal: detail })}
         onClose={() => setParams({})}
         stages={stages}
         reasons={r.data?.reasons || []}
@@ -781,6 +792,8 @@ function DealEditor({ open, onClose, record, stages, fields, users, onSaved }) {
 }
 function DealDrawer({
   id,
+  result,
+  onResultHandled,
   onClose,
   stages,
   reasons,
@@ -798,16 +811,16 @@ function DealDrawer({
       { deal_id: id },
     ),
     a = useAction();
-  const d = r.data?.data,
+  const d = r.data?.data?.id === id ? r.data.data : null,
     [mode, setMode] = useState(null),
     [toStage, setToStage] = useState(null),
     [note, setNote] = useState(""),
     [activityType, setActivityType] = useState("meeting");
   const key = `crm:draft:${auth.user.id}:deal-note:${id}`;
   useEffect(() => {
-    setMode(null);
+    setMode(["WON", "LOST"].includes(result) ? result : null);
     setNote(sessionStorage.getItem(key) || "");
-  }, [key]);
+  }, [key, result]);
   const reload = () => {
     r.reload();
     activities.reload();
@@ -1109,8 +1122,11 @@ function DealDrawer({
             }
             entity={"deal-result-" + id}
             draft={false}
-            open={["WON", "LOST", "reopen"].includes(mode)}
-            onClose={() => setMode(null)}
+            open={["WON", "LOST"].includes(mode) ? editable : mode === "reopen"}
+            onClose={() => {
+              setMode(null);
+              onResultHandled?.();
+            }}
             busy={a.busy}
             defaults={{
               actual_amount: Number(d.amount),

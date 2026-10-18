@@ -23,13 +23,13 @@ Lệnh dùng kết nối MySQL từ `.env`. Giữ database hiện tại; không 
 | care.crm-test@example.test | Chăm sóc khách hàng | Miền Bắc |
 | accountant.crm-test@example.test | Kế toán | Theo ma trận quyền |
 
-Admin hiện có được giữ nguyên. Mật khẩu mới, ID và checkpoint nằm trong `backend/.local-test-data/examples-<mã-database>.json`; đường dẫn đầy đủ được in sau lệnh. Mở tệp bằng VS Code và sao chép mật khẩu của tài khoản tương ứng. Tệp này chứa bí mật đăng nhập: không đưa lên GitHub hoặc gửi cho người khác. Nó được gitignore và không nằm trong ZIP. Lệnh không in mật khẩu ra terminal. Chạy lại sau khi hoàn tất chỉ kiểm tra tài khoản và chỉ dẫn tới tệp, không nhân đôi bộ dữ liệu hoặc đổi mật khẩu.
+Admin hiện có được giữ nguyên. Mật khẩu mới (gồm ba tài khoản trưởng đơn vị bổ sung), ID và checkpoint nằm trong `backend/.local-test-data/examples-<mã-database>.json`; đường dẫn đầy đủ được in sau lệnh. Mở tệp bằng VS Code và sao chép mật khẩu của tài khoản tương ứng. Tệp này chứa bí mật đăng nhập: không đưa lên GitHub hoặc gửi cho người khác. Nó được gitignore và không nằm trong ZIP. Lệnh không in mật khẩu ra terminal. Chạy lại sau khi hoàn tất chỉ kiểm tra tài khoản và chỉ dẫn tới tệp, không nhân đôi bộ dữ liệu hoặc đổi mật khẩu.
 
 Nếu đã tạo lại database cùng tên hoặc tự xóa một phần bộ dữ liệu, giữ tệp checkpoint và đối chiếu trước khi chạy lại; lệnh không tự đoán hay ghi đè tài khoản khác trùng email. Nếu có trường tùy chỉnh bắt buộc mới, API có thể từ chối bản ghi thiếu trường; các bước đã tạo vẫn được lưu, không tự rollback bằng cách xóa dữ liệu.
 
 ## Bản ghi có sẵn
 
-- Hai nhóm kinh doanh độc lập; hai Trưởng nhóm, hai Sales được gán đúng nhóm.
+- Năm đơn vị theo cây bốn cấp; hai nhánh Bắc/Nam riêng biệt dưới Khối Kinh doanh Toàn quốc, thêm Phòng Thái Nguyên và Tổ Sông Công dưới nhánh Bắc. Trưởng nhóm/Sales cũ giữ nhóm và quyền cũ.
 - Bốn khách hàng: `KT · Doanh nghiệp Minh An`, `KT · Doanh nghiệp Bắc Sơn` thuộc Sales Bắc; `KT · Doanh nghiệp Nam Việt` thuộc Sales Nam; `KT · Khách hàng chăm sóc` thuộc CS. Mỗi khách hàng có một người liên hệ riêng.
 - Hai sản phẩm: `KT-CRM` triển khai một lần, giá 5.000.000 ₫; `KT-SUB` thuê bao, giá 500.000 ₫/tháng. Có giá sàn và giá vốn, giá vốn Admin và Giám đốc được xem.
 - Một nguồn lead, một ngành nghề, hai giai đoạn pipeline và hai lý do thắng/thua riêng cho kiểm thử; không thay cấu hình có sẵn.
@@ -62,3 +62,9 @@ npm run data:examples
 Email phải là tài khoản đang hoạt động trong DB này. Tạo thêm riêng một khách hàng, liên hệ, cơ hội và báo giá do tài khoản đó phụ trách; với Sales tạo/phân công thêm một lead. Không chuyển quyền các bản ghi cũ, không đổi role/nhóm/mật khẩu của tài khoản. API vẫn quyết định mục nào được xem/sửa theo User Roles. Chạy lại cùng email không nhân đôi bộ riêng. Tài khoản CS/Kế toán giữ các mục chỉ xem/không được truy cập theo ma trận.
 
 Có thể chạy tệp `CAP-NHAT-VA-NAP-DU-LIEU.cmd` ở gốc để cài dependency hai phía, hỏi email nhận dữ liệu, nạp rồi kiểm tra kết nối SMTP. Script không reset DB; không gửi email kiểm thử.
+
+## Cây tổ chức bốn cấp
+
+Bản cây tổ chức bổ sung ba tài khoản: `org-root.crm-test@example.test`, `org-department.crm-test@example.test`, `org-team.crm-test@example.test`, đều là Team Lead và gán vào đơn vị tương ứng. Mật khẩu ngẫu nhiên riêng ở cùng tệp checkpoint. Tổng bộ chung nay có 11 tài khoản KT và 5 nhóm. Tám tài khoản cũ giữ nguyên role/mật khẩu; Team Lead Bắc vẫn không xem nhánh Nam.
+
+Cây: Khối Toàn quốc → Bắc → Phòng Thái Nguyên → Tổ Sông Công; Nam là nhánh con khác của Khối. Dùng API tạo nhóm/gán trưởng nhóm, không chèn một nút cây giả trong UI. Tổng nhánh Khối có 8 người từ các đơn vị con và chính nó; các tài khoản toàn hệ thống khác không tự bị chuyển vào nhóm. Nếu Bắc/Nam đã có cha tùy chỉnh thì giữ nguyên. Chạy lại không thêm trùng hoặc tái áp đặt quan hệ cha.

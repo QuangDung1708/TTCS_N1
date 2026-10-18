@@ -235,6 +235,84 @@ async function main() {
       state.linkedVersion = 1;
       await save();
     }
+    const rootLeader = await account(
+      "org-root",
+      "Trưởng khối kinh doanh",
+      "Sales Rep",
+    );
+    const departmentLeader = await account(
+      "org-department",
+      "Trưởng phòng Thái Nguyên",
+      "Sales Rep",
+    );
+    const teamLeader = await account(
+      "org-team",
+      "Tổ trưởng Sông Công",
+      "Sales Rep",
+    );
+    async function orgNode(key, name, leader, parent, region) {
+      const gid = await step(
+        key,
+        async () =>
+          (
+            await call(session.token, "POST", "/organization/groups", {
+              name,
+              leader_id: leader.id,
+              parent_id: parent,
+              region_id: region,
+              description: "Đơn vị kiểm thử trong cây tổ chức phân cấp",
+            })
+          ).id,
+      );
+      await step(key + ":role", async () => {
+        await call(session.token, "PUT", `/users/${leader.id}/role`, {
+          roles: ["Team Lead"],
+          group_id: gid,
+        });
+        leader.role = "Team Lead";
+        return gid;
+      });
+      return gid;
+    }
+    const rootGroup = await orgNode(
+      "orgRoot",
+      "KT · Khối Kinh Doanh Toàn Quốc",
+      rootLeader,
+      null,
+      regionIds[0],
+    );
+    if (!state.organizationVersion) {
+      const { data: tree } = await call(
+        session.token,
+        "GET",
+        "/organization/tree",
+      );
+      const flatten = (nodes) =>
+        nodes.flatMap((n) => [n, ...flatten(n.children || [])]);
+      for (const key of ["groupA", "groupB"]) {
+        const g = flatten(tree).find((g) => g.id === state.records[key]);
+        if (g && !g.parent_id)
+          await call(session.token, "PUT", `/organization/groups/${g.id}`, {
+            parent_id: rootGroup,
+          });
+      }
+      state.organizationVersion = 1;
+      await save();
+    }
+    const department = await orgNode(
+      "orgDepartment",
+      "KT · Phòng Kinh Doanh Thái Nguyên",
+      departmentLeader,
+      state.records.groupA,
+      regionIds[0],
+    );
+    await orgNode(
+      "orgTeam",
+      "KT · Tổ Bán Hàng Sông Công",
+      teamLeader,
+      department,
+      regionIds[0],
+    );
     for (const key of ["customerA", "customerB"]) {
       const did = state.records[key + "Deal"];
       if (did)
@@ -659,7 +737,7 @@ async function main() {
     "Đã tạo bản ghi thật trong MySQL qua luồng ứng dụng. Không phải khách hàng/danh tính đã xác minh.",
   );
   console.log(
-    "8 tài khoản mới; 2 nhóm; 4 khách hàng và liên hệ; 2 sản phẩm; 3 lead; 2 cơ hội; 1 chiến dịch.",
+    "11 tài khoản kiểm thử; 5 nhóm theo cây 4 cấp; 4 khách hàng và liên hệ; 2 sản phẩm; 3 lead; 2 cơ hội; 1 chiến dịch.",
   );
   console.log(
     "Tài khoản, mật khẩu ngẫu nhiên và ID nằm trong tệp riêng tư: " + file,

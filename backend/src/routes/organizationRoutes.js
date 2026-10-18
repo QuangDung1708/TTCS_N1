@@ -8,7 +8,7 @@ router.get(
   "/tree",
   route(async (req, res) => {
     const [rows] = await db.query(
-      "SELECT g.*,u.full_name leader_name,r.name region_name,(SELECT COUNT(*) FROM users m WHERE m.group_id=g.id) member_count FROM `groups` g LEFT JOIN users u ON u.id=g.leader_id LEFT JOIN regions r ON r.id=g.region_id ORDER BY g.id",
+      "SELECT g.*,u.full_name leader_name,u.email leader_email,COALESCE(u.avatar_thumbnail,u.avatar) leader_avatar,r.name region_name,(SELECT COUNT(*) FROM users m WHERE m.group_id=g.id) member_count FROM `groups` g LEFT JOIN users u ON u.id=g.leader_id LEFT JOIN regions r ON r.id=g.region_id ORDER BY g.id",
     );
     const map = new Map(rows.map((g) => [g.id, { ...g, children: [] }]));
     const data = [];

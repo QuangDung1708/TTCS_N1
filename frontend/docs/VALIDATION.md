@@ -7,9 +7,9 @@
 | Frontend `npm ci` trên thư mục Linux sạch | Thành công từ package-lock.json |
 | Frontend `npm run lint` | Thành công, gồm cả source và test |
 | Frontend `npm run build` | Thành công |
-| Playwright + Chromium + Express + MariaDB 10.4 thật | **41/41 ca**, gồm bộ chọn dạng nút, danh sách rỗng và rà từng form |
+| Playwright + Chromium + Express + MariaDB 10.4 thật | **44/44 ca**, gồm cây tổ chức và kéo chốt Won/Lost |
 | Backend lint | Thành công |
-| Backend Jest/MySQL | **105/105 test**, 12/12 suite trên MySQL 8.4 và MariaDB 10.4 |
+| Backend Jest/MySQL | **106/106 test**, 12/12 suite trên MySQL 8.4 và MariaDB 10.4 |
 | Backend coverage của bản trước | 90.64% dòng; 76.50% nhánh; 91.2% hàm; 87.43% câu lệnh; chưa đo lại cho phần Excel/mail mới |
 | Server phát triển | Frontend HTTP 200, backend health HTTP 200; dùng crm_dev không nạp dữ liệu nghiệp vụ mẫu |
 
@@ -110,3 +110,15 @@ Nạp dữ liệu mới trên hai engine, chạy lại giữ số lượng và h
 Trong cấu hình checkout chỉ kiểm tra tên/presence biến mail: có SMTP_USER/PASS nhưng thiếu SMTP_HOST; không dùng thông tin đó để gửi mail ngoài. `mail:check` và hướng dẫn cấu hình riêng được bổ sung. Chưa kết nối SMTP/Gmail hoặc đọc Inbox của người dùng. CMD dành cho Windows chưa chạy trên máy Windows trong môi trường Linux; các lệnh Node/npm bên trong đã kiểm tra. Chi tiết: [DROPDOWNS-AND-MAIL.md](DROPDOWNS-AND-MAIL.md).
 
 Hồi quy cuối bản dropdown/dữ liệu/mail đạt **41/41 ca trình duyệt Chromium + MariaDB 10.4** (4,8 phút). Frontend lint/build và backend lint đạt. Bộ SMTP mở rộng 15/15 ca trên cả hai engine; backend đầy đủ 105/105 mỗi engine. ZIP được đóng gói từ source này, kiểm tra manifest/CRC và build lại mã giải nén.
+
+## Một cây tổ chức và kéo chốt cơ hội
+
+Trang tổ chức bỏ hai tab, chỉ một bảng cây; quan hệ khách hàng mẹ/con vẫn sửa trong form khách hàng. Có mở/thu gọn từng nhánh/tất cả, email/ảnh trưởng nhóm, khu vực và tổng nhân sự nhánh. `/groups/:id/members?include_descendants=1` dùng recursive CTE lấy người toàn nhánh không trùng; endpoint mặc định giữ danh sách trực tiếp.
+
+Dữ liệu KT nâng cấp từ checkpoint cũ trên cả MySQL/MariaDB: năm đơn vị theo bốn cấp, nhánh Bắc/Nam cùng cấp, Khối có tám người khớp API nhân sự; thêm ba tài khoản trưởng đơn vị, giữ nguyên tám role/mật khẩu cũ. DB QA gồm Admin có sẵn và 11 tài khoản KT (12 user tổng); các bản ghi khách hàng/lead/cơ hội/báo giá giữ số lượng cũ. Chạy lại không nhân đôi hoặc đổi password hash; quan hệ cha tùy chỉnh được giữ.
+
+Nguyên nhân kéo sang Won/Lost không được là cột đóng đặt `disabled` trong `useDroppable`. Nay nhận drop và mở form kết quả, dùng API close hiện hữu; không đưa chuỗi trạng thái vào API stage số. Cancel không gửi close; thiếu trường/điều kiện không đổi cột; manager chỉ ghi đè khi có lý do; thành công mới lưu/kết thúc drag. Thẻ đã đóng không kéo tiếp.
+
+Bốn ca mục tiêu đạt: một cây mở/thu gọn và xem nhân sự toàn nhánh; quan hệ công ty mẹ/con qua form khách; pointer thật vào Won (thiếu lý do, 422 điều kiện rồi override hợp lệ và lưu số thực); pointer vào Lost (hủy giữ OPEN, lưu reason/competitor, tải lại thấy LOST). Backend đầy đủ đạt 106/106 ca, 12/12 suite trên mỗi engine; frontend/backend lint và build đạt.
+
+Hồi quy cuối bản tổ chức/pipeline: **44/44 ca Chromium + MariaDB 10.4**, **106/106 backend mỗi MySQL 8.4/MariaDB 10.4**, lint/build đạt. Không thao tác DB trên máy người dùng; chỉ nạp dữ liệu cây KT khi người dùng chạy tệp CMD hoặc lệnh data:examples trên DB họ cấu hình.

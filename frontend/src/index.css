@@ -1279,3 +1279,20 @@ a {
     transition: none;
   }
 }
+
+.organization-tree-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.organization-expand {
+  margin-right: 4px;
+  vertical-align: middle;
+}
+.organization-expand-placeholder {
+  display: inline-block;
+  width: 28px;
+}

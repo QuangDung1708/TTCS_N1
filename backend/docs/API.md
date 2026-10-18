@@ -84,3 +84,9 @@ Xuất khách hàng/lead/báo giá nháp trả XLSX nhị phân có tiêu đề 
 ### Trạng thái mail dành cho Admin
 
 `GET /admin/mail/status` yêu cầu Admin, trả `{configured, missing, worker_enabled, queue:{pending, failed, sent, last_sent_at}, last_error}`. Không trả recipient/body, SMTP user/pass hoặc token. `sent` là SMTP đã nhận, không xác nhận Inbox. Tạo user và quên mật khẩu vẫn dùng outbox; thông báo reset chung không tiết lộ tài khoản. CLI `npm run mail:check` kiểm tra SMTP thực mà không gửi thư. Khi một business job thất bại, mail cycle vẫn được thực thi.
+
+### Cây tổ chức và nhân sự toàn nhánh
+
+`GET /organization/tree` thêm `leader_email`, `leader_avatar` để hiển thị, giữ `member_count` là số người trực tiếp. `GET /groups/:id/members?include_descendants=1` trả người trong nhóm và toàn bộ nhóm con, mỗi user một lần, thêm `group_name`; mặc định không có tham số vẫn chỉ lấy trực tiếp. Các endpoint giữ quyền CATEGORY như trước, không trả mật khẩu. UI cộng số trực tiếp theo cây để hiển thị tổng nhánh, không ghi tổng giả vào DB.
+
+Kéo cơ hội sang Won/Lost sử dụng chính `POST /deals/:id/close` sau khi người dùng hoàn tất form; không gửi chuỗi WON/LOST vào endpoint đổi stage số. Quyền, điều kiện giai đoạn, lý do và nhật ký vẫn do server kiểm tra; hủy form không gọi close.

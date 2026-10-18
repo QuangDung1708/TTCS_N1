@@ -1,5 +1,7 @@
 # Rà dropdown, dữ liệu liên kết và email
 
+> Bản cây tổ chức tiếp theo chỉ dùng một cây nhóm/phòng ban. Màn cây công ty cũ không còn được mount; quan hệ công ty mẹ/con sửa trong form khách hàng. Số 78 bên dưới là phạm vi đợt rà dropdown trước đó.
+
 ## Phạm vi bộ chọn
 
 Rà tĩnh 78 điểm dùng Select/HierarchySelect trong giao diện đang chạy (không tính bộ chọn nội bộ của thư viện như số dòng phân trang). Tất cả đi qua cùng nút mở danh sách và ô tìm kiếm bên trong popup. Không còn input chỉnh giá trị trực tiếp trên trigger; chỉ chọn giá trị hợp lệ, kể cả khi tìm không ra. Mũi tên và cả phần giá trị đều bấm được. Popup đặt trực tiếp ở body, căn theo nút và viewport, theo cuộn/resize, không bị modal cắt. Hỗ trợ tìm không dấu/hoa thường, bàn phím, Escape, xóa, nhiều lựa chọn, disabled và trạng thái loading/empty.

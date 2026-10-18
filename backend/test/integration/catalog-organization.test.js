@@ -488,3 +488,28 @@ test("Configurable care days and per-user read notifications persist", async () 
   );
   expect(stored.read_at).not.toBeNull();
 });
+
+test("Organization tree exposes leader display fields and branch members match descendants without duplicates", async () => {
+  const tree = await h.api("Admin", "get", "/api/organization/tree");
+  const flatten = (nodes) =>
+    nodes.flatMap((n) => [n, ...flatten(n.children || [])]);
+  const rows = flatten(tree.body.data);
+  const appointed = rows.find((g) => g.leader_id);
+  expect(appointed).toBeTruthy();
+  expect(appointed.leader_email).toBeTruthy();
+  expect(appointed).toHaveProperty("leader_avatar");
+  const direct = await h.api("Admin", "get", "/api/groups/1/members");
+  const branch = await h.api(
+    "Sales Rep",
+    "get",
+    "/api/groups/1/members?include_descendants=1",
+  );
+  expect(branch.status).toBe(200);
+  const ids = branch.body.data.map((u) => u.id);
+  expect(new Set(ids).size).toBe(ids.length);
+  for (const u of direct.body.data) expect(ids).toContain(u.id);
+  expect(
+    branch.body.data.every((u) => u.group_name && !("password" in u)),
+  ).toBe(true);
+  expect(branch.body.data.length).toBeGreaterThan(direct.body.data.length);
+});

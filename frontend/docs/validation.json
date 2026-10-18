@@ -1,5 +1,5 @@
 {
-  "verified_at_utc": "2026-10-18T08:33:46.474139+00:00",
+  "verified_at_utc": "2026-10-18T09:14:11.874971+00:00",
   "runtime": {
     "node": "24.19.0",
     "mysql": "8.4.11",
@@ -8,16 +8,16 @@
     "mariadb": "10.4.34"
   },
   "frontend": {
-    "browser_tests_passed": 41,
-    "browser_tests_total": 41,
+    "browser_tests_passed": 44,
+    "browser_tests_total": 44,
     "mock_api": false,
     "lint": "passed",
     "build": "passed",
     "clean_npm_ci": "passed"
   },
   "backend": {
-    "tests_passed": 105,
-    "tests_total": 105,
+    "tests_passed": 106,
+    "tests_total": 106,
     "suites_passed": 12,
     "coverage_percent": {
       "lines": 90.64,
@@ -278,6 +278,41 @@
     },
     "windows_helper": "CAP-NHAT-VA-NAP-DU-LIEU.cmd",
     "owner_environment_variable": "CRM_EXAMPLE_OWNER_EMAIL",
+    "schema_change_required": false
+  },
+  "organization_pipeline_fix": {
+    "browser": {
+      "passed": 44,
+      "total": 44,
+      "engine": "Chromium",
+      "database": "MariaDB 10.4.34"
+    },
+    "mysql_backend": {
+      "passed": 106,
+      "total": 106,
+      "suites": 12
+    },
+    "mariadb_backend": {
+      "passed": 106,
+      "total": 106,
+      "suites": 12
+    },
+    "organization_views": 1,
+    "customer_parent_editing": "customer form",
+    "tree_seed_levels": 4,
+    "tree_seed_groups": 5,
+    "tree_seed_root_members": 8,
+    "original_eight_roles_preserved": true,
+    "data_upgrade_and_repeat_both_engines": true,
+    "password_hashes_preserved_on_repeat": true,
+    "drop_won_form_actual_amount_and_reason_verified": true,
+    "drop_lost_form_cancel_and_competitor_verified": true,
+    "stage_validation_422_and_manager_override_verified": true,
+    "closed_cards_not_draggable_verified": true,
+    "frontend_lint": "passed",
+    "frontend_build": "passed",
+    "backend_lint": "passed",
+    "user_database_accessed": false,
     "schema_change_required": false
   }
 }

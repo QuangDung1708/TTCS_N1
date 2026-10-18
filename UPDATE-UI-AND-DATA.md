@@ -1,4 +1,11 @@
-# Cập nhật dropdown, dữ liệu và mail — 18/10/2026
+# Cập nhật cây tổ chức và kéo chốt cơ hội — 18/10/2026
+
+## Bản bổ sung mới nhất
+
+- Cơ cấu tổ chức chỉ còn **một cây nhóm/phòng ban**, có mở/thu gọn từng nhánh hoặc toàn bộ; hiển thị trưởng nhóm, email/ảnh, khu vực, tổng nhân sự của nhánh và mô tả. Bấm số nhân sự sẽ xem cả nhóm con, không trùng người.
+- Quan hệ công ty mẹ/con của khách hàng vẫn sửa tại **Khách hàng & liên hệ → Sửa khách hàng → Công ty mẹ**; không còn tab cây công ty thứ hai trong cơ cấu tổ chức.
+- Chạy tệp CMD bên dưới hoặc `npm run data:examples` để bổ sung dữ liệu cây KT bốn cấp: Khối Kinh doanh Toàn quốc → Kinh doanh Miền Bắc → Phòng Kinh doanh Thái Nguyên → Tổ Bán hàng Sông Công; Miền Nam là nhánh cùng cấp với Miền Bắc. Thêm ba tài khoản trưởng đơn vị riêng, giữ vai trò/mật khẩu của tám tài khoản cũ. Chỉ ghép nhóm KT Bắc/Nam vào khối khi chúng chưa có cha; giữ quan hệ cha đã tùy chỉnh.
+- Kéo thẻ cơ hội sang cột **Chốt thành công / Chưa thành công (Lost)** sẽ mở form chốt. Thắng cần giá trị thực tế/ngày ký/lý do; thua cần lý do và có thể chọn đối thủ. Hủy không thay trạng thái. Chỉ lưu đủ thông tin và đáp ứng điều kiện giai đoạn mới chuyển cột; ghi đè vẫn theo quyền và bắt buộc lý do. Cơ hội đã đóng không kéo tiếp, phải mở lại theo quyền.
 
 ## Cách cập nhật bản mới và nạp dữ liệu
 
@@ -71,7 +78,7 @@ Tải lại bằng Ctrl+F5. Không cần tạo lại DB hay chạy migration cho
 - Sales chọn được tên chiến dịch trong lead/cơ hội. API chọn chiến dịch chỉ trả mã và tên, không mở quyền xem ngân sách/báo cáo chiến dịch.
 - Form lead có người phụ trách cho vai trò được phân bổ. Đổi người phụ trách cập nhật nhóm, thời hạn SLA và thông báo cùng giao dịch lưu; không được phân bổ vượt phạm vi nhóm. Form khách hàng có người phụ trách và công ty mẹ.
 - Ngừng kinh doanh sản phẩm: bấm biểu tượng cấm → Xác nhận → trạng thái đổi và còn đúng sau F5; có thể kinh doanh trở lại. Báo giá cũ giữ nguyên.
-- Cơ cấu tổ chức: thẻ Cây nhóm kinh doanh và Cây công ty mẹ/con. Bộ chọn cha loại chính nó và nhánh con. Cây công ty chỉ hiện dữ liệu theo phạm vi được xem.
+- Cơ cấu tổ chức là một cây nhóm/phòng ban; bộ chọn cha loại chính nó và nhánh con. Công ty mẹ/con của khách hàng chỉnh tại form khách hàng.
 - Mẫu Excel/xuất khách hàng và lead: có bảng, bộ lọc, cố định tiêu đề, độ rộng cột, hướng dẫn và danh mục mã cho mẫu nhập. Tiêu đề tiếng Việt; vẫn đọc được file cũ dùng `company_name`, `source_id`… Trường tùy chỉnh giữ mã trường. Nhập vẫn phải xem trước và xử lý trùng trước khi lưu.
 - Tiền có dấu chấm nhóm nghìn, lịch lưu ngày thực, kiểm tra ngày kết thúc không trước ngày bắt đầu. Giữ animation và chế độ giảm chuyển động.
 

@@ -8,9 +8,13 @@ r.use(authenticate, authorize("CATEGORY"));
 r.get(
   "/:id/members",
   route(async (req, res) => {
+    const gid = id(req.params.id);
+    const nested = req.query.include_descendants === "1";
     const [data] = await db.query(
-      "SELECT id,email,full_name,role_code,group_id FROM users WHERE group_id=?",
-      [id(req.params.id)],
+      nested
+        ? "WITH RECURSIVE branch AS (SELECT id FROM `groups` WHERE id=? UNION DISTINCT SELECT g.id FROM `groups` g JOIN branch b ON g.parent_id=b.id) SELECT u.id,u.email,u.full_name,u.role_code,u.group_id,g.name group_name FROM users u JOIN branch b ON b.id=u.group_id JOIN `groups` g ON g.id=u.group_id ORDER BY u.full_name,u.id"
+        : "SELECT u.id,u.email,u.full_name,u.role_code,u.group_id,g.name group_name FROM users u LEFT JOIN `groups` g ON g.id=u.group_id WHERE u.group_id=? ORDER BY u.full_name,u.id",
+      [gid],
     );
     res.json({ data });
   }),

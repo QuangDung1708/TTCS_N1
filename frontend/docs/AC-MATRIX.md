@@ -182,7 +182,7 @@ Chưa áp dụng migration vào MySQL thật trong ảnh của người dùng; c
 
 - S2-02/03: menu tài khoản mở bằng pointer/keyboard; hồ sơ tên/điện thoại/chữ ký và upload ảnh; email/nhóm/vai trò chỉ xem trong hồ sơ. Chỉnh quyền tài khoản ở Quản trị người dùng.
 - S2-05/07: xác nhận đổi trạng thái sản phẩm bằng Modal, mã danh mục tự sinh nếu bỏ trống, form có tên/hướng dẫn riêng từng loại.
-- S2-06/S3-05: bộ chọn cây nhóm và công ty mẹ/con loại nhánh gây vòng lặp; API vẫn kiểm tra độc lập. Hai cây tách thành hai thẻ rõ ràng.
+- S2-06/S3-05: bộ chọn cây nhóm và công ty mẹ/con loại nhánh gây vòng lặp; API vẫn kiểm tra độc lập. Theo phản hồi mới: chỉ một cây tổ chức; quan hệ công ty mẹ/con sửa tại form khách hàng.
 - S3-01/S4-02: người phụ trách trong form lead/khách; phân bổ lead cập nhật cùng giao dịch và giữ kiểm tra scope. API chiến dịch dạng lựa chọn không trả ngân sách/báo cáo.
 - S2-01/S3-06: ExcelJS tạo bảng có bộ lọc, dòng tiêu đề cố định, độ rộng cột, trang hướng dẫn và danh mục; nhập tiêu đề tiếng Việt lẫn kỹ thuật cũ; hỗ trợ trường tùy chỉnh đã cấu hình.
 - S1-03/08: mail text/HTML, tài khoản/mật khẩu tạm/liên kết đặt mật khẩu; quên mật khẩu gửi token 30 phút một lần; kiểm thử SMTP cục bộ và reset qua API/UI.
@@ -204,3 +204,9 @@ Danh mục tham chiếu được lưu DB một lần, giữ cấu hình sẵn c�
 S3-01/S4-02/S5-01: CLI nạp danh mục và bản ghi liên kết thật; tùy chọn email để tạo dữ liệu thuộc tài khoản đang test, không mở rộng quyền. Có ca nâng cấp checkpoint cũ, chạy lại giữ số lượng/hash mật khẩu, đối chiếu API dưới vai trò Sales.
 
 S1-03/S1-08: kiểm tra SMTP config/verify, Admin thấy queue/mã lỗi; không trả recipient/body/secret qua status API. Thư tạo tài khoản chứa mật khẩu tạm đăng nhập được và yêu cầu đổi lần đầu. Token lấy từ thư SMTP reset dùng được đúng một lần. Worker gửi mail dù business job lỗi; từ chối recipient giữ pending và retry thành công. Kiểm thử máy chủ SMTP cục bộ thật, chưa xác minh hộp thư người dùng.
+
+## Cây tổ chức duy nhất và kéo chốt Won/Lost
+
+Theo yêu cầu mới, trang Cơ cấu tổ chức bỏ các tab, chỉ một bảng cây có mở/thu gọn, trưởng nhóm/email/ảnh, khu vực và tổng nhân sự toàn nhánh. Giữ AC mỗi nhóm mới phải có trưởng nhóm, một người thuộc một nhóm, không tạo vòng lặp. Bộ KT nạp cây bốn cấp từ API, không gộp dữ liệu khách hàng vào cây phòng ban; công ty mẹ/con vẫn sửa trong hồ sơ khách hàng.
+
+S5-02/S5-05: cột Won/Lost nhận drag; thả mở đúng form chốt. Hủy không lưu, API trả lỗi điều kiện vẫn giữ form/cột cũ, đủ dữ liệu mới đóng và khóa kéo tiếp. Pointer E2E kiểm tra Won có lỗi điều kiện rồi manager ghi đè có lý do, Lost hủy rồi lưu lý do/đối thủ; reload xác nhận DB. Quyền và dữ liệu bắt buộc giữ ở server.

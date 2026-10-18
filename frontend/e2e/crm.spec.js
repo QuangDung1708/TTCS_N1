@@ -1119,7 +1119,7 @@ test("Shared lookups: newly created source and campaign can be selected by Sales
   expect(saved.campaign_id).toBe((await campaign.json()).id);
 });
 
-test("Organization: group tree parent selector and separate customer company hierarchy save to API", async ({
+test("Organization: one department tree and customer parent editing save to API", async ({
   page,
 }) => {
   const token = await login(page, "Admin", "/organization");
@@ -1150,9 +1150,12 @@ test("Organization: group tree parent selector and separate customer company hie
   expect(
     (await groups.json()).data.find((g) => g.id === 2).parent_id,
   ).toBeNull();
-  await page.getByRole("tab", { name: "Cây công ty mẹ / con" }).click();
+  await expect(
+    page.getByRole("tab", { name: "Cây công ty mẹ / con" }),
+  ).toHaveCount(0);
+  await page.goto("/customers");
   const row = page.getByRole("row").filter({ hasText: "E2E Khách hàng B" });
-  await row.getByRole("button", { name: "Chọn công ty mẹ" }).click();
+  await row.getByRole("button", { name: "Sửa E2E Khách hàng B" }).click();
   await dialog(page).getByLabel("Công ty mẹ", { exact: true }).click();
   await page
     .locator(".linked-select-popup:visible")
