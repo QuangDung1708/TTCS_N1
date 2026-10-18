@@ -38,7 +38,10 @@ beforeAll(async () => {
             data = false;
             socket.write("250 queued\r\n");
           } else body += line + "\n";
-        } else if (/^EHLO|^HELO/.test(line)) socket.write("250 test\r\n");
+        } else if (/^EHLO|^HELO/.test(line))
+          socket.write("250-test\r\n250 AUTH PLAIN LOGIN\r\n");
+        else if (/^AUTH/.test(line))
+          socket.write("535 Authentication failed\r\n");
         else if (/^RCPT/.test(line) && reject) socket.write("550 rejected\r\n");
         else if (line === "DATA") {
           data = true;
@@ -216,4 +219,121 @@ test("Dashboard invitation and reset deliver immediately without the periodic wo
   );
   expect(checked.stdout).toContain("SMTP đã chấp nhận thư kiểm thử");
   expect(messages).toHaveLength(count + 1);
+});
+
+test("API mail delivery works with database sessions at UTC+7, including pre-patch untouched queue rows", async () => {
+  const pool = await Promise.all(
+    Array.from({ length: 10 }, () => h.db.getConnection()),
+  );
+  const zones = new Map();
+  for (const c of pool) {
+    const [[row]] = await c.query("SELECT @@session.time_zone zone");
+    zones.set(c.threadId, row.zone);
+    await c.query("SET time_zone='+07:00'");
+  }
+  for (const c of pool) c.release();
+  try {
+    const signup = await post("send-register-otp", {
+      email: "utc7-signup@example.test",
+    });
+    expect(signup.status).toBe(200);
+    expect(decoded()).toMatch(/CRM: \d{6}/);
+    const reset = await post("forgot-password", {
+      email: h.getUsers()["Sales Rep"].email,
+    });
+    expect(reset.status).toBe(200);
+    expect(decoded()).toContain("reset-password?token=");
+    const created = await h.api("Admin", "post", "/api/users", {
+      email: "utc7-created@example.test",
+      full_name: "UTC+7",
+      roles: ["Sales Rep"],
+    });
+    expect(created.status).toBe(201);
+    expect(created.body.mail.status).toBe("sent");
+    // Reproduce the old DEFAULT CURRENT_TIMESTAMP value stored seven hours ahead of UTC.
+    const [legacy] = await h.db.query(
+      "INSERT INTO mail_outbox (recipient,subject,body,next_attempt_at) VALUES ('legacy@example.test','Legacy queue','Legacy content',DATE_ADD(UTC_TIMESTAMP(),INTERVAL 7 HOUR))",
+    );
+    await require("../../src/jobs/worker").mailJobs([legacy.insertId]);
+    const [[sent]] = await h.db.query(
+      "SELECT sent_at FROM mail_outbox WHERE id=?",
+      [legacy.insertId],
+    );
+    expect(sent.sent_at).not.toBeNull();
+    // A failed attempt still respects its actual retry time.
+    const [retry] = await h.db.query(
+      "INSERT INTO mail_outbox (recipient,subject,body,attempts,next_attempt_at) VALUES ('retry@example.test','Later','Retry content',1,DATE_ADD(UTC_TIMESTAMP(),INTERVAL 5 MINUTE))",
+    );
+    await require("../../src/jobs/worker").mailJobs([retry.insertId]);
+    const [[waiting]] = await h.db.query(
+      "SELECT sent_at,attempts FROM mail_outbox WHERE id=?",
+      [retry.insertId],
+    );
+    expect(waiting.sent_at).toBeNull();
+    expect(waiting.attempts).toBe(1);
+  } finally {
+    const all = await Promise.all(
+      Array.from({ length: 10 }, () => h.db.getConnection()),
+    );
+    for (const c of all) {
+      await c.query("SET time_zone=?", [zones.get(c.threadId)]);
+      c.release();
+    }
+  }
+});
+
+test("A busy mail worker queues registration and password reset without claiming an SMTP failure, then sends each once", async () => {
+  const c = await h.db.getConnection();
+  const before = messages.length;
+  await c.query("SELECT GET_LOCK(CONCAT(DATABASE(),':crm-mail-worker'),0)");
+  let ids;
+  try {
+    const otp = await post("send-register-otp", {
+      email: "busy-signup@example.test",
+    });
+    expect(otp.status).toBe(202);
+    expect(otp.body.delivery).toBe("queued");
+    const reset = await post("forgot-password", {
+      email: h.getUsers()["Sales Rep"].email,
+    });
+    expect(reset.status).toBe(202);
+    expect(reset.body.delivery).toBe("queued");
+    const [pending] = await c.query(
+      "SELECT id,attempts,last_error FROM mail_outbox WHERE sent_at IS NULL AND attempts=0",
+    );
+    expect(pending.length).toBeGreaterThanOrEqual(2);
+    expect(pending.every((row) => row.last_error === null)).toBe(true);
+    ids = pending.map((row) => row.id);
+    expect(messages.length).toBe(before);
+  } finally {
+    await c.query("SELECT RELEASE_LOCK(CONCAT(DATABASE(),':crm-mail-worker'))");
+    c.release();
+  }
+  await require("../../src/jobs/worker").mailJobs(ids);
+  const [sent] = await h.db.query(
+    `SELECT sent_at FROM mail_outbox WHERE id IN (${ids.map(() => "?").join(",")})`,
+    ids,
+  );
+  expect(sent.every((row) => row.sent_at)).toBe(true);
+  expect(messages.length).toBe(before + ids.length);
+  await require("../../src/jobs/worker").mailJobs(ids);
+  expect(messages.length).toBe(before + ids.length);
+});
+
+test("A stale API SMTP password reports EAUTH and restart guidance without exposing credentials", async () => {
+  process.env.SMTP_USER = "test-sender@example.test";
+  process.env.SMTP_PASS = "TestOnlyInvalidSecret";
+  try {
+    const result = await post("forgot-password", {
+      email: h.getUsers()["Sales Rep"].email,
+    });
+    expect(result.status).toBe(503);
+    expect(result.body.details.code).toBe("EAUTH");
+    expect(result.body.message).toContain("backend");
+    expect(result.body.message).toContain(".env");
+    expect(JSON.stringify(result.body)).not.toContain(process.env.SMTP_PASS);
+  } finally {
+    process.env.SMTP_USER = "";
+    process.env.SMTP_PASS = "";
+  }
 });

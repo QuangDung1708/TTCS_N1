@@ -2,6 +2,8 @@
 
 > Bản triển khai Sprint 1–5: xem [hướng dẫn chạy frontend và backend](frontend/README.md), [đối chiếu AC](frontend/docs/AC-MATRIX.md), và [kết quả kiểm thử](frontend/docs/VALIDATION.md). Gói tải về và checksum nằm trong [delivery](delivery/README.md).
 
+> Bản vá mail API khi CMD đã gửi được: giữ nguyên .env, cập nhật source và khởi động lại backend; không cần nhập lại App Password hoặc nạp lại dữ liệu.
+
 > Cập nhật gộp khách hàng, animation toàn ứng dụng, đăng ký email và mail thật: [hướng dẫn chép đè và nạp DB hiện tại](UPDATE-UI-AND-DATA.md). Có tệp Windows `CAP-NHAT-VA-NAP-DU-LIEU.cmd`; cấu hình SMTP và gửi thư kiểm tra bằng `CAU-HINH-MAIL.cmd`.
 
 > Dự án thực tập tốt nghiệp / môn học - Nhóm 4  

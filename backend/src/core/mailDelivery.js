@@ -16,18 +16,30 @@ function requireMail() {
 }
 async function deliverMail(ids) {
   if (!ids.length) return { status: "pending" };
+  let dispatch;
   if (immediateEnabled()) {
     try {
-      await require("../jobs/worker").mailJobs(ids);
+      dispatch = await require("../jobs/worker").mailJobs(ids);
     } catch (e) {
-      console.error("mail_dispatch_failed", e.code || "SMTP_FAILURE");
+      dispatch = { error: e.code || "MAIL_QUEUE_FAILURE" };
+      console.error("mail_dispatch_failed", dispatch.error);
     }
   }
   const [rows] = await db.query(
     `SELECT sent_at,last_error FROM mail_outbox WHERE id IN (${ids.map(() => "?").join(",")})`,
     ids,
   );
+  const rawCode =
+    rows.find((row) => row.last_error)?.last_error || dispatch?.error;
+  const error_code =
+    rawCode && /^[A-Z0-9_]{1,60}$/.test(rawCode)
+      ? rawCode
+      : rawCode
+        ? "MAIL_QUEUE_FAILURE"
+        : null;
   return {
+    error_code,
+    ...(dispatch?.skipped && !error_code ? { queued: true } : {}),
     status:
       rows.length === ids.length && rows.every((row) => row.sent_at)
         ? "sent"
@@ -42,11 +54,15 @@ async function deliverMail(ids) {
 }
 async function requireDelivery(ids) {
   const result = await deliverMail(ids);
-  if (immediateEnabled() && result.status !== "sent")
-    fail(
-      503,
-      "Chưa gửi được email qua SMTP. Vui lòng liên hệ quản trị viên kiểm tra kết nối, cổng và mật khẩu ứng dụng; không cần tạo lại tài khoản.",
-    );
+  if (immediateEnabled() && result.status !== "sent" && !result.queued) {
+    const message =
+      result.error_code === "EAUTH"
+        ? "SMTP từ chối xác thực (EAUTH). Nếu CMD đã gửi được mail, hãy tắt hẳn backend rồi mở lại để nạp cấu hình .env mới."
+        : result.error_code
+          ? `Chưa gửi được email (${result.error_code}). Kiểm tra trạng thái mail trong Quản trị người dùng; tài khoản đã tạo vẫn được giữ.`
+          : "Thư chưa được gửi từ hàng đợi. Vui lòng khởi động lại backend rồi thử lại.";
+    fail(503, message, { code: result.error_code || "MAIL_QUEUE_PENDING" });
+  }
   return result;
 }
 module.exports = { requireMail, deliverMail, requireDelivery };

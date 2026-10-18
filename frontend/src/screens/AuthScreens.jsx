@@ -370,7 +370,7 @@ export function RegisterScreen() {
                     setNow(Date.now());
                     setDeadline(expiry);
                   },
-                  "Đã gửi mã xác nhận đến email của bạn.",
+                  "Yêu cầu mã xác nhận đã được tiếp nhận.",
                 );
               } catch {
                 message.warning("Kiểm tra email công việc.");

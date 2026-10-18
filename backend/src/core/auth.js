@@ -1,7 +1,7 @@
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
-const { db, transaction, insert } = require("./store");
+const { db, transaction } = require("./store");
 const { fail } = require("./http");
 const { normalizeRole } = require("./access");
 const hash = (v) => crypto.createHash("sha256").update(v).digest("hex");
@@ -138,7 +138,13 @@ async function authenticate(req, res, next) {
   }
 }
 async function queueMail(c, to, subject, body) {
-  return insert(c, "mail_outbox", { recipient: to, subject, body });
+  // Database CURRENT_TIMESTAMP follows the server/session timezone; all retry
+  // comparisons use UTC. Store an explicit UTC timestamp on the first attempt.
+  const [result] = await c.query(
+    "INSERT INTO mail_outbox (recipient,subject,body,next_attempt_at) VALUES (?,?,?,UTC_TIMESTAMP())",
+    [to, subject, body],
+  );
+  return result.insertId;
 }
 module.exports = {
   hash,

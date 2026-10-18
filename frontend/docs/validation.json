@@ -1,5 +1,5 @@
 {
-  "verified_at_utc": "2026-10-18T09:59:05.860326+00:00",
+  "verified_at_utc": "2026-10-18T10:29:31.110029+00:00",
   "runtime": {
     "node": "24.19.0",
     "mysql": "8.4.11",
@@ -13,11 +13,12 @@
     "mock_api": false,
     "lint": "passed",
     "build": "passed",
-    "clean_npm_ci": "passed"
+    "clean_npm_ci": "passed",
+    "full_suite_is_from_previous_release": true
   },
   "backend": {
-    "tests_passed": 109,
-    "tests_total": 109,
+    "tests_passed": 112,
+    "tests_total": 112,
     "suites_passed": 13,
     "coverage_percent": {
       "lines": 90.64,
@@ -367,5 +368,34 @@
     "local_mail_check_missing": [
       "SMTP_HOST"
     ]
+  },
+  "mail_queue_utc7_fix": {
+    "backend_mysql": {
+      "passed": 112,
+      "total": 112,
+      "suites": 13
+    },
+    "backend_mariadb": {
+      "passed": 112,
+      "total": 112,
+      "suites": 13
+    },
+    "affected_browser": {
+      "passed": 3,
+      "total": 3
+    },
+    "full_48_browser_suite_rerun": false,
+    "pre_fix_api_503_reproduced_at_utc7": true,
+    "smtp_socket_delivery_for_otp_reset_invitation_at_utc7": true,
+    "untouched_legacy_first_attempt_recovered": true,
+    "failed_attempt_future_retry_preserved": true,
+    "busy_worker_api_returns_202_then_sends_once": true,
+    "smtp_auth_error_shows_code_and_restart_guidance": true,
+    "user_reported_cmd_mail_received": true,
+    "user_api_mailbox_verified_by_agent": false,
+    "schema_change_required": false,
+    "frontend_lint": "passed",
+    "backend_lint": "passed",
+    "frontend_build": "passed"
   }
 }

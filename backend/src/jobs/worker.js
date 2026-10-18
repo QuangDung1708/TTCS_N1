@@ -69,15 +69,16 @@ async function mailJobs(ids = []) {
   let locked = false;
   try {
     // Serialize dispatch without SKIP LOCKED (unsupported on MariaDB 10.4).
-    // A second worker returns immediately instead of waiting during SMTP I/O.
+    // Background jobs skip an occupied worker; an explicit API delivery waits briefly.
     const [[r]] = await c.query(
-      "SELECT GET_LOCK(CONCAT(DATABASE(),':crm-mail-worker'),0) acquired",
+      "SELECT GET_LOCK(CONCAT(DATABASE(),':crm-mail-worker'),?) acquired",
+      [ids.length ? 5 : 0],
     );
     if (!r.acquired) return { configured: true, skipped: true };
     locked = true;
     await c.beginTransaction();
     const [rows] = await c.query(
-      `SELECT * FROM mail_outbox WHERE sent_at IS NULL AND next_attempt_at<=UTC_TIMESTAMP() AND attempts<10 ${ids.length ? "AND id IN (" + ids.map(() => "?").join(",") + ")" : ""} ORDER BY id LIMIT 10 FOR UPDATE`,
+      `SELECT * FROM mail_outbox WHERE sent_at IS NULL AND (attempts=0 OR next_attempt_at<=UTC_TIMESTAMP()) AND attempts<10 ${ids.length ? "AND id IN (" + ids.map(() => "?").join(",") + ")" : ""} ORDER BY id LIMIT 10 FOR UPDATE`,
       ids,
     );
     for (const row of rows) {

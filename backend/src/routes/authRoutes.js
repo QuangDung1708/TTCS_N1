@@ -185,8 +185,13 @@ router.post(
         ),
       );
     });
-    if (queued.length) await requireDelivery(queued);
-    res.json({ message: generic });
+    const delivery = queued.length ? await requireDelivery(queued) : null;
+    res
+      .status(delivery?.queued ? 202 : 200)
+      .json({
+        message: generic,
+        ...(delivery?.queued ? { delivery: "queued" } : {}),
+      });
   }),
 );
 router.post(
@@ -317,9 +322,12 @@ router.post(
         `Mã xác minh đăng ký Enterprise CRM: ${code}\nMã có hiệu lực 10 phút và chỉ dùng một lần. Không chia sẻ mã này với người khác.`,
       );
     });
-    await requireDelivery([queued]);
-    res.json({
-      message: "Đã gửi mã xác nhận gồm 6 số đến email của bạn.",
+    const delivery = await requireDelivery([queued]);
+    res.status(delivery.queued ? 202 : 200).json({
+      message: delivery.queued
+        ? "Yêu cầu đã được tiếp nhận; email đang chờ gửi, không cần gửi lại ngay."
+        : "Đã gửi mã xác nhận gồm 6 số đến email của bạn.",
+      delivery: delivery.queued ? "queued" : "sent",
       retry_after: 60,
     });
   }),

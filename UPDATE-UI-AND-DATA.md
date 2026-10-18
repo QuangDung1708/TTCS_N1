@@ -1,5 +1,13 @@
 # Cập nhật gộp khách hàng, animation toàn ứng dụng và đăng ký email — 18/10/2026
 
+## Sửa mail API khi CMD đã gửi được — bổ sung mới nhất
+
+Nếu thư kiểm tra từ CMD đã tới hộp thư, **không cần nhập lại App Password**. Bản vá sửa việc hàng đợi dùng DEFAULT CURRENT_TIMESTAMP theo giờ MySQL trong khi worker so giờ UTC: khi DB ở UTC+7 thư mới bị coi là chưa đến giờ gửi và API báo 503. Ghi giờ UTC rõ ràng; thư cũ chưa thử gửi được lấy ngay, vẫn giữ thời gian chờ của thư đã lỗi cần thử lại.
+
+Khi worker đang bận, API đợi ngắn rồi trả 202 với trạng thái đang chờ, không báo nhầm SMTP lỗi. Lỗi xác thực thật trả mã EAUTH và hướng dẫn khởi động lại backend để đọc .env vừa được CMD cập nhật. Không trả mật khẩu hoặc chi tiết xác thực.
+
+**Cập nhật:** dừng backend/frontend bằng Ctrl+C, chép đè backend/frontend từ ZIP vào dự án đang dùng và giữ nguyên backend/.env, uploads, DB. Mở lại backend/frontend, Ctrl+F5, rồi thử quên mật khẩu/đăng ký bằng email của bạn. Không cần chạy lại CMD nạp dữ liệu, không cần nhập lại cấu hình mail, không cần migration hoặc reset DB. Backend đang chạy không tự đọc lại .env khi CMD lưu thay đổi.
+
 ## Bản bổ sung mới nhất
 
 - Gộp khách hàng xác nhận ngay trong form, không bị phụ thuộc popup lồng nhau. Chuyển liên hệ, cơ hội, hoạt động, tệp và công ty con sang hồ sơ giữ lại rồi làm mới danh sách.
@@ -31,7 +39,7 @@ Nếu chạy terminal thay tệp CMD: `npm ci` trong mỗi thư mục backend/fr
 3. Nhập email của bạn trong cửa sổ CMD để gửi thư kiểm tra, hoặc chạy `npm run mail:send-test -- email-cua-ban` trong backend. Kiểm tra Inbox và Spam. Công cụ chỉ xác nhận SMTP đã nhận thư, không tự khẳng định thư tới Inbox.
 4. Sau đó thử đăng ký / quên mật khẩu / tạo user bằng địa chỉ email bạn kiểm soát. Admin xem trạng thái và hướng dẫn xử lý EAUTH, ETIMEDOUT, ESOCKET, EENVELOPE trong Quản trị người dùng.
 
-Kiểm tra source trong môi trường hiện tại cho thấy còn thiếu **SMTP_HOST**. Không thể xác nhận hộp thư thật tại máy bạn khi chưa có cấu hình SMTP của bạn. Không gửi App Password lên chat hoặc Git.
+Ở lần kiểm tra cloud trước, cấu hình tại cloud còn thiếu **SMTP_HOST**; điều này không phản ánh cấu hình đã lưu thành công trên máy bạn. Không thể xác nhận hộp thư thật tại máy bạn khi chưa có cấu hình SMTP của bạn. Không gửi App Password lên chat hoặc Git.
 
 
 `npm run mail:check` tại backend kiểm tra cấu hình, kết nối và xác thực SMTP thật, **không gửi thư**. Thiếu `SMTP_HOST` thì chỉ có `SMTP_USER`/`SMTP_PASS` chưa đủ. Không dùng thông tin gửi thư của dự án khác hoặc thông tin có sẵn trong source.

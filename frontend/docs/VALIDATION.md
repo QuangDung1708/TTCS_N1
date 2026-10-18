@@ -7,9 +7,9 @@
 | Frontend `npm ci` trên thư mục Linux sạch | Thành công từ package-lock.json |
 | Frontend `npm run lint` | Thành công, gồm cả source và test |
 | Frontend `npm run build` | Thành công |
-| Playwright + Chromium + Express + MariaDB 10.4 thật | **48/48 ca**, gồm gộp khách hàng, đăng ký email, animation, cây tổ chức và kéo chốt Won/Lost |
+| Playwright + Chromium + Express + MariaDB 10.4 thật | Bản trước **48/48 ca**; bản vá mail chạy lại **3/3 luồng liên quan**. Gồm gộp khách hàng, đăng ký email, animation, cây tổ chức và kéo chốt Won/Lost |
 | Backend lint | Thành công |
-| Backend Jest/MySQL | **109/109 test**, 13/13 suite trên MySQL 8.4 và MariaDB 10.4 |
+| Backend Jest/MySQL | **112/112 test**, 13/13 suite trên MySQL 8.4 và MariaDB 10.4 |
 | Backend coverage của bản trước | 90.64% dòng; 76.50% nhánh; 91.2% hàm; 87.43% câu lệnh; chưa đo lại cho phần Excel/mail mới |
 | Server phát triển | Frontend HTTP 200, backend health HTTP 200; dùng crm_dev không nạp dữ liệu nghiệp vụ mẫu |
 
@@ -132,3 +132,7 @@ Bản này chạy lại 48/48 E2E trên Chromium + MariaDB 10.4 và 109/109 test
 Nâng cấp dữ liệu từ bản trước và chạy lại trên hai engine: thêm Admin KT riêng, giữ mật khẩu/role cũ, 7 vai trò đăng nhập thật, production không trả tài khoản kiểm thử. Xem ảnh [login](images/login-roles-desktop.png), [đăng ký](images/register-email-desktop.png), [360px](images/login-roles-mobile.png).
 
 SMTP môi trường hiện tại thiếu SMTP_HOST. Chưa xác minh hộp thư bên ngoài hoặc chạy CMD trên Windows của người dùng; dùng CAU-HINH-MAIL.cmd để nhập cấu hình tại máy và gửi thư kiểm tra nhận thực tế.
+
+## Sửa mail API sau khi CMD đã gửi được
+
+Đã tái hiện 503 với DB session +07:00 ở mã trước sửa. Sau sửa: 112/112 test backend trên mỗi engine, 13/13 suite; gửi OTP/reset/invitation qua SMTP TCP khi DB UTC+7, gửi bản ghi cũ attempts=0 bị lệch giờ, giữ retry attempts>0, worker bận trả 202 và sau đó chỉ gửi một lần, EAUTH thật có mã lỗi và hướng dẫn restart. Chạy lại 3/3 browser cho quên mật khẩu, đăng ký và login role; không chạy lại toàn bộ 48 browser trong bản vá mail này. Lint/build và build source giải nén được kiểm tra khi đóng gói. Người dùng xác nhận thư CMD đã về hộp thư; chưa trực tiếp xác minh mail API trong hộp thư của họ.

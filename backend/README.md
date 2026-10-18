@@ -84,3 +84,5 @@ Worker mail chạy độc lập tác vụ lead/báo cáo; chỉ đánh dấu sen
 Chạy `npm run mail:configure` để nhập cấu hình (ẩn mật khẩu), kiểm tra SMTP rồi mới lưu các khóa SMTP vào `.env`. Chạy `npm run mail:send-test -- email-cua-ban` để gửi một thư kiểm tra thực sự. Với Gmail phải dùng App Password. Khởi động lại backend sau khi cập nhật. Có thể dùng `CAU-HINH-MAIL.cmd` ở gốc trên Windows. Ba luồng đăng ký/quên mật khẩu/cấp user gửi ngay sau commit; worker xử lý lại thư lỗi. SMTP chấp nhận không đồng nghĩa đã vào Inbox.
 
 `npm run auth:enable` bật đăng ký và tài khoản kiểm thử cho bản cục bộ, giữ cấu hình DB/SMTP. Sau `npm run data:examples`, login có đủ 7 User Roles để điền form từ tài khoản thật. Có Admin KT riêng, không đổi Admin có sẵn. Không có mật khẩu chung; checkpoint riêng tư luôn loại khỏi Git/ZIP. Tắt bằng `ENABLE_TEST_ACCOUNTS=false`; production luôn tắt bộ chọn này.
+
+Nếu CMD gửi mail được nhưng API báo chưa gửi: cập nhật bản vá mail queue và khởi động lại backend để đọc .env mới. Hàng đợi dùng giờ UTC rõ ràng, đã kiểm tra DB ở UTC+7; không cần đổi giờ hệ thống hoặc reset DB. Thư đang chờ worker bận trả trạng thái 202 thay cho lỗi SMTP.

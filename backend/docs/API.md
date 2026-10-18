@@ -100,3 +100,7 @@ Kéo cơ hội sang Won/Lost sử dụng chính `POST /deals/:id/close` sau khi 
 - Quên mật khẩu gửi ngay sau commit; SMTP lỗi 503, không trả thành công giả. Khi gửi bình thường phản hồi chung để tránh lộ danh sách email.
 - `POST /users` trả thêm `mail.status` (sent/pending), có warning nếu tài khoản đã tạo nhưng SMTP chưa nhận thư. Không tạo lại user trong trường hợp này.
 - `npm run mail:configure` lưu cấu hình SMTP tại máy người vận hành sau khi verify thành công; `npm run mail:send-test -- recipient` gửi một thư kiểm tra, không chứa bí mật.
+
+## Bản vá hàng đợi mail UTC+7
+
+queueMail ghi next_attempt_at bằng UTC_TIMESTAMP thay vì DEFAULT CURRENT_TIMESTAMP. Worker gửi ngay bản ghi attempts=0 kể cả bản ghi cũ bị giờ DB lệch; attempts>0 vẫn kiểm tra thời điểm retry UTC. API gửi trực tiếp đợi khóa worker tối đa 5 giây; khi bận, quên mật khẩu / send-register-otp trả 202 + delivery=queued, không đổi thành lỗi SMTP 503. SMTP thật từ chối trả 503 + details.code đã lọc; EAUTH nêu cần mở lại backend nếu CMD đã cập nhật .env.
