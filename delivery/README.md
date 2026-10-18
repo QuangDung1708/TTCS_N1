@@ -6,11 +6,26 @@ Nếu trình duyệt mở trang tệp, chọn **Download raw file**. Gói khoả
 
 Giải nén vào thư mục mới và làm theo [hướng dẫn chạy](../frontend/README.md). Cần Node.js 24 LTS và MySQL 8. Cấu hình database hiện có của bạn trong `backend/.env`; giữ bản sao cấu hình và dữ liệu đang có. Dùng **backend trong cùng gói fullstack** với frontend này để khớp các API phân quyền, thông báo và cơ cấu tổ chức mới.
 
-Source ứng dụng: `b3025cc447cd585ce10c2bc790e77060007528cf`. `DELIVERY.json` bên trong ZIP liệt kê commit nguồn và SHA-256 của từng tệp. Gói đã kiểm tra CRC, đối chiếu byte từng tệp với source, và lint/build thành công từ mã giải nén.
+Source ứng dụng: `0fff42de4107b3f441541dc292e28a90bcb2c131`. `DELIVERY.json` bên trong ZIP liệt kê commit nguồn và SHA-256 của từng tệp. Gói đã kiểm tra CRC, đối chiếu byte từng tệp với source, và lint/build thành công từ mã giải nén.
 
 Kiểm chứng cục bộ: bản trước **48/48 kiểm thử trình duyệt**; bản vá mail chạy lại **3/3 luồng liên quan**, **112/112 kiểm thử backend trên từng engine MySQL 8.4 và MariaDB 10.4**, lint/build thành công. Xem [kết quả và giới hạn xác minh](../frontend/docs/VALIDATION.md), [đối chiếu 151 AC](../frontend/docs/AC-MATRIX.md), [ảnh desktop](../frontend/docs/images/customers-desktop.png) và [ảnh 360px](../frontend/docs/images/customers-mobile-360.png).
 
-## Bản mới nhất: Excel trùng, mẫu Pipeline, cây tổ chức và tài liệu Jira
+## Bản mới nhất: khóa đăng nhập 15 giây và hướng dẫn test Sprint 4
+
+[Tải ZIP cập nhật](https://github.com/QuangDung1708/TTCS_N1/raw/refs/heads/codex/frontend-sprint-1-5/delivery/TTCS_N1-login-lock-15s-fix.zip) · [SHA-256](TTCS_N1-login-lock-15s-fix.zip.sha256) · [Hướng dẫn test 9 US Sprint 4](../reports/Huong_dan_test_Sprint_4.docx) · [Bộ tài liệu đầy đủ](https://github.com/QuangDung1708/TTCS_N1/raw/refs/heads/codex/frontend-sprint-1-5/delivery/TTCS_N1-tai-lieu-Jira.zip).
+
+ZIP cập nhật 1.293.201 byte / 98 tệp; source `0fff42de4107b3f441541dc292e28a90bcb2c131`, gồm bản sửa trước. Dừng backend/frontend, chép đè nội dung ZIP vào dự án, chạy lại cả hai và Ctrl+F5; giữ `.env`, uploads và DB. Không đổi schema/dependency, không cần nạp dữ liệu hoặc cấu hình lại SMTP.
+
+Sau 5 lần sai liên tiếp khóa tài khoản 15 giây, có đếm ngược; mật khẩu đúng/refresh/đổi trình duyệt không bỏ khóa backend. Hết thời gian thử lại; đăng nhập đúng reset bộ đếm; sai sau hết khóa tính lại từ 1. Khóa tạm cũ 15 phút rút còn tối đa 15 giây khi thử lại; khóa/vô hiệu hóa bởi Admin giữ nguyên. Đây là yêu cầu điều chỉnh của người dùng, thay thời gian 15 phút của AC gốc.
+
+Kiểm tra **121/121 backend, 14/14 suite trên từng MySQL/MariaDB**, **4/4 ca trình duyệt auth trên mã cuối**, lint/build và build mã giải nén. Browser full 48 ca và kiểm tra Excel/cây tổ chức là kết quả bản trước, chưa chạy lại toàn bộ cho bản khóa.
+
+Tài liệu có hướng dẫn từng bước 9 US và bảng rà 31 AC. Rà riêng S4 chạy 47/47 backend và ca gộp UI: lịch sử giữ đủ, nhưng lead MERGED vẫn xuất hiện lại trong gợi ý trùng — đã ghi nhận cần hoàn thiện, chưa sửa trong bản khóa. SLA 60 phút/3 ngày cần chốt cấu hình; SLA phân bổ 5 phút dưới tải lớn và iframe trên website triển khai chưa được xác minh.
+
+SHA-256 fullstack mới: `8b00783fb00e8bb7cea616a242237f604d56b15371ee55df22b648d1c0a5389c`.
+
+
+## Bản trước: Excel trùng, mẫu Pipeline, cây tổ chức và tài liệu Jira
 
 [Tải ZIP cập nhật](https://github.com/QuangDung1708/TTCS_N1/raw/refs/heads/codex/frontend-sprint-1-5/delivery/TTCS_N1-import-excel-organization-fix.zip) · [SHA-256](TTCS_N1-import-excel-organization-fix.zip.sha256) · [Tải tài liệu Jira](https://github.com/QuangDung1708/TTCS_N1/raw/refs/heads/codex/frontend-sprint-1-5/delivery/TTCS_N1-tai-lieu-Jira.zip).
 
