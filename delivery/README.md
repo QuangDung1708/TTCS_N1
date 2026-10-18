@@ -25,7 +25,7 @@ ZIP tài liệu có API DOCX/Markdown theo thành viên/Jira, nhật ký XLSX 18
 SHA-256 fullstack: `69235102dc75c593f65982c77fb28bc8cdf7191e75e52952988c7cf2dafc9ef1`.
 
 
-## Bản mới nhất: mail API khi CMD gửi được — sửa hàng đợi UTC+7
+## Bản trước: mail API khi CMD gửi được — sửa hàng đợi UTC+7
 
 [Tải ZIP cập nhật mail](https://github.com/QuangDung1708/TTCS_N1/raw/refs/heads/codex/frontend-sprint-1-5/delivery/TTCS_N1-mail-queue-fix.zip) · [SHA-256](TTCS_N1-mail-queue-fix.zip.sha256). Source `6c99a260a2b917d467e9a0e32ccf3184b5f5ce3a`. Gói gồm các bản sửa trước.
 
