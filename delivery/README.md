@@ -2,15 +2,21 @@
 
 [Tải gói source đầy đủ](https://github.com/QuangDung1708/TTCS_N1/raw/refs/heads/codex/frontend-sprint-1-5/delivery/TTCS_N1-fullstack.zip) · [Mở trang tệp trên GitHub](https://github.com/QuangDung1708/TTCS_N1/blob/codex/frontend-sprint-1-5/delivery/TTCS_N1-fullstack.zip) · [SHA-256](TTCS_N1-fullstack.zip.sha256)
 
-Nếu trình duyệt mở trang tệp, chọn **Download raw file**. Gói khoảng 805 KiB, chứa hai thư mục `frontend`/`backend`, lockfile, migration, test và tài liệu. Không kèm `.env`, node_modules, coverage, báo cáo trình duyệt hoặc tệp người dùng tải lên. Ứng dụng không seed dữ liệu nghiệp vụ mẫu; fixture QA chỉ chạy trong database kiểm thử có cờ reset rõ ràng.
+Nếu trình duyệt mở trang tệp, chọn **Download raw file**. Gói khoảng 807 KiB, chứa hai thư mục `frontend`/`backend`, lockfile, migration, test và tài liệu. Không kèm `.env`, node_modules, coverage, báo cáo trình duyệt hoặc tệp người dùng tải lên. Ứng dụng không seed dữ liệu nghiệp vụ mẫu; fixture QA chỉ chạy trong database kiểm thử có cờ reset rõ ràng.
 
 Giải nén vào thư mục mới và làm theo [hướng dẫn chạy](../frontend/README.md). Cần Node.js 24 LTS và MySQL 8. Cấu hình database hiện có của bạn trong `backend/.env`; giữ bản sao cấu hình và dữ liệu đang có. Dùng **backend trong cùng gói fullstack** với frontend này để khớp các API phân quyền, thông báo và cơ cấu tổ chức mới.
 
-Source ứng dụng: `05baef5e9b92d2407ef101d13bd728436e9c99b9`. `DELIVERY.json` bên trong ZIP liệt kê commit nguồn và SHA-256 của từng tệp. Gói đã kiểm tra CRC, đối chiếu byte từng tệp với source, và lint/build thành công từ mã giải nén.
+Source ứng dụng: `f00d61a82fa01e60107528b4d1050b551f8243d8`. `DELIVERY.json` bên trong ZIP liệt kê commit nguồn và SHA-256 của từng tệp. Gói đã kiểm tra CRC, đối chiếu byte từng tệp với source, và lint/build thành công từ mã giải nén.
 
 Kiểm chứng cục bộ: **23/23 kiểm thử trình duyệt** qua API/MySQL thật, **95/95 kiểm thử backend**, lint/build thành công. Xem [kết quả và giới hạn xác minh](../frontend/docs/VALIDATION.md), [đối chiếu 151 AC](../frontend/docs/AC-MATRIX.md), [ảnh desktop](../frontend/docs/images/customers-desktop.png) và [ảnh 360px](../frontend/docs/images/customers-mobile-360.png).
 
-## Bản vá database tổng hợp mới nhất
+## Bản vá danh sách người phụ trách — sau kiểm thử dashboard
+
+[Tải bản vá một tệp](https://github.com/QuangDung1708/TTCS_N1/raw/refs/heads/codex/frontend-sprint-1-5/delivery/TTCS_N1-directory-fix.zip). Sửa `/api/customers/users-list` trên MariaDB 10.4 do chưa có JSON_ARRAYAGG. Dừng backend, chép đè `backend/src/routes/customerRoutes.js`, chạy lại `npm run dev` và tải lại trình duyệt. Không chạy migration, không tạo lại database hoặc thay `.env`.
+
+Bản sửa lấy vai trò bằng JOIN có cùng scope, trả mỗi người dùng một lần với mảng roles thực từ database. Kiểm chứng sau sửa: **95/95 test backend trên MySQL 8.4**, **95/95 test backend trên MariaDB 10.4**, **23/23 test trình duyệt trên MariaDB 10.4**, lint đạt. 23/23 test trình duyệt MySQL 8.4 cũng đạt ở đầu đợt kiểm thử, trước thay truy vấn directory. Smoke test database mới trên cả hai engine xác nhận bootstrap Admin và dashboard zero, không seed dữ liệu nghiệp vụ. Chưa thao tác database/trình duyệt trên máy người dùng. [Chi tiết](../backend/docs/DIRECTORY-COMPATIBILITY.md).
+
+## Bản vá database tổng hợp trước đó
 
 [Tải bản vá tổng hợp](https://github.com/QuangDung1708/TTCS_N1/raw/refs/heads/codex/frontend-sprint-1-5/delivery/TTCS_N1-database-fix.zip). Gồm bản sửa worker, ánh xạ nhóm cũ và đồng bộ kiểu cột FK theo ID thực tế. Dừng API/worker, giữ bản sao lưu, chép thư mục `backend` của bản vá vào backend đang dùng (5 tệp source). Giữ `.env`, chạy `npm run migrate`; chỉ khi thành công mới `npm run dev`. Không cần npm install lại.
 
