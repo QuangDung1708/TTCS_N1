@@ -6,9 +6,24 @@ Nếu trình duyệt mở trang tệp, chọn **Download raw file**. Gói khoả
 
 Giải nén vào thư mục mới và làm theo [hướng dẫn chạy](../frontend/README.md). Cần Node.js 24 LTS và MySQL 8. Cấu hình database hiện có của bạn trong `backend/.env`; giữ bản sao cấu hình và dữ liệu đang có. Dùng **backend trong cùng gói fullstack** với frontend này để khớp các API phân quyền, thông báo và cơ cấu tổ chức mới.
 
-Source ứng dụng: `6c99a260a2b917d467e9a0e32ccf3184b5f5ce3a`. `DELIVERY.json` bên trong ZIP liệt kê commit nguồn và SHA-256 của từng tệp. Gói đã kiểm tra CRC, đối chiếu byte từng tệp với source, và lint/build thành công từ mã giải nén.
+Source ứng dụng: `b3025cc447cd585ce10c2bc790e77060007528cf`. `DELIVERY.json` bên trong ZIP liệt kê commit nguồn và SHA-256 của từng tệp. Gói đã kiểm tra CRC, đối chiếu byte từng tệp với source, và lint/build thành công từ mã giải nén.
 
 Kiểm chứng cục bộ: bản trước **48/48 kiểm thử trình duyệt**; bản vá mail chạy lại **3/3 luồng liên quan**, **112/112 kiểm thử backend trên từng engine MySQL 8.4 và MariaDB 10.4**, lint/build thành công. Xem [kết quả và giới hạn xác minh](../frontend/docs/VALIDATION.md), [đối chiếu 151 AC](../frontend/docs/AC-MATRIX.md), [ảnh desktop](../frontend/docs/images/customers-desktop.png) và [ảnh 360px](../frontend/docs/images/customers-mobile-360.png).
+
+## Bản mới nhất: Excel trùng, mẫu Pipeline, cây tổ chức và tài liệu Jira
+
+[Tải ZIP cập nhật](https://github.com/QuangDung1708/TTCS_N1/raw/refs/heads/codex/frontend-sprint-1-5/delivery/TTCS_N1-import-excel-organization-fix.zip) · [SHA-256](TTCS_N1-import-excel-organization-fix.zip.sha256) · [Tải tài liệu Jira](https://github.com/QuangDung1708/TTCS_N1/raw/refs/heads/codex/frontend-sprint-1-5/delivery/TTCS_N1-tai-lieu-Jira.zip).
+
+Gói cập nhật 1.277.072 byte / 95 tệp, gồm các bản sửa trước; source `b3025cc447cd585ce10c2bc790e77060007528cf`. Chép đè vào dự án, giữ `.env`, DB và uploads; khởi động lại backend/frontend, Ctrl+F5. Không đổi schema/dependency, không cần nạp lại dữ liệu hoặc SMTP đã cấu hình.
+
+Chặn dòng khách hàng/lead giống hoàn toàn ở preview và execute, trong cùng tệp, khi nhập lại và đồng thời. Giữ cập nhật có thay đổi theo MST và quyền. Pipeline dùng workbook tiếng Việt chung, tên liên kết thay ID, tiền dạng số, bộ lọc/scope và custom fields. Cây tổ chức căn nút/nhãn theo cấp, rút gọn tên dài. Điểm lead tự tính theo AC S4-05; Admin/Director chỉnh quy tắc/ngưỡng qua nút hoặc bấm điểm.
+
+Kiểm tra **119/119 backend, 14/14 suite trên từng MySQL 8.4 và MariaDB 10.4**. Trình duyệt **48/48 ca**, sau tinh chỉnh tên dài chạy **4/4 ca ảnh hưởng** trên mã cuối. Lint/build đạt; tải XLSX đối chiếu byte, đọc bằng SheetJS/openpyxl và kiểm tra XML; không chạy Microsoft Excel trên Linux. Gói source giải nén build đạt.
+
+ZIP tài liệu có API DOCX/Markdown theo thành viên/Jira, nhật ký XLSX 18 sheet với 120 dòng dự thảo cá nhân theo ngày, bản Word cá nhân Leader và nhóm, đề xuất Sprint Review. Đối chiếu đủ 199 issue; giữ trạng thái S3 chưa nghiệm thu và S4 To Do. Nhật ký ngày là dự thảo cần xác nhận vì export không có Daily Scrum; không thêm Sprint 5 giả. Chi tiết trong [README tài liệu](../reports/README.md).
+
+SHA-256 fullstack: `69235102dc75c593f65982c77fb28bc8cdf7191e75e52952988c7cf2dafc9ef1`.
+
 
 ## Bản mới nhất: mail API khi CMD gửi được — sửa hàng đợi UTC+7
 
