@@ -7,9 +7,9 @@
 | Frontend `npm ci` trên thư mục Linux sạch | Thành công từ package-lock.json |
 | Frontend `npm run lint` | Thành công, gồm cả source và test |
 | Frontend `npm run build` | Thành công |
-| Playwright + Chromium + Express + MariaDB 10.4 thật | **39/39 ca**, gồm dropdown, Excel và phản hồi thao tác |
+| Playwright + Chromium + Express + MariaDB 10.4 thật | **41/41 ca**, gồm bộ chọn dạng nút, danh sách rỗng và rà từng form |
 | Backend lint | Thành công |
-| Backend Jest/MySQL | **104/104 test**, 12/12 suite trên MySQL 8.4 và MariaDB 10.4 |
+| Backend Jest/MySQL | **105/105 test**, 12/12 suite trên MySQL 8.4 và MariaDB 10.4 |
 | Backend coverage của bản trước | 90.64% dòng; 76.50% nhánh; 91.2% hàm; 87.43% câu lệnh; chưa đo lại cho phần Excel/mail mới |
 | Server phát triển | Frontend HTTP 200, backend health HTTP 200; dùng crm_dev không nạp dữ liệu nghiệp vụ mẫu |
 
@@ -96,3 +96,17 @@ Backend đầy đủ đạt 104/104 ca, 12/12 suite trên từng engine MySQL 8.
 XLSX mới dùng worksheet đơn giản thay structured table/comment/VML. Kiểm tra byte file tải bằng Chromium trùng payload HTTP; XML trong ZIP được parse độc lập và workbook mở bằng openpyxl, giữ header/filter/frozen row và không có ô công thức. Đây là kiểm chứng độc lập ngoài thư viện xuất ExcelJS. Chưa tái hiện trực tiếp lỗi Repair trong Microsoft Excel/Cốc Cốc trên Windows của người dùng; cần tải file mới để xác nhận trên máy đó. Không truy cập DB hoặc SMTP của người dùng.
 
 Lượt hồi quy cuối bản dropdown/Excel: **39/39 ca Chromium + MariaDB 10.4**, gồm toàn bộ 34 ca cũ và 5 ca mới (4,5 phút). Frontend lint/build và backend lint đạt. Kiểm tra độc lập ba workbook tải thực: khách hàng 12 hàng/13 cột, lead 7 hàng/15 cột, báo giá 2 hàng/9 cột; tất cả XML hợp lệ và openpyxl đọc được. Số hàng là dữ liệu QA của lượt này, không phải dữ liệu người dùng.
+
+## Dropdown dạng danh sách, dữ liệu thực và mail
+
+Rà 78 điểm dùng bộ chọn, thay trigger input bằng nút mở popup có ô tìm riêng. Hỗ trợ danh sách chuẩn/nhiều lựa chọn, tìm không dấu, Arrow/Enter/Escape, clear, disabled và trạng thái tải/rỗng. Portal có vị trí theo viewport, không bị cắt bởi modal. Bộ chọn người liên hệ khóa trước khi chọn khách hàng, chỉ tải đúng liên hệ của khách đã chọn.
+
+Bộ 39 ca hồi quy cũ đạt sau thay bộ chọn; thêm hai ca rà lần lượt bộ chọn trên tám form và dữ liệu rỗng/bàn phím/clear. Ca rà mới từng phát hiện người liên hệ bật quá sớm và một fixture thiếu quy mô; đã sửa phụ thuộc UI và chuẩn bị dữ liệu thật trước ca kiểm tra. Ca danh mục rỗng không dùng API cấu hình sai để giả lập dữ liệu: chọn khách hàng thật chưa có liên hệ để kiểm tra trạng thái rỗng hợp lệ. Ba ca liên quan đã chạy lại đạt.
+
+Backend đầy đủ **105/105 ca, 12/12 suite trên từng MySQL 8.4 và MariaDB 10.4**. Sau bổ sung đối chiếu mật khẩu/token nhận qua SMTP, chạy lại security-runtime **15/15 ca trên mỗi engine**. SMTP socket thật kiểm tra hai loại thư, login bằng mật khẩu tạm nhận qua thư, reset dùng token trong thư và từ chối dùng lại; verify không gửi mail, recipient bị từ chối không được đánh dấu sent, retry thành công ngay cả khi tác vụ nghiệp vụ bị lỗi SQL. Status API không lộ nội dung/recipient/credentials và chỉ cho Admin.
+
+Nạp dữ liệu mới trên hai engine, chạy lại giữ số lượng và hash mật khẩu; nâng cấp bộ cũ từ script tại commit trước trên MariaDB rồi kiểm tra các API dưới Sales thật. DB QA sau nạp bộ chung và bộ riêng của Sales: 9 user gồm Admin QA có sẵn, 5 khách hàng/5 liên hệ, 4 lead, 3 cơ hội/3 báo giá, 30 mục danh mục/5 khu vực. Đây là số của QA, không phải số liệu DB máy người dùng. Không tự động nạp nghiệp vụ khi khởi động server; người dùng chạy tệp CMD hoặc `data:examples` trong DB họ chọn.
+
+Trong cấu hình checkout chỉ kiểm tra tên/presence biến mail: có SMTP_USER/PASS nhưng thiếu SMTP_HOST; không dùng thông tin đó để gửi mail ngoài. `mail:check` và hướng dẫn cấu hình riêng được bổ sung. Chưa kết nối SMTP/Gmail hoặc đọc Inbox của người dùng. CMD dành cho Windows chưa chạy trên máy Windows trong môi trường Linux; các lệnh Node/npm bên trong đã kiểm tra. Chi tiết: [DROPDOWNS-AND-MAIL.md](DROPDOWNS-AND-MAIL.md).
+
+Hồi quy cuối bản dropdown/dữ liệu/mail đạt **41/41 ca trình duyệt Chromium + MariaDB 10.4** (4,8 phút). Frontend lint/build và backend lint đạt. Bộ SMTP mở rộng 15/15 ca trên cả hai engine; backend đầy đủ 105/105 mỗi engine. ZIP được đóng gói từ source này, kiểm tra manifest/CRC và build lại mã giải nén.

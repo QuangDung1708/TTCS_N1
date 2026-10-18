@@ -80,3 +80,7 @@ Thông báo cá nhân đòi quyền đọc AUTO; thao tác đánh dấu đã đ�
 `GET /users/import/template` trả XLSX sáu cột: `Tên`, `Email`, `Mật khẩu tạm thời`, `Vai trò (RBAC)`, `Nhóm kinh doanh`, `Số điện thoại`. Nhận alias `full_name`, `email`, `temporary_password`, `role_code`, `group_name`, `phone`; `group_id` vẫn được hỗ trợ. `group_name` phải khớp duy nhất nhóm có sẵn, không tự tạo nhóm. `POST /users` cũng nhận `temporary_password`; nếu có phải đạt cùng quy tắc mật khẩu, nếu trống tự sinh. Không trả mật khẩu trong response, không xuất hash; thư SMTP chứa thông tin khởi tạo và yêu cầu đổi lần đầu.
 
 Xuất khách hàng/lead/báo giá nháp trả XLSX nhị phân có tiêu đề ngay cả khi không có bản ghi. Các bộ chọn UI tìm theo tên không phân biệt dấu/hoa thường; dữ liệu lựa chọn tiếp tục do các API hiện hữu kiểm soát phạm vi và quyền. Khởi tạo danh mục chuẩn do backend thực hiện một lần hoặc CLI `npm run data:catalogs`, không có endpoint công khai để nạp dữ liệu.
+
+### Trạng thái mail dành cho Admin
+
+`GET /admin/mail/status` yêu cầu Admin, trả `{configured, missing, worker_enabled, queue:{pending, failed, sent, last_sent_at}, last_error}`. Không trả recipient/body, SMTP user/pass hoặc token. `sent` là SMTP đã nhận, không xác nhận Inbox. Tạo user và quên mật khẩu vẫn dùng outbox; thông báo reset chung không tiết lộ tài khoản. CLI `npm run mail:check` kiểm tra SMTP thực mà không gửi thư. Khi một business job thất bại, mail cycle vẫn được thực thi.

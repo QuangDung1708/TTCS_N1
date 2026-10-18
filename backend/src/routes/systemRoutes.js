@@ -10,6 +10,13 @@ const {
   permission,
 } = require("../core/access");
 router.use(authenticate);
+router.get(
+  "/admin/mail/status",
+  requireRoles("Admin"),
+  route(async (req, res) => {
+    res.json(await require("../core/mailConfig").mailStatus(db));
+  }),
+);
 const readNotifications = (req, res, next) => {
   try {
     permission(req.user, "AUTO");

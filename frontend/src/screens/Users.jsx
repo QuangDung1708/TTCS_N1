@@ -39,6 +39,7 @@ export default function Users() {
     [page, setPage] = useState(1),
     [pageSize, setPageSize] = useState(20),
     r = useResource("/users", { ...filters, page, pageSize }),
+    mail = useResource(auth.has("Admin") ? "/admin/mail/status" : null),
     roles = useResource("/users/roles/list"),
     groups = useResource("/users/groups/list"),
     directory = useResource("/customers/users-list"),
@@ -81,6 +82,46 @@ export default function Users() {
         }
       />
       <ResourceError resource={r} />
+      {write && <ResourceError resource={mail} />}
+      {write && mail.data && (
+        <Alert
+          className="section-gap"
+          showIcon
+          type={
+            !mail.data.configured || mail.data.last_error ? "warning" : "info"
+          }
+          title={
+            mail.data.configured
+              ? "Email tài khoản được gửi qua hàng đợi SMTP"
+              : "SMTP chưa cấu hình đủ — email chưa được gửi"
+          }
+          description={
+            <>
+              <div>
+                {!mail.data.configured
+                  ? `Thiếu/sai: ${mail.data.missing.join(", ")}. Bổ sung backend/.env rồi chạy npm run mail:check.`
+                  : "Tạo tài khoản và quên mật khẩu sẽ xếp thư vào hàng đợi; SMTP chấp nhận thư mới được đánh dấu đã gửi."}
+              </div>
+              <div>
+                Đang chờ: {mail.data.queue.pending} · SMTP đã nhận:{" "}
+                {mail.data.queue.sent} · Hết lượt thử: {mail.data.queue.failed}
+                {mail.data.last_error
+                  ? ` · Lỗi gần nhất: ${mail.data.last_error}`
+                  : ""}
+              </div>
+              {!mail.data.worker_enabled && (
+                <div>
+                  Worker đi kèm API đã tắt; cần chạy tiến trình npm run worker.
+                </div>
+              )}
+              <Button type="link" onClick={mail.reload} loading={mail.loading}>
+                Làm mới trạng thái gửi mail
+              </Button>
+            </>
+          }
+        />
+      )}
+
       <DataCard>
         <div className="filter-bar">
           <Input

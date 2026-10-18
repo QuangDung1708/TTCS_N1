@@ -1,5 +1,5 @@
 {
-  "verified_at_utc": "2026-10-18T07:57:57.419890+00:00",
+  "verified_at_utc": "2026-10-18T08:33:46.474139+00:00",
   "runtime": {
     "node": "24.19.0",
     "mysql": "8.4.11",
@@ -8,16 +8,16 @@
     "mariadb": "10.4.34"
   },
   "frontend": {
-    "browser_tests_passed": 39,
-    "browser_tests_total": 39,
+    "browser_tests_passed": 41,
+    "browser_tests_total": 41,
     "mock_api": false,
     "lint": "passed",
     "build": "passed",
     "clean_npm_ci": "passed"
   },
   "backend": {
-    "tests_passed": 104,
-    "tests_total": 104,
+    "tests_passed": 105,
+    "tests_total": 105,
     "suites_passed": 12,
     "coverage_percent": {
       "lines": 90.64,
@@ -227,5 +227,57 @@
     "user_database_accessed": false,
     "microsoft_excel_windows_verified": false,
     "coc_coc_windows_verified": false
+  },
+  "dropdown_data_mail_fix": {
+    "source_select_locations_reviewed": 78,
+    "browser": {
+      "passed": 41,
+      "total": 41,
+      "engine": "Chromium",
+      "database": "MariaDB 10.4.34"
+    },
+    "mysql_backend": {
+      "passed": 105,
+      "total": 105,
+      "suites": 12
+    },
+    "mariadb_backend": {
+      "passed": 105,
+      "total": 105,
+      "suites": 12
+    },
+    "smtp_followup_each_engine": {
+      "passed": 15,
+      "total": 15
+    },
+    "smtp_socket_delivery_verified": true,
+    "smtp_temporary_password_login_verified": true,
+    "smtp_reset_token_single_use_verified": true,
+    "smtp_rejection_retry_verified": true,
+    "mail_runs_when_business_job_fails": true,
+    "mail_check_does_not_send": true,
+    "external_mailbox_verified": false,
+    "windows_cmd_executed": false,
+    "frontend_lint": "passed",
+    "frontend_build": "passed",
+    "backend_lint": "passed",
+    "data_import_new_and_repeat_both_engines": true,
+    "data_import_upgrade_from_previous_mariadb": true,
+    "non_admin_lookup_api_read_mariadb": true,
+    "repeat_preserves_password_hashes": true,
+    "user_database_accessed": false,
+    "qa_import_counts": {
+      "users_including_existing_admin": 9,
+      "customers": 5,
+      "contacts": 5,
+      "leads": 4,
+      "deals": 3,
+      "quotes": 3,
+      "categories": 30,
+      "regions": 5
+    },
+    "windows_helper": "CAP-NHAT-VA-NAP-DU-LIEU.cmd",
+    "owner_environment_variable": "CRM_EXAMPLE_OWNER_EMAIL",
+    "schema_change_required": false
   }
 }

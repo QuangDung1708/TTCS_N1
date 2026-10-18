@@ -80,3 +80,9 @@ npm run test:e2e
 Test tự chạy backend cổng 5002 và Vite cổng 5174, tắt worker/SMTP ngoài, tạo dữ liệu QA rồi đóng server. Cần hai cổng này còn trống. Có thể đặt `CHROMIUM_PATH` tới Chromium cài sẵn. Không có kết nối tới MySQL sản xuất được mặc định sử dụng cho E2E.
 
 Đối chiếu yêu cầu trong [docs/AC-MATRIX.md](docs/AC-MATRIX.md) và kết quả thực chạy trong [docs/VALIDATION.md](docs/VALIDATION.md). Nghiệp vụ lịch Sprint 6, duyệt hợp đồng Sprint 7 và các sprint sau không được tuyên bố đã hoàn thành bởi màn hình báo giá nháp.
+
+## Bản cập nhật dropdown và dữ liệu
+
+Với folder đang chạy, làm theo [UPDATE-UI-AND-DATA.md](../UPDATE-UI-AND-DATA.md); giữ `.env`, uploads và DB. Cài lại dependency cả frontend/backend theo lockfile để tránh dùng cache/version cũ. Tệp CMD ở gốc nạp dữ liệu qua API vào DB hiện tại, có thể nhập email tài khoản đang test để nhận dữ liệu theo đúng scope.
+
+Bộ chọn dùng nút mở danh sách, ô tìm ở trong popup. Giá trị không nhập tự do. Chưa chọn khách hàng thì người liên hệ bị khóa; khách chưa có liên hệ hiện hướng dẫn. Xem [nguồn dữ liệu của từng nhóm dropdown và kiểm chứng mail](docs/DROPDOWNS-AND-MAIL.md).

@@ -613,9 +613,11 @@ function DealEditor({ open, onClose, record, stages, fields, users, onSaved }) {
     auth = useAuth(),
     campaigns = useResource("/campaigns/options"),
     a = useAction();
-  const sourceRows = Array.isArray(contacts.data)
-    ? contacts.data
-    : contacts.rows;
+  const sourceRows = !customer
+    ? []
+    : Array.isArray(contacts.data)
+      ? contacts.data
+      : contacts.rows;
   return (
     <EntityModal
       title={record?.id ? "Chỉnh sửa cơ hội" : "Thêm cơ hội"}
@@ -674,12 +676,19 @@ function DealEditor({ open, onClose, record, stages, fields, users, onSaved }) {
           label="Người liên hệ chính"
           rules={required}
           extra={
-            !sourceRows.length
-              ? "Thêm liên hệ trong hồ sơ khách hàng trước khi tạo cơ hội."
-              : undefined
+            !customer
+              ? "Chọn khách hàng doanh nghiệp trước để tải người liên hệ."
+              : !sourceRows.length
+                ? "Thêm liên hệ trong hồ sơ khách hàng trước khi tạo cơ hội."
+                : undefined
           }
         >
           <Select
+            disabled={!customer}
+            placeholder={
+              !customer ? "Chọn khách hàng trước" : "Chọn người liên hệ"
+            }
+            notFoundContent="Khách hàng này chưa có người liên hệ. Thêm liên hệ trong hồ sơ khách hàng rồi mở lại danh sách."
             loading={contacts.loading}
             options={sourceRows.map((c) => ({
               value: c.id,

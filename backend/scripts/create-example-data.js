@@ -11,6 +11,7 @@ let server;
 async function main() {
   if (process.env.NODE_ENV === "production")
     throw Error("Không tạo dữ liệu kiểm thử trong NODE_ENV=production.");
+  await require("../src/core/referenceCatalogs").initializeReferenceCatalogs();
   const [[database]] = await db.query("SELECT DATABASE() name");
   const fingerprint = crypto
     .createHash("sha256")
@@ -35,21 +36,6 @@ async function main() {
     });
     await fs.rename(temp, file);
   };
-  if (state.complete) {
-    for (const user of Object.values(state.accounts)) {
-      const [[found]] = await db.query(
-        "SELECT id FROM users WHERE id=? AND email=?",
-        [user.id, user.email],
-      );
-      if (!found)
-        throw Error(
-          "Bộ dữ liệu trong database đã thay đổi. Giữ tệp tài khoản riêng tư và kiểm tra trước khi tạo lại; lệnh không tự ghi đè dữ liệu.",
-        );
-    }
-    console.log("Bộ dữ liệu đã tồn tại. Không tạo thêm hoặc đổi mật khẩu.");
-    console.log("Tài khoản và ID: " + file);
-    return;
-  }
   const [[admin]] = await db.query(
     "SELECT u.* FROM users u JOIN user_roles ur ON ur.user_id=u.id WHERE ur.role_code='Admin' AND u.is_active=1 AND u.status NOT IN ('inactive','Đã khóa') ORDER BY u.id LIMIT 1",
   );
@@ -125,6 +111,271 @@ async function main() {
       await save();
     }
     return value;
+  }
+  async function requiredFields(entity) {
+    const { data } = await call(
+      session.token,
+      "GET",
+      `/custom-fields?entity_type=${entity}`,
+    );
+    const fields = {};
+    for (const f of data.filter((f) => f.is_active && f.is_required)) {
+      if (["select", "dropdown"].includes(f.field_type)) {
+        const choices =
+          typeof f.options === "string" ? JSON.parse(f.options) : f.options;
+        if (!choices?.length)
+          throw Error(`Trường ${f.field_name} bắt buộc nhưng danh mục rỗng.`);
+        fields[f.field_key] = choices[0];
+      } else
+        fields[f.field_key] =
+          f.field_type === "number"
+            ? 10
+            : f.field_type === "date"
+              ? new Date().toISOString().slice(0, 10)
+              : "KT · Giá trị kiểm thử";
+    }
+    return fields;
+  }
+  async function linkedData() {
+    const regionIds = [];
+    for (const [key, name] of [
+      ["north", "Miền Bắc"],
+      ["south", "Miền Nam"],
+    ])
+      regionIds.push(
+        await step(
+          "linkedRegion:" + key,
+          async () =>
+            (
+              await call(session.token, "POST", "/organization/regions", {
+                code: "KT-" + key.toUpperCase(),
+                name: "KT · " + name,
+              })
+            ).id,
+        ),
+      );
+    await step(
+      "linkedSize",
+      async () =>
+        (
+          await call(session.token, "POST", "/categories", {
+            type: "company_size",
+            code: "KT-SIZE-51-200",
+            name: "KT · 51–200 nhân sự",
+          })
+        ).id,
+    );
+    await step(
+      "linkedActivity",
+      async () =>
+        (
+          await call(session.token, "POST", "/categories", {
+            type: "activity_type",
+            code: "KT-CONSULT",
+            name: "KT · Tư vấn giải pháp",
+          })
+        ).id,
+    );
+    await step(
+      "linkedCompetitor",
+      async () =>
+        (
+          await call(session.token, "POST", "/competitors", {
+            name: "KT · Nhà cung cấp giải pháp khác",
+            strengths: "Danh mục sản phẩm đa dạng",
+            weaknesses: "Cần đánh giá mức độ phù hợp",
+          })
+        ).id,
+    );
+    if (!state.linkedVersion) {
+      for (const [key, region] of [
+        ["customerA", "KT · Miền Bắc"],
+        ["customerA2", "KT · Miền Bắc"],
+        ["customerB", "KT · Miền Nam"],
+        ["customerCare", "KT · Miền Bắc"],
+      ]) {
+        const cid = state.records[key];
+        if (!cid) continue;
+        const { data } = await call(session.token, "GET", `/customers/${cid}`);
+        await call(session.token, "PUT", `/customers/${cid}`, {
+          company_name: data.company_name,
+          company_size: data.company_size || "KT · 51–200 nhân sự",
+          region: data.region || region,
+        });
+      }
+      for (const [key, rid] of [
+        ["groupA", regionIds[0]],
+        ["groupB", regionIds[1]],
+      ]) {
+        const gid = state.records[key];
+        if (gid)
+          await transaction(async (c) => {
+            const [[old]] = await c.query(
+              "SELECT * FROM `groups` WHERE id=? FOR UPDATE",
+              [gid],
+            );
+            if (old && !old.region_id) {
+              await c.query("UPDATE `groups` SET region_id=? WHERE id=?", [
+                rid,
+                gid,
+              ]);
+              await audit(
+                c,
+                admin,
+                "UPDATE",
+                "groups",
+                gid,
+                old,
+                { ...old, region_id: rid },
+                "Bổ sung khu vực dữ liệu kiểm thử",
+              );
+            }
+          });
+      }
+      state.linkedVersion = 1;
+      await save();
+    }
+    for (const key of ["customerA", "customerB"]) {
+      const did = state.records[key + "Deal"];
+      if (did)
+        await step(
+          key + "Quote",
+          async () =>
+            (
+              await call(session.token, "POST", "/quotes", {
+                title: "KT · Báo giá triển khai CRM",
+                deal_id: did,
+                discount_percent: 5,
+              })
+            ).id,
+        );
+    }
+    const ownerEmail = process.env.CRM_EXAMPLE_OWNER_EMAIL?.trim();
+    if (ownerEmail) {
+      const [[owner]] = await db.query(
+        "SELECT id FROM users WHERE email=? AND is_active=1 AND status NOT IN ('inactive','Đã khóa')",
+        [ownerEmail],
+      );
+      if (!owner)
+        throw Error(
+          "Email nhận dữ liệu không thuộc tài khoản đang hoạt động trong DB này.",
+        );
+      const prefix = "owner:" + owner.id + ":";
+      const source = state.records.source,
+        stage = state.records.stage;
+      const company = await step(
+        prefix + "customer",
+        async () =>
+          (
+            await call(session.token, "POST", "/customers", {
+              company_name: "KT · Doanh nghiệp kiểm thử của tôi",
+              created_by: owner.id,
+              industry: "KT · Công nghệ thông tin",
+              company_size: "KT · 51–200 nhân sự",
+              region: "KT · Miền Bắc",
+              custom_fields: await requiredFields("customer"),
+            })
+          ).id,
+      );
+      const contact = await step(
+        prefix + "contact",
+        async () =>
+          (
+            await call(session.token, "POST", `/contacts/customer/${company}`, {
+              full_name: "KT · Người liên hệ dự án",
+              position: "Phụ trách mua hàng",
+            })
+          ).contactId,
+      );
+      const deal = await step(
+        prefix + "deal",
+        async () =>
+          (
+            await call(session.token, "POST", "/deals", {
+              title: "KT · Cơ hội kiểm thử của tôi",
+              customer_id: company,
+              contact_id: contact,
+              owner_id: owner.id,
+              source_id: source,
+              stage_id: stage,
+              campaign_id: state.records.campaign,
+              amount: 5000000,
+              expected_close_date: new Date(Date.now() + 30 * 86400000)
+                .toISOString()
+                .slice(0, 10),
+              custom_fields: await requiredFields("deal"),
+            })
+          ).id,
+      );
+      await step(
+        prefix + "quote",
+        async () =>
+          (
+            await call(session.token, "POST", "/quotes", {
+              title: "KT · Báo giá kiểm thử của tôi",
+              deal_id: deal,
+              owner_id: owner.id,
+              discount_percent: 0,
+            })
+          ).id,
+      );
+      const [[sales]] = await db.query(
+        "SELECT user_id FROM user_roles WHERE user_id=? AND role_code='Sales Rep'",
+        [owner.id],
+      );
+      if (sales) {
+        const lid = await step(
+          prefix + "lead",
+          async () =>
+            (
+              await call(session.token, "POST", "/leads", {
+                full_name: "KT · Lead kiểm thử của tôi",
+                company_name: "KT · Doanh nghiệp đang tìm hiểu",
+                email: `owner-${owner.id}@example.test`,
+                source_id: source,
+                campaign_id: state.records.campaign,
+                industry: "KT · Công nghệ thông tin",
+                company_size: "KT · 51–200 nhân sự",
+                region: "KT · Miền Bắc",
+                custom_fields: await requiredFields("lead"),
+              })
+            ).id,
+        );
+        await step(prefix + "assigned", async () => {
+          await call(session.token, "POST", `/leads/${lid}/assign`, {
+            owner_id: owner.id,
+            reason: "Nạp dữ liệu để kiểm thử tài khoản đang dùng",
+            sla_minutes: 1440,
+          });
+          return lid;
+        });
+      }
+      console.log(
+        "Đã thêm/kiểm tra bộ khách hàng, liên hệ, cơ hội, báo giá thuộc tài khoản được chỉ định.",
+      );
+    }
+    const [[counts]] = await db.query(
+      "SELECT (SELECT COUNT(*) FROM sales_categories) categories,(SELECT COUNT(*) FROM regions) regions,(SELECT COUNT(*) FROM customers) customers,(SELECT COUNT(*) FROM customer_contacts) contacts,(SELECT COUNT(*) FROM leads) leads,(SELECT COUNT(*) FROM deals) deals,(SELECT COUNT(*) FROM quotes) quotes",
+    );
+    console.log("Số bản ghi đang có trong DB: " + JSON.stringify(counts));
+  }
+  if (state.complete) {
+    for (const user of Object.values(state.accounts)) {
+      const [[found]] = await db.query(
+        "SELECT id FROM users WHERE id=? AND email=?",
+        [user.id, user.email],
+      );
+      if (!found)
+        throw Error(
+          "Bộ dữ liệu trong database đã thay đổi. Giữ tệp tài khoản riêng tư và kiểm tra trước khi tạo lại; lệnh không tự ghi đè dữ liệu.",
+        );
+    }
+    await linkedData();
+    console.log(
+      "Bộ dữ liệu đã tồn tại; đã kiểm tra/bổ sung liên kết, không đổi mật khẩu.",
+    );
+    console.log("Tài khoản và ID: " + file);
+    return;
   }
   const director = await account("director", "Giám đốc", "Director");
   const leadA = await account("leader-a", "Trưởng nhóm Miền Bắc", "Sales Rep");
@@ -328,6 +579,9 @@ async function main() {
             email: key.toLowerCase() + "@example.test",
             industry: "KT · Công nghệ thông tin",
             status: "Tiềm năng",
+            company_size: "51–200 nhân sự",
+            region: key === "customerB" ? "Miền Nam" : "Miền Bắc",
+            custom_fields: await requiredFields("customer"),
           })
         ).id,
     );
@@ -356,6 +610,7 @@ async function main() {
               campaign_id: campaign,
               amount: 5000000,
               expected_close_date: future,
+              custom_fields: await requiredFields("deal"),
             })
           ).id,
       );
@@ -372,6 +627,10 @@ async function main() {
             source_id: source,
             campaign_id: campaign,
             interest: "Cần tư vấn giải pháp CRM",
+            industry: "KT · Công nghệ thông tin",
+            company_size: "51–200 nhân sự",
+            region: i === 2 ? "Miền Nam" : "Miền Bắc",
+            custom_fields: await requiredFields("lead"),
           })
         ).id,
     );
@@ -393,6 +652,7 @@ async function main() {
       return state.records[key];
     });
   }
+  await linkedData();
   state.complete = true;
   await save();
   console.log(

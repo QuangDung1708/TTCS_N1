@@ -21,17 +21,17 @@ test("Dropdown arrow opens above customer modal and allows searching an existing
     .getByRole("dialog")
     .locator(".ant-form-item")
     .filter({ has: page.getByText("Ngành nghề", { exact: true }) });
-  const arrow = field.locator(".ant-select-suffix, .ant-select-arrow");
+  const arrow = field.locator(".linked-select-arrow");
   await arrow.click();
-  await expect(page.locator(".ant-select-dropdown:visible")).toBeVisible();
+  await expect(page.locator(".linked-select-popup:visible")).toBeVisible();
   await expect(
     page
-      .locator(".ant-select-dropdown:visible .ant-select-item-option")
+      .locator(".linked-select-popup:visible .linked-select-option")
       .filter({ hasText: "Technology" }),
   ).toBeVisible();
-  await field.getByRole("combobox").fill("Tech");
+  await page.getByRole("textbox", { name: "Tìm trong danh sách" }).fill("Tech");
   await page
-    .locator(".ant-select-dropdown:visible .ant-select-item-option")
+    .locator(".linked-select-popup:visible .linked-select-option")
     .filter({ hasText: "Technology" })
     .click();
 });
@@ -41,10 +41,12 @@ async function choose(page, label, search, value) {
   const field = dialog
     .locator(".ant-form-item")
     .filter({ has: page.locator("label").filter({ hasText: label }) });
-  await field.locator(".ant-select-suffix, .ant-select-arrow").click();
-  const popup = page.locator(".ant-select-dropdown:visible");
+  await field.locator(".linked-select-arrow").click();
+  const popup = page.locator(".linked-select-popup:visible");
   await expect(popup).toBeVisible();
-  await field.getByRole("combobox").fill(search);
+  await popup
+    .getByRole("textbox", { name: "Tìm trong danh sách" })
+    .fill(search);
   await popup.getByRole("option", { name: value, exact: true }).click();
   await expect(popup).toBeHidden();
 }
@@ -164,11 +166,11 @@ test("Opportunity arrows select existing customer, contact, stage, source and ca
     .getByLabel("Người liên hệ chính", { exact: true });
   await contact.click();
   const options = page.locator(
-    ".ant-select-dropdown:visible .ant-select-item-option",
+    ".linked-select-popup:visible .linked-select-option",
   );
   await expect(options.first()).toBeVisible();
   await options.first().click();
-  await expect(page.locator(".ant-select-dropdown:visible")).toBeHidden();
+  await expect(page.locator(".linked-select-popup:visible")).toBeHidden();
   await choose(page, "Giai đoạn", "disco", "Discovery");
   await choose(page, "Nguồn cơ hội", "web", "Website");
   await choose(page, "Chiến dịch", "co hoi", "Chiến dịch cơ hội");
@@ -297,4 +299,125 @@ test("A pending real save shows Ant Design loading then success; tabs animate an
     "animation-name",
     "none",
   );
+});
+
+test("Every enabled form dropdown is a read-only button and opens populated database or enum choices", async ({
+  page,
+}) => {
+  const token = await login(page);
+  const create = (route, data) =>
+    page.request.post("/api/" + route, {
+      headers: { Authorization: "Bearer " + token },
+      data,
+    });
+  expect(
+    (
+      await create("organization/regions", {
+        name: "Khu vực rà soát",
+        code: "AUDIT_REGION",
+      })
+    ).ok(),
+  ).toBeTruthy();
+  expect(
+    (
+      await create("categories", {
+        type: "company_size",
+        code: "AUDIT_SIZE",
+        name: "11–50 nhân sự rà soát",
+      })
+    ).ok(),
+  ).toBeTruthy();
+  expect(
+    (
+      await create("campaigns", {
+        name: "Chiến dịch rà soát",
+        budget: 1000000,
+        channel: "Website",
+        start_date: new Date().toISOString().slice(0, 10),
+        end_date: new Date(Date.now() + 30 * 86400000)
+          .toISOString()
+          .slice(0, 10),
+      })
+    ).ok(),
+  ).toBeTruthy();
+  let checked = 0;
+  for (const [route, button] of [
+    ["/customers", "Thêm khách hàng"],
+    ["/leads", "Thêm lead"],
+    ["/deals", "Thêm cơ hội"],
+    ["/quotes", "Tạo báo giá nháp"],
+    ["/products", "Thêm mới"],
+    ["/organization", "Thêm nhóm"],
+    ["/users", "Thêm người dùng"],
+    ["/custom-fields", "Thêm mới"],
+  ]) {
+    await page.goto(route);
+    await page.getByRole("button", { name: button, exact: true }).click();
+    const dialog = page.getByRole("dialog").last();
+    const fields = dialog.getByRole("combobox");
+    for (let i = 0; i < (await fields.count()); i++) {
+      const field = fields.nth(i);
+      if (await field.isDisabled()) continue;
+      expect(await field.evaluate((el) => el.tagName)).toBe("BUTTON");
+      await field.click();
+      await expect(field).toHaveAttribute("aria-expanded", "true");
+      const list = page.getByRole("listbox");
+      await expect(list).toBeVisible();
+      await expect(list.getByRole("option").first()).toBeVisible();
+      await page.keyboard.press("Escape");
+      await expect(list).toBeHidden();
+      await expect(dialog).toBeVisible();
+      checked++;
+    }
+  }
+  expect(checked).toBeGreaterThanOrEqual(20);
+});
+
+test("An empty database-backed dropdown shows an empty list, never an editable value; keyboard and clear keep state", async ({
+  page,
+}) => {
+  await login(page);
+  await page.goto("/deals");
+  await page.getByRole("button", { name: "Thêm cơ hội", exact: true }).click();
+  const contact = page
+    .getByRole("dialog")
+    .last()
+    .getByLabel("Người liên hệ chính", { exact: true });
+  await expect(contact).toBeDisabled();
+  await choose(
+    page,
+    "Khách hàng doanh nghiệp",
+    "khach hang b",
+    "E2E Khách hàng B",
+  );
+  await expect(contact).toBeEnabled();
+  await contact.click();
+  await expect(page.getByRole("listbox")).toContainText(
+    "chưa có người liên hệ",
+  );
+  await expect(
+    page.getByRole("textbox", { name: "Tìm trong danh sách" }),
+  ).toBeVisible();
+  expect(await contact.evaluate((el) => el.tagName)).toBe("BUTTON");
+  await page.keyboard.press("Escape");
+  await page.goto("/customers");
+  await page
+    .getByRole("button", { name: "Thêm khách hàng", exact: true })
+    .click();
+  const dialog = page.getByRole("dialog").last();
+  const industry = dialog.getByLabel("Ngành nghề", { exact: true });
+  await industry.focus();
+  await page.keyboard.press("ArrowDown");
+  await expect(page.getByRole("listbox")).toBeVisible();
+  await page
+    .getByRole("textbox", { name: "Tìm trong danh sách" })
+    .fill("Technology");
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("Enter");
+  await expect(industry).toContainText("Technology");
+  const item = dialog
+    .locator(".ant-form-item")
+    .filter({ has: page.locator("label").filter({ hasText: /^Ngành nghề$/ }) });
+  await item.getByRole("button", { name: "Xóa lựa chọn" }).click();
+  await expect(industry).not.toContainText("Technology");
 });

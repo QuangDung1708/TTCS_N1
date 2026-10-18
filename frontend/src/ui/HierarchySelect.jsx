@@ -1,5 +1,4 @@
-import { normalizeSearch } from "../lib/search";
-import { TreeSelect } from "antd";
+import LinkedSelect from "./LinkedSelect";
 export function hierarchy(rows, label = "name") {
   const nodes = new Map(
     rows.map((r) => [
@@ -26,23 +25,27 @@ export default function HierarchySelect({ rows, exclude, label, ...props }) {
         changed = true;
       }
   }
+  const flatten = (nodes, depth = 0, parents = []) =>
+    nodes.flatMap((node) => [
+      {
+        value: node.value,
+        label: node.title,
+        depth,
+        searchText: [...parents, node.title].join(" / "),
+      },
+      ...flatten(node.children, depth + 1, [...parents, node.title]),
+    ]);
   return (
-    <TreeSelect
+    <LinkedSelect
       {...props}
       allowClear
-      showSearch
-      treeNodeFilterProp="title"
-      filterTreeNode={(input, node) =>
-        normalizeSearch(node.title).includes(normalizeSearch(input))
-      }
-      styles={{ popup: { root: { zIndex: 2100 } } }}
-      treeDefaultExpandAll
-      getPopupContainer={() => document.body}
       placeholder="Không có cấp cha (cấp cao nhất)"
       style={{ width: "100%" }}
-      treeData={hierarchy(
-        rows.filter((r) => !blocked.has(r.id)),
-        label,
+      options={flatten(
+        hierarchy(
+          rows.filter((r) => !blocked.has(r.id)),
+          label,
+        ),
       )}
     />
   );

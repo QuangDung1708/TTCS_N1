@@ -254,7 +254,7 @@ test("S5: rejected stage move, meeting, product totals, stage, won and locked de
   await login(page, "Sales Rep", `/pipeline?deal=${ids().deal}`);
   await page.getByLabel("Giai đoạn tiếp theo").click();
   await page
-    .locator(".ant-select-dropdown:visible")
+    .locator(".linked-select-popup:visible")
     .getByText("Proposal", { exact: true })
     .click();
   await page
@@ -277,7 +277,7 @@ test("S5: rejected stage move, meeting, product totals, stage, won and locked de
     .click();
   await dialog(page).getByLabel("Sản phẩm", { exact: true }).click();
   await page
-    .locator(".ant-select-dropdown:visible")
+    .locator(".linked-select-popup:visible")
     .getByText("E2E Thuê bao", { exact: true })
     .click();
   await dialog(page).getByLabel("Số lượng", { exact: true }).fill("2");
@@ -293,7 +293,7 @@ test("S5: rejected stage move, meeting, product totals, stage, won and locked de
   await page.getByRole("button", { name: "Chốt thắng", exact: true }).click();
   await dialog(page).getByLabel("Lý do thắng").click();
   await page
-    .locator(".ant-select-dropdown:visible")
+    .locator(".linked-select-popup:visible")
     .getByText("Fit", { exact: true })
     .click();
   await dialog(page).getByRole("button", { name: "Lưu thay đổi" }).click();
@@ -386,7 +386,7 @@ test("S4: create lead, receive and convert preserves activity in customer 360", 
     .fill("convert@example.test");
   await dialog(page).getByLabel("Nguồn lead", { exact: true }).click();
   await page
-    .locator(".ant-select-dropdown:visible")
+    .locator(".linked-select-popup:visible")
     .getByText("Website", { exact: true })
     .click();
   await dialog(page).getByRole("button", { name: "Lưu thay đổi" }).click();
@@ -425,7 +425,7 @@ test("S4: create lead, receive and convert preserves activity in customer 360", 
     .click();
   await dialog(page).getByLabel("Giai đoạn ban đầu").click();
   await page
-    .locator(".ant-select-dropdown:visible")
+    .locator(".linked-select-popup:visible")
     .getByText("Discovery", { exact: true })
     .click();
   await dialog(page).getByLabel("Ngày dự kiến chốt").fill("2099-01-01");
@@ -662,7 +662,7 @@ test("S1/S2: administrator creates, edits roles, locks with handover, and audits
     .click();
   await dialog(page).getByLabel("Các vai trò").click();
   await page
-    .locator(".ant-select-dropdown:visible")
+    .locator(".linked-select-popup:visible")
     .getByText("Marketing", { exact: true })
     .click();
   await dialog(page).getByLabel("Các vai trò").press("Escape");
@@ -674,7 +674,7 @@ test("S1/S2: administrator creates, edits roles, locks with handover, and audits
     .click();
   await dialog(page).getByLabel("Người tiếp nhận toàn bộ dữ liệu").click();
   await page
-    .locator(".ant-select-dropdown:visible")
+    .locator(".linked-select-popup:visible")
     .getByText("Sales Rep · Team A", { exact: true })
     .click();
   await dialog(page).getByRole("button", { name: "Lưu thay đổi" }).click();
@@ -682,7 +682,7 @@ test("S1/S2: administrator creates, edits roles, locks with handover, and audits
   await page.goto("/audit-logs");
   await page.getByLabel("Hành động", { exact: true }).click();
   await page
-    .locator(".ant-select-dropdown:visible")
+    .locator(".linked-select-popup:visible")
     .getByText("Thay đổi vai trò", { exact: true })
     .click();
   await expect(
@@ -714,7 +714,7 @@ test("S5: manager override requires reason, real forecast and bulk ownership tra
   await page.goto("/pipeline?deal=" + id);
   await page.getByLabel("Giai đoạn tiếp theo").click();
   await page
-    .locator(".ant-select-dropdown:visible")
+    .locator(".linked-select-popup:visible")
     .getByText("Proposal", { exact: true })
     .click();
   await page
@@ -755,7 +755,7 @@ test("S5: manager override requires reason, real forecast and bulk ownership tra
   await page.getByRole("button", { name: "Phân bổ 1 cơ hội" }).click();
   await dialog(page).getByLabel("Người tiếp nhận", { exact: true }).click();
   await page
-    .locator(".ant-select-dropdown:visible")
+    .locator(".linked-select-popup:visible")
     .getByText("salesB · Team B", { exact: true })
     .click();
   await dialog(page)
@@ -803,7 +803,7 @@ test("S2-08/S3-07: required custom field, saved filter and real Excel export", a
     ).toBeVisible();
     await page.getByLabel("Chọn trường tùy chỉnh để lọc").click();
     await page
-      .locator(".ant-select-dropdown:visible")
+      .locator(".linked-select-popup:visible")
       .getByText("E2E Mã hợp đồng", { exact: true })
       .click();
     await page.getByLabel("Giá trị trường tùy chỉnh").fill("HD-E2E-001");
@@ -816,7 +816,7 @@ test("S2-08/S3-07: required custom field, saved filter and real Excel export", a
     await page.getByRole("button", { name: "Đặt lại", exact: true }).click();
     await page.getByLabel("Bộ lọc đã lưu").click();
     await page
-      .locator(".ant-select-dropdown:visible")
+      .locator(".linked-select-popup:visible")
       .getByText("E2E Theo hợp đồng", { exact: true })
       .click();
     await expect(page.locator(".table-primary")).toHaveCount(1);
@@ -855,12 +855,12 @@ test("S4-05: configure lead score using real source names and see automatic hot 
   await page.getByRole("button", { name: "Thêm quy tắc", exact: true }).click();
   await dialog(page).getByLabel("Tiêu chí", { exact: true }).click();
   await page
-    .locator(".ant-select-dropdown:visible")
+    .locator(".linked-select-popup:visible")
     .getByText("Nguồn lead", { exact: true })
     .click();
   await dialog(page).getByLabel("Giá trị cần khớp", { exact: true }).click();
   await page
-    .locator(".ant-select-dropdown:visible")
+    .locator(".linked-select-popup:visible")
     .getByText("Website", { exact: true })
     .click();
   await dialog(page).getByLabel("Điểm", { exact: true }).fill("50");
@@ -878,7 +878,7 @@ test("S4-05: configure lead score using real source names and see automatic hot 
     .fill("scoring@example.test");
   await dialog(page).getByLabel("Nguồn lead", { exact: true }).click();
   await page
-    .locator(".ant-select-dropdown:visible")
+    .locator(".linked-select-popup:visible")
     .getByText("Website", { exact: true })
     .click();
   await dialog(page).getByRole("button", { name: "Lưu thay đổi" }).click();
@@ -1101,7 +1101,7 @@ test("Shared lookups: newly created source and campaign can be selected by Sales
   ]) {
     await dialog(page).getByLabel(label, { exact: true }).click();
     await page
-      .locator(".ant-select-dropdown:visible")
+      .locator(".linked-select-popup:visible")
       .getByText(name, { exact: true })
       .click();
   }
@@ -1126,12 +1126,12 @@ test("Organization: group tree parent selector and separate customer company hie
   await page.getByRole("button", { name: "Sửa nhóm Team B" }).click();
   await dialog(page).getByLabel("Nhóm cha", { exact: true }).click();
   await page
-    .locator(".ant-select-dropdown:visible")
+    .locator(".linked-select-popup:visible")
     .getByText("Team A", { exact: true })
     .click();
   await dialog(page).getByLabel("Trưởng nhóm", { exact: true }).click();
   await page
-    .locator(".ant-select-dropdown:visible")
+    .locator(".linked-select-popup:visible")
     .getByText("Director", { exact: true })
     .click();
   await dialog(page).getByRole("button", { name: "Lưu thay đổi" }).click();
@@ -1141,7 +1141,7 @@ test("Organization: group tree parent selector and separate customer company hie
     .locator(".ant-form-item")
     .filter({ hasText: "Nhóm cha" });
   await parentField.hover();
-  await parentField.locator(".ant-select-clear").click();
+  await parentField.locator(".linked-select-clear").click();
   await dialog(page).getByRole("button", { name: "Lưu thay đổi" }).click();
   await expect(page.locator(".ant-modal:visible")).toHaveCount(0);
   const groups = await page.request.get("/api/organization/tree", {
@@ -1155,7 +1155,7 @@ test("Organization: group tree parent selector and separate customer company hie
   await row.getByRole("button", { name: "Chọn công ty mẹ" }).click();
   await dialog(page).getByLabel("Công ty mẹ", { exact: true }).click();
   await page
-    .locator(".ant-select-dropdown:visible")
+    .locator(".linked-select-popup:visible")
     .getByText("E2E Khách hàng A", { exact: true })
     .click();
   await dialog(page).getByRole("button", { name: "Lưu thay đổi" }).click();
@@ -1191,7 +1191,7 @@ test("Lead editor: choosing owner updates assignment and survives reload", async
     .click();
   await dialog(page).getByLabel("Người phụ trách", { exact: true }).click();
   await page
-    .locator(".ant-select-dropdown:visible")
+    .locator(".linked-select-popup:visible")
     .getByText("salesB · Team B", { exact: true })
     .click();
   await dialog(page).getByRole("button", { name: "Lưu thay đổi" }).click();
@@ -1215,7 +1215,7 @@ test("Quote: existing linked opportunity is selectable and saves a real draft", 
     .fill("E2E Báo giá liên kết");
   await dialog(page).getByLabel("Cơ hội", { exact: true }).click();
   await page
-    .locator(".ant-select-dropdown:visible")
+    .locator(".linked-select-popup:visible")
     .getByText("E2E Cơ hội A", { exact: true })
     .click();
   await dialog(page).getByRole("button", { name: "Lưu thay đổi" }).click();
@@ -1303,7 +1303,7 @@ test("Category form: meaningful industry fields create a live option without a m
     .click();
   await dialog(page).getByLabel("Ngành nghề", { exact: true }).click();
   await page
-    .locator(".ant-select-dropdown:visible .ant-select-item-option")
+    .locator(".linked-select-popup:visible .linked-select-option")
     .filter({ hasText: "E2E Ngành công nghệ mới" })
     .click();
   await expect(

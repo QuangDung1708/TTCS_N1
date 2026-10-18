@@ -1,5 +1,9 @@
 const h = require("./helpers");
-const { businessJobs, mailJobs } = require("../../src/jobs/worker");
+const {
+  businessJobs,
+  mailJobs,
+  runWorkerCycle,
+} = require("../../src/jobs/worker");
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
 const net = require("net");
@@ -342,6 +346,7 @@ test("User import parses real xlsx, previews then imports only valid rows", asyn
 });
 test("SMTP outbox sends over a real local SMTP socket and clears delivered secret content", async () => {
   const captured = [];
+  let rejectRecipient = false;
   const sockets = new Set();
   const server = net.createServer((socket) => {
     sockets.add(socket);
@@ -364,6 +369,8 @@ test("SMTP outbox sends over a real local SMTP socket and clears delivered secre
             socket.write("250 queued\r\n");
           } else body += line + "\n";
         } else if (/^EHLO|^HELO/.test(line)) socket.write("250 local-test\r\n");
+        else if (/^RCPT/.test(line) && rejectRecipient)
+          socket.write("550 recipient rejected\r\n");
         else if (/^MAIL|^RCPT/.test(line)) socket.write("250 OK\r\n");
         else if (line === "DATA") {
           data = true;
@@ -404,6 +411,11 @@ test("SMTP outbox sends over a real local SMTP socket and clears delivered secre
       group_id: 1,
     });
     expect(created.status).toBe(201);
+    const [[activationMail]] = await h.db.query(
+      "SELECT body FROM mail_outbox WHERE recipient=? ORDER BY id DESC LIMIT 1",
+      ["smtp-created@example.test"],
+    );
+    const temporary = activationMail.body.match(/Mật khẩu tạm: ([^\n]+)/)[1];
     const [[pending]] = await h.db.query(
       "SELECT COUNT(*) n FROM mail_outbox WHERE sent_at IS NULL AND next_attempt_at<=UTC_TIMESTAMP() AND attempts<10",
     );
@@ -429,6 +441,102 @@ test("SMTP outbox sends over a real local SMTP socket and clears delivered secre
       "SELECT COUNT(*) n FROM mail_outbox WHERE sent_at IS NOT NULL AND body='' ",
     );
     expect(sent.n).toBeGreaterThan(0);
+    const { promisify } = require("node:util");
+    const { execFile } = require("node:child_process");
+    const verified = await promisify(execFile)(
+      process.execPath,
+      ["scripts/check-mail.js"],
+      {
+        cwd: require("node:path").resolve(__dirname, "../.."),
+        env: process.env,
+      },
+    );
+    expect(verified.stdout).toContain("SMTP đã kết nối và xác thực thành công");
+    expect(captured).toHaveLength(pending.n);
+    await h
+      .request(h.app)
+      .post("/api/auth/forgot-password")
+      .send({ email: h.getUsers()["Sales Rep"].email });
+    rejectRecipient = true;
+    await mailJobs();
+    const [[failed]] = await h.db.query(
+      "SELECT id,attempts,sent_at,last_error FROM mail_outbox WHERE sent_at IS NULL ORDER BY id DESC LIMIT 1",
+    );
+    expect(failed.sent_at).toBeNull();
+    expect(failed.attempts).toBe(1);
+    expect(failed.last_error).toBe("EENVELOPE");
+    rejectRecipient = false;
+    await h.db.query(
+      "UPDATE mail_outbox SET next_attempt_at=UTC_TIMESTAMP() WHERE id=?",
+      [failed.id],
+    );
+    const errorLog = jest.spyOn(console, "error").mockImplementation(() => {});
+    await h.db.query("RENAME TABLE crm_job_runs TO crm_job_runs_mail_check");
+    try {
+      const result = await runWorkerCycle();
+      expect(result[0].status).toBe("rejected");
+      expect(result[1].status).toBe("fulfilled");
+    } finally {
+      await h.db.query("RENAME TABLE crm_job_runs_mail_check TO crm_job_runs");
+      errorLog.mockRestore();
+    }
+    const [[retried]] = await h.db.query(
+      "SELECT sent_at,body,last_error FROM mail_outbox WHERE id=?",
+      [failed.id],
+    );
+    expect(retried.sent_at).not.toBeNull();
+    expect(retried.body).toBe("");
+    expect(retried.last_error).toBeNull();
+    expect(captured).toHaveLength(pending.n + 1);
+    const decoded = captured.map((body) =>
+      Buffer.from(
+        body
+          .replace(/=\r?\n/g, "")
+          .replace(/=([0-9A-F]{2})/g, (_, hex) =>
+            String.fromCharCode(parseInt(hex, 16)),
+          ),
+        "latin1",
+      ).toString("utf8"),
+    );
+    expect(decoded.some((body) => body.includes(temporary))).toBe(true);
+    const initialLogin = await h
+      .request(h.app)
+      .post("/api/auth/login")
+      .send({ email: "smtp-created@example.test", password: temporary });
+    expect(initialLogin.status).toBe(200);
+    expect(initialLogin.body.user.must_change_password).toBeTruthy();
+    await h
+      .request(h.app)
+      .post("/api/auth/forgot-password")
+      .send({ email: "smtp-created@example.test" });
+    await mailJobs();
+    const delivered = captured[captured.length - 1]
+      .replace(/=\r?\n/g, "")
+      .replace(/=([0-9A-F]{2})/g, (_, hex) =>
+        String.fromCharCode(parseInt(hex, 16)),
+      );
+    const token = delivered.match(/reset-password\?token=([a-f0-9]+)/)[1];
+    const reset = await h
+      .request(h.app)
+      .post("/api/auth/reset-password")
+      .send({ token, new_password: "SmtpReset9!" });
+    expect(reset.status).toBe(200);
+    expect(
+      (
+        await h
+          .request(h.app)
+          .post("/api/auth/login")
+          .send({ email: "smtp-created@example.test", password: "SmtpReset9!" })
+      ).status,
+    ).toBe(200);
+    expect(
+      (
+        await h
+          .request(h.app)
+          .post("/api/auth/reset-password")
+          .send({ token, new_password: "AgainReset9!" })
+      ).status,
+    ).toBe(400);
   } finally {
     for (const key of keys)
       if (previous[key] === undefined) delete process.env[key];
@@ -436,4 +544,38 @@ test("SMTP outbox sends over a real local SMTP socket and clears delivered secre
     for (const socket of sockets) socket.destroy();
     await new Promise((resolve) => server.close(resolve));
   }
+});
+
+test("Mail configuration and admin status reveal missing setup and queue counts without exposing secrets", async () => {
+  const { mailConfiguration } = require("../../src/core/mailConfig");
+  const absent = mailConfiguration({
+    SMTP_USER: "mail@example.test",
+    SMTP_PASS: "private-not-to-return",
+  });
+  expect(absent.configured).toBe(false);
+  expect(absent.missing).toContain("SMTP_HOST");
+  expect(
+    mailConfiguration({ SMTP_HOST: "localhost", SMTP_FROM: "crm@example.test" })
+      .configured,
+  ).toBe(true);
+  expect(
+    mailConfiguration({
+      SMTP_HOST: "smtp.example.test",
+      SMTP_USER: "mail@example.test",
+      SMTP_PORT: "465",
+      SMTP_PASS: "private",
+    }).options.secure,
+  ).toBe(true);
+  const status = await h.api("Admin", "get", "/api/admin/mail/status");
+  expect(status.status).toBe(200);
+  expect(status.body.queue).toHaveProperty("pending");
+  expect(JSON.stringify(status.body)).not.toMatch(
+    /SMTP_PASS|private-not-to-return|recipient|reset-password/,
+  );
+  expect(
+    (await h.api("Director", "get", "/api/admin/mail/status")).status,
+  ).toBe(403);
+  expect(
+    (await h.api("Sales Rep", "get", "/api/admin/mail/status")).status,
+  ).toBe(403);
 });

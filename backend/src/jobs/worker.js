@@ -1,6 +1,9 @@
 const { db } = require("../core/store");
 const { assignPending } = require("../core/leads");
-const nodemailer = require("nodemailer");
+const {
+  mailConfiguration,
+  createMailTransport,
+} = require("../core/mailConfig");
 const { mailHTML } = require("../core/mailContent");
 async function businessJobs() {
   const c = await db.getConnection();
@@ -59,17 +62,9 @@ async function businessJobs() {
 }
 async function mailJobs() {
   // No implicit use of repository-embedded Gmail credentials. Configure an SMTP endpoint explicitly.
-  if (!process.env.SMTP_HOST) return { configured: false };
-  const transport = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT || 587),
-    secure: process.env.SMTP_SECURE === "true",
-    ...(process.env.SMTP_USER
-      ? { auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } }
-      : {}),
-    connectionTimeout: 10000,
-    socketTimeout: 15000,
-  });
+  const config = mailConfiguration();
+  if (!config.configured) return { configured: false, missing: config.missing };
+  const transport = createMailTransport();
   const c = await db.getConnection();
   let locked = false;
   try {
@@ -86,7 +81,7 @@ async function mailJobs() {
     );
     for (const row of rows) {
       try {
-        await transport.sendMail({
+        const info = await transport.sendMail({
           from: process.env.SMTP_FROM || process.env.SMTP_USER,
           to: row.recipient,
           subject: row.subject,
@@ -94,6 +89,10 @@ async function mailJobs() {
           html: mailHTML(row.subject, row.body),
           messageId: `<crm-${row.id}@${process.env.MAIL_MESSAGE_DOMAIN || "crm.local"}>`,
         });
+        if (!info.accepted?.length)
+          throw Object.assign(new Error("SMTP did not accept the recipient"), {
+            code: "SMTP_RECIPIENT_REJECTED",
+          });
         await c.query(
           "UPDATE mail_outbox SET sent_at=UTC_TIMESTAMP(),body='',last_error=NULL WHERE id=?",
           [row.id],
@@ -122,13 +121,24 @@ async function mailJobs() {
     }
   }
 }
+async function runWorkerCycle() {
+  // Mail delivery must still run when an unrelated lead/report job fails.
+  const results = await Promise.allSettled([businessJobs(), mailJobs()]);
+  results.forEach((result, i) => {
+    if (result.status === "rejected")
+      console.error(
+        i ? "mail_worker_failed" : "business_worker_failed",
+        result.reason.code || "WORKER_FAILURE",
+      );
+  });
+  return results;
+}
 function startWorker() {
   let stopped = false,
     running = null;
   const run = () => {
     if (stopped || running) return;
-    running = businessJobs()
-      .then(mailJobs)
+    running = runWorkerCycle()
       .catch((e) => console.error("worker_failed", e.code || e.message))
       .finally(() => {
         running = null;
@@ -153,4 +163,4 @@ if (require.main === module) {
     });
   setInterval(() => {}, 60000);
 }
-module.exports = { businessJobs, mailJobs, startWorker };
+module.exports = { businessJobs, mailJobs, startWorker, runWorkerCycle };

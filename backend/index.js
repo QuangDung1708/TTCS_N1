@@ -128,6 +128,12 @@ if (require.main === module) {
           `Reference catalogs initialized: ${result.inserted} entries.`,
         );
     }
+    const mailConfig = require("./src/core/mailConfig").mailConfiguration();
+    if (!mailConfig.configured && process.env.NODE_ENV !== "test")
+      console.warn(
+        "SMTP chưa sẵn sàng; thư sẽ chờ trong hàng đợi. Thiếu/sai:",
+        mailConfig.missing.join(", "),
+      );
     const port = Number(process.env.PORT || 5001);
     const stopWorker =
       process.env.RUN_WORKER === "false"

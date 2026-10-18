@@ -196,3 +196,11 @@ S3-01/S4-02/S5-01: kiểm thử pointer mở từng bộ chọn, gõ tên không
 S2-01/S3-06 và báo giá: worksheet đơn giản thay structured table/comment, kiểm tra XML và đọc bằng openpyxl độc lập; byte tải bằng trình duyệt khớp payload API. Mẫu user sáu cột theo ảnh, hỗ trợ mật khẩu tạm tùy chọn và tên nhóm có sẵn, giữ mẫu cũ. Không xuất hash hoặc mật khẩu hiện tại.
 
 Danh mục tham chiếu được lưu DB một lần, giữ cấu hình sẵn có; khởi động lại không hoàn nguyên thao tác xóa. Form quy mô nêu rõ khoảng nhân sự và dẫn tới form tạo doanh nghiệp có tên. Loading/success được kiểm tra trên request lưu thật; chuyển thẻ có animation và reduced-motion. Các ca nằm trong `e2e/dropdowns-excel.spec.js` và `backend/test/integration/usability.test.js`.
+
+## Rà toàn bộ dropdown và SMTP theo phản hồi tiếp theo
+
+78 điểm dùng bộ chọn trong source hiện tại được rà và dùng chung `LinkedSelect`: trigger là nút chỉ chọn, tìm trong popup, không nhập giá trị tự do. Bộ chọn cha thụt cấp, lọc nhánh bị cấm; bảng cây không thay đổi. Các bộ chọn liên hệ phụ thuộc khách hàng. Danh sách rỗng hiển thị trạng thái, không tạo dữ liệu dự phòng trong UI. Chi tiết nguồn dữ liệu theo màn hình tại [DROPDOWNS-AND-MAIL.md](DROPDOWNS-AND-MAIL.md).
+
+S3-01/S4-02/S5-01: CLI nạp danh mục và bản ghi liên kết thật; tùy chọn email để tạo dữ liệu thuộc tài khoản đang test, không mở rộng quyền. Có ca nâng cấp checkpoint cũ, chạy lại giữ số lượng/hash mật khẩu, đối chiếu API dưới vai trò Sales.
+
+S1-03/S1-08: kiểm tra SMTP config/verify, Admin thấy queue/mã lỗi; không trả recipient/body/secret qua status API. Thư tạo tài khoản chứa mật khẩu tạm đăng nhập được và yêu cầu đổi lần đầu. Token lấy từ thư SMTP reset dùng được đúng một lần. Worker gửi mail dù business job lỗi; từ chối recipient giữ pending và retry thành công. Kiểm thử máy chủ SMTP cục bộ thật, chưa xác minh hộp thư người dùng.

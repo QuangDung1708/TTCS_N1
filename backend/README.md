@@ -72,3 +72,9 @@ Xem [API](docs/API.md) và [đối chiếu AC](docs/AC-MATRIX.md). Giao diện v
 Backend tự bổ sung một lần ngành nghề, khoảng nhân sự, nguồn lead, loại hoạt động và khu vực vào DB, giữ mục có sẵn. Checkpoint `reference_catalogs_v1` trong `crm_settings` ngăn ghi đè hoặc phục hồi mục đã xóa khi chạy lại. Không tạo dữ liệu nghiệp vụ. Chạy riêng bằng `npm run data:catalogs`; đặt `INIT_REFERENCE_CATALOGS=false` nếu muốn tự quản lý toàn bộ khởi tạo. Database cần đã chạy migration như hướng dẫn cài mới; bản cập nhật trên DB hiện đang chạy không cần schema mới.
 
 XLSX dùng worksheet đơn giản, bộ lọc/cố định tiêu đề và kiểu dữ liệu rõ ràng. Mẫu user sáu cột: Tên, Email, Mật khẩu tạm thời, Vai trò (RBAC), Nhóm kinh doanh, Số điện thoại. Nhóm phải tồn tại và xác định duy nhất; mật khẩu tạm hợp lệ được dùng nếu nhập, nếu trống tự sinh ngẫu nhiên. Chỉ lưu hash, gửi email qua SMTP và buộc đổi mật khẩu lần đầu. Tiếp tục nhận `full_name`, `role_code`, `group_id` của mẫu cũ.
+
+## Kiểm tra gửi mail
+
+Chạy `npm run mail:check` sau khi cấu hình `SMTP_HOST`, cổng/TLS, người gửi và thông tin xác thực trong `.env`. Chỉ kiểm tra SMTP, không gửi thư. `SMTP_USER`/`SMTP_PASS` mà thiếu host sẽ không gửi được. Không dùng lại bí mật có sẵn trong repository. Admin xem `/api/admin/mail/status` hoặc thẻ trạng thái trên Quản trị người dùng: cấu hình thiếu, queue pending/sent/failed, mã lỗi; không trả nội dung thư, địa chỉ người nhận hoặc thông tin xác thực. Các role khác bị từ chối endpoint này.
+
+Worker mail chạy độc lập tác vụ lead/báo cáo; chỉ đánh dấu sent khi SMTP chấp nhận người nhận. SMTP từ chối giữ pending/attempts/last_error, thử lại sau 5 phút tối đa 10 lượt. Điều này không xác nhận thư tới Inbox; cần kiểm tra hộp thư thật khi triển khai. Liên kết reset dùng `FRONTEND_URL`, 30 phút, một lần. Hướng dẫn Gmail và cập nhật có trong `UPDATE-UI-AND-DATA.md` ở gốc.

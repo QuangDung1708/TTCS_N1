@@ -31,7 +31,7 @@ Nếu đã tạo lại database cùng tên hoặc tự xóa một phần bộ d�
 
 - Hai nhóm kinh doanh độc lập; hai Trưởng nhóm, hai Sales được gán đúng nhóm.
 - Bốn khách hàng: `KT · Doanh nghiệp Minh An`, `KT · Doanh nghiệp Bắc Sơn` thuộc Sales Bắc; `KT · Doanh nghiệp Nam Việt` thuộc Sales Nam; `KT · Khách hàng chăm sóc` thuộc CS. Mỗi khách hàng có một người liên hệ riêng.
-- Hai sản phẩm: `KT-CRM` triển khai một lần, giá 5.000.000 ₫; `KT-SUB` thuê bao, giá 500.000 ₫/tháng. Có giá sàn và giá vốn, giá vốn chỉ Giám đốc được xem.
+- Hai sản phẩm: `KT-CRM` triển khai một lần, giá 5.000.000 ₫; `KT-SUB` thuê bao, giá 500.000 ₫/tháng. Có giá sàn và giá vốn, giá vốn Admin và Giám đốc được xem.
 - Một nguồn lead, một ngành nghề, hai giai đoạn pipeline và hai lý do thắng/thua riêng cho kiểm thử; không thay cấu hình có sẵn.
 - Một chiến dịch Website ngân sách 5.000.000 ₫, từ ngày chạy đến 30 ngày sau.
 - Ba lead có nguồn và chiến dịch: lead 1 giao Sales Bắc, lead 2 giao Sales Nam, lead 3 chưa giao. Worker có thể đưa lead chưa giao vào hàng chờ nếu chưa có quy tắc phân bổ; đây là trạng thái thật.
@@ -41,9 +41,24 @@ Nếu đã tạo lại database cùng tên hoặc tự xóa một phần bộ d�
 
 1. Admin mở chuông: có thể thấy danh sách rỗng. Mở avatar: Hồ sơ cá nhân, Đổi mật khẩu, Đăng xuất đều hoạt động.
 2. Sales Bắc thấy khách/lead/cơ hội của mình; Sales Nam không thấy dữ liệu của Sales Bắc. Trưởng nhóm chỉ thấy nhóm mình. Kế toán không có Lead hoặc nút sửa khách hàng.
-3. Giám đốc thấy giá vốn; Admin và các vai trò khác không thấy giá vốn.
+3. Admin và Giám đốc thấy giá vốn; các vai trò khác không thấy.
 4. Marketing tạo chiến dịch: nhập `5000000`, ô hiển thị `5.000.000`; chọn hai ngày trên lịch; lưu, F5 và sửa lại. Ngày kết thúc trước ngày bắt đầu bị chặn.
 5. Chọn lead đã giao để nhận chăm sóc, ghi hoạt động và chuyển đổi; hồ sơ khách hàng giữ lịch sử.
 6. Chỉnh cơ hội, thêm sản phẩm, kiểm tra thành tiền; chốt thắng/thua với lý do. Nhập số lượng và kỳ thuê bao theo nhu cầu thử, dữ liệu được lưu thật.
 7. Admin/Giám đốc mở Nhật ký thay đổi: người thực hiện, hành động, nhãn trường và giá trị trước/sau là văn bản, không hiển thị JSON. `Hệ thống` là người thực hiện khi bootstrap.
 8. Sửa hồ sơ/chữ ký rồi tải lại. Đổi mật khẩu: đăng xuất và đăng nhập bằng mật khẩu mới; mật khẩu cũ phải bị từ chối.
+
+## Bổ sung dữ liệu dropdown và tài khoản đang test
+
+`data:examples` nay gọi khởi tạo danh mục chuẩn trước, kể cả với checkpoint đã hoàn tất ở bản cũ. Bổ sung danh mục quy mô, loại hoạt động, khu vực, đối thủ, khu vực cho nhóm và hai báo giá liên kết. Giữ mật khẩu/tài khoản hiện có; phần bổ sung có checkpoint riêng. Có giá trị mặc định hợp lệ cho trường tùy chỉnh bắt buộc khi tạo các bản ghi mới (số/ngày/văn bản/lựa chọn đầu tiên đã khai báo), không tự tạo lựa chọn cho danh mục rỗng.
+
+Nếu dùng tài khoản không phải Admin và không thấy dữ liệu của nhóm khác, chạy tại backend trên PowerShell:
+
+```powershell
+$env:CRM_EXAMPLE_OWNER_EMAIL='email-tai-khoan-ban-dang-test'
+npm run data:examples
+```
+
+Email phải là tài khoản đang hoạt động trong DB này. Tạo thêm riêng một khách hàng, liên hệ, cơ hội và báo giá do tài khoản đó phụ trách; với Sales tạo/phân công thêm một lead. Không chuyển quyền các bản ghi cũ, không đổi role/nhóm/mật khẩu của tài khoản. API vẫn quyết định mục nào được xem/sửa theo User Roles. Chạy lại cùng email không nhân đôi bộ riêng. Tài khoản CS/Kế toán giữ các mục chỉ xem/không được truy cập theo ma trận.
+
+Có thể chạy tệp `CAP-NHAT-VA-NAP-DU-LIEU.cmd` ở gốc để cài dependency hai phía, hỏi email nhận dữ liệu, nạp rồi kiểm tra kết nối SMTP. Script không reset DB; không gửi email kiểm thử.

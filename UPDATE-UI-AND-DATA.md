@@ -1,4 +1,38 @@
-# Cập nhật theo phản hồi kiểm thử — 18/10/2026
+# Cập nhật dropdown, dữ liệu và mail — 18/10/2026
+
+## Cách cập nhật bản mới và nạp dữ liệu
+
+1. Dừng backend/frontend. Chép đè `backend`, `frontend` và `CAP-NHAT-VA-NAP-DU-LIEU.cmd` từ ZIP vào đúng folder dự án hiện tại. Giữ `backend/.env`, uploads và DB.
+2. Chạy `CAP-NHAT-VA-NAP-DU-LIEU.cmd`. Tệp này chạy `npm ci` **cả backend lẫn frontend**, rồi nạp dữ liệu qua API vào DB cấu hình trong `.env`. Không tạo lại DB, không xóa dữ liệu. Cần DB đã migration và có Admin hiện đang dùng.
+3. Khi được hỏi email, nhập email tài khoản đang test nếu không dùng Admin. Lệnh thêm riêng một bộ khách hàng/liên hệ/cơ hội/báo giá cho tài khoản đó; nếu là Sales còn có lead được phân công. Không đổi vai trò, nhóm hoặc mật khẩu tài khoản hiện có. Admin có thể bỏ trống để dùng bộ chung.
+4. Đọc số lượng bản ghi và kết quả SMTP ở cuối cửa sổ. Khởi động lại backend/frontend, nhấn Ctrl+F5. Bộ chọn nay là **nút mở danh sách**; gõ tìm trong ô tìm kiếm bên trong danh sách. Không biến giá trị đã chọn thành ô nhập.
+
+Nếu chạy terminal thay tệp CMD: `npm ci` trong mỗi thư mục backend/frontend, rồi tại backend chạy `npm run data:examples`. Trên PowerShell, có thể đặt `$env:CRM_EXAMPLE_OWNER_EMAIL='email-tai-khoan-dang-test'` trước lệnh nạp; bỏ biến nếu dùng Admin. Mật khẩu 8 tài khoản KT mới nằm trong tệp riêng tư mà lệnh in đường dẫn, không nằm trong ZIP. Dữ liệu là bản ghi kiểm thử lưu thật trong DB, không phải danh tính/khách hàng đã xác minh.
+
+## Gửi email thật
+
+`npm run mail:check` tại backend kiểm tra cấu hình, kết nối và xác thực SMTP thật, **không gửi thư**. Thiếu `SMTP_HOST` thì chỉ có `SMTP_USER`/`SMTP_PASS` chưa đủ. Không dùng thông tin gửi thư của dự án khác hoặc thông tin có sẵn trong source.
+
+Ví dụ nếu bạn dùng Gmail, chỉnh các mục tương ứng trong `.env` của bạn:
+
+```dotenv
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=465
+SMTP_SECURE=true
+SMTP_USER=your_email@gmail.com
+SMTP_PASS=YOUR_GMAIL_APP_PASSWORD
+SMTP_FROM="Enterprise CRM <your_email@gmail.com>"
+FRONTEND_URL=http://localhost:5173
+RUN_WORKER=true
+```
+
+Thay email/App Password bằng cấu hình riêng tại máy bạn; không gửi bí mật lên chat/Git. Nếu dùng nhà cung cấp khác, dùng host/cổng/TLS của nhà cung cấp đó. `FRONTEND_URL` phải trùng địa chỉ frontend đang mở. Khởi động lại backend sau khi chỉnh.
+
+Admin vào Quản trị người dùng sẽ thấy SMTP thiếu mục nào, số thư đang chờ, số được SMTP nhận và mã lỗi gần nhất; có nút làm mới. SMTP nhận thư chưa đồng nghĩa thư đã tới Inbox. Khi test tạo user/quên mật khẩu, dùng email do bạn kiểm soát, kiểm tra cả Spam. Worker kiểm tra khoảng 30 giây, lỗi sẽ thử lại; `RUN_WORKER=false` thì phải chạy `npm run worker` riêng. Lỗi tác vụ lead/báo cáo không chặn mail nữa.
+
+Tạo user gửi thông tin tài khoản/mật khẩu tạm qua SMTP; quên mật khẩu gửi liên kết dùng một lần trong 30 phút. Phản hồi quên mật khẩu luôn chung để không lộ email có tồn tại hay không. Đã kiểm thử hai luồng qua socket SMTP cục bộ thật, SMTP từ chối/tiếp nhận và retry; chưa truy cập hộp thư hoặc cấu hình SMTP trên máy bạn.
+
+## Hướng dẫn cập nhật thủ công trước đó
 
 Dừng hai terminal backend/frontend bằng Ctrl+C. Giải nén ZIP bản vá, chép hai thư mục `backend` và `frontend` vào folder `TTCS_N1` đang dùng, đồng ý thay tệp trùng. Giữ file `backend/.env`, uploads và database đang đăng nhập được. ZIP không chứa thông tin riêng tư đó.
 
@@ -12,6 +46,7 @@ npm run dev
 Trong terminal frontend:
 
 ```powershell
+npm ci
 npm run dev
 ```
 
@@ -52,4 +87,4 @@ Quên mật khẩu tại màn hình đăng nhập: nhập email của tài kho�
 
 ## Dữ liệu kiểm thử đã có
 
-Không cần chạy lại lệnh tạo dữ liệu để sửa dropdown. Nếu muốn thêm bộ ví dụ đã lưu MySQL trên DB của bạn, trong backend chạy `npm run data:examples`. Tài khoản, dữ liệu liên kết và mật khẩu riêng nằm ở đường dẫn lệnh in ra; xem `backend/docs/EXAMPLE-DATA.md`. Dữ liệu KT là ví dụ kiểm thử, không phải khách hàng hay danh tính đã xác minh.
+Với bản mới, chạy `npm run data:examples` để bổ sung dữ liệu chọn và dữ liệu liên kết vào DB đang dùng; tệp CMD phía trên đã thực hiện bước này. Tài khoản, dữ liệu liên kết và mật khẩu riêng nằm ở đường dẫn lệnh in ra; xem `backend/docs/EXAMPLE-DATA.md`. Dữ liệu KT là ví dụ kiểm thử, không phải khách hàng hay danh tính đã xác minh.
