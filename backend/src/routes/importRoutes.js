@@ -2,10 +2,11 @@ const { Router } = require("express");
 const XLSX = require("xlsx");
 const { workbook, normalize } = require("../core/workbook");
 const multer = require("multer");
-const { db, transaction } = require("../core/store");
-const { route, fail, id } = require("../core/http");
+const { db } = require("../core/store");
+const { route, fail } = require("../core/http");
 const { authenticate } = require("../core/auth");
 const { authorize, requireRoles, record } = require("../core/access");
+const { lockImport, unlockImport } = require("../core/importDuplicates");
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 },
@@ -114,19 +115,21 @@ async function apply(c, entity, user, row) {
       ]);
       existing = r;
     }
-    if (existing) {
-      if (row.duplicate_action !== "update")
-        fail(409, "Trùng mã số thuế. Chọn bỏ qua hoặc cập nhật.");
+    const update = existing && row.duplicate_action === "update";
+    if (update)
       await record(c, user, "CUSTOMER", "customers", existing.id, true);
-    }
     return require("../core/customers").saveCustomer(
       c,
       user,
       row,
-      existing?.id,
+      update ? existing.id : undefined,
+      { rejectExactDuplicate: true, taxConflict: !!existing && !update },
     );
   }
-  if (entity === "lead") return require("../core/leads").saveLead(c, user, row);
+  if (entity === "lead")
+    return require("../core/leads").saveLead(c, user, row, undefined, {
+      rejectExactDuplicate: true,
+    });
 }
 function routerFor(entity) {
   const r = Router();
@@ -209,7 +212,12 @@ function routerFor(entity) {
       const data = rows(req);
       const c = await db.getConnection();
       const result = [];
+      let locked = false;
       try {
+        if (entity !== "user") {
+          await lockImport(c, entity);
+          locked = true;
+        }
         await c.beginTransaction();
         for (let i = 0; i < data.length; i++) {
           await c.query("SAVEPOINT import_row");
@@ -231,6 +239,7 @@ function routerFor(entity) {
               duplicate:
                 e.code === "ER_DUP_ENTRY" ||
                 (e.status === 409 && /^Trùng/.test(e.message)),
+              duplicate_blocked: !!e.details?.duplicate_blocked,
               error:
                 e.code === "ER_DUP_ENTRY"
                   ? "Dữ liệu trùng."
@@ -242,8 +251,15 @@ function routerFor(entity) {
           }
         }
       } finally {
-        await c.rollback();
-        c.release();
+        try {
+          await c.rollback();
+        } finally {
+          try {
+            if (locked) await unlockImport(c, entity);
+          } finally {
+            c.release();
+          }
+        }
       }
       res.json({
         data: result,
@@ -255,23 +271,39 @@ function routerFor(entity) {
   const execute = route(async (req, res) => {
     const data = rows(req);
     const results = [];
-    for (let i = 0; i < data.length; i++) {
+    const c = await db.getConnection();
+    let locked = false;
+    try {
+      if (entity !== "user") {
+        await lockImport(c, entity);
+        locked = true;
+      }
+      for (let i = 0; i < data.length; i++) {
+        try {
+          await c.beginTransaction();
+          const rid = await apply(c, entity, req.user, data[i]);
+          await c.commit();
+          results.push({ row: i + 2, success: true, id: rid });
+        } catch (e) {
+          await c.rollback();
+          results.push({
+            row: i + 2,
+            success: false,
+            duplicate_blocked: !!e.details?.duplicate_blocked,
+            message:
+              e.code === "ER_DUP_ENTRY"
+                ? "Dữ liệu trùng."
+                : e.status
+                  ? e.message
+                  : "Không thể nhập dòng này.",
+          });
+        }
+      }
+    } finally {
       try {
-        const rid = await transaction((c) =>
-          apply(c, entity, req.user, data[i]),
-        );
-        results.push({ row: i + 2, success: true, id: rid });
-      } catch (e) {
-        results.push({
-          row: i + 2,
-          success: false,
-          message:
-            e.code === "ER_DUP_ENTRY"
-              ? "Dữ liệu trùng."
-              : e.status
-                ? e.message
-                : "Không thể nhập dòng này.",
-        });
+        if (locked) await unlockImport(c, entity);
+      } finally {
+        c.release();
       }
     }
     res.json({

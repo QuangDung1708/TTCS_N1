@@ -61,20 +61,72 @@ router.get(
 router.get(
   "/export",
   route(async (req, res) => {
-    const XLSX = require("xlsx");
-    const data = (await list(req.user, req.query)).data.map((d) => {
-      const row = { ...d, ...json(d.custom_fields) };
-      delete row.custom_fields;
-      for (const k of Object.keys(row))
-        if (typeof row[k] === "string" && /^[=+@\-\t\r]/.test(row[k]))
-          row[k] = "'" + row[k];
-      return row;
+    const { workbook } = require("../core/workbook");
+    const visible = (await list(req.user, req.query)).data;
+    const details = new Map();
+    if (visible.length) {
+      const [rows] = await db.query(
+        `SELECT d.id,cc.full_name contact_name,g.name group_name,
+          src.name source_name,cam.name campaign_name,ps.name stage_name,
+          wr.name win_reason_name,lr.name loss_reason_name,co.name competitor_name
+         FROM deals d
+         LEFT JOIN customer_contacts cc ON cc.id=d.contact_id
+         LEFT JOIN \`groups\` g ON g.id=d.group_id
+         LEFT JOIN sales_categories src ON src.id=d.source_id
+         LEFT JOIN campaigns cam ON cam.id=d.campaign_id
+         LEFT JOIN pipeline_stages ps ON ps.id=d.stage_id
+         LEFT JOIN deal_reasons wr ON wr.id=d.win_reason_id
+         LEFT JOIN deal_reasons lr ON lr.id=d.loss_reason_id
+         LEFT JOIN competitors co ON co.id=d.competitor_id
+         WHERE d.id IN (?)`,
+        [visible.map((row) => row.id)],
+      );
+      for (const row of rows) details.set(row.id, row);
+    }
+    const keys = [
+      "opportunity_title",
+      "company_name",
+      "contact_name",
+      "owner_name",
+      "group_name",
+      "source_name",
+      "campaign_name",
+      "stage_name",
+      "status",
+      "expected_amount",
+      "probability",
+      "probability_note",
+      "expected_close_date",
+      "actual_amount",
+      "signed_date",
+      "win_reason_name",
+      "loss_reason_name",
+      "competitor_name",
+      "loss_note",
+      "created_at",
+    ];
+    const data = visible.map((row) => {
+      const custom = json(row.custom_fields, {});
+      const out = {
+        ...row,
+        ...details.get(row.id),
+        opportunity_title: row.title,
+        expected_amount: row.amount,
+        status:
+          { OPEN: "Đang mở", WON: "Chốt thành công", LOST: "Chưa thành công" }[
+            row.status
+          ] || row.status,
+      };
+      for (const [key, value] of Object.entries(custom)) {
+        const column = Object.hasOwn(out, key) ? "Tùy chỉnh: " + key : key;
+        if (!keys.includes(column)) keys.push(column);
+        out[column] = value;
+      }
+      return out;
     });
-    const book = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(book, XLSX.utils.json_to_sheet(data), "Deals");
     res
-      .attachment("deals.xlsx")
-      .send(XLSX.write(book, { type: "buffer", bookType: "xlsx" }));
+      .attachment("co-hoi.xlsx")
+      .send(await workbook("deal", keys, data, false));
   }),
 );
 router.get(

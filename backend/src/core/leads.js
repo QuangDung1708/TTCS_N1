@@ -24,7 +24,7 @@ async function score(c, b) {
           : "COLD",
   };
 }
-async function saveLead(c, user, b, leadId) {
+async function saveLead(c, user, b, leadId, importOptions = {}) {
   const old = leadId
     ? await record(c, user, "LEAD", "leads", leadId, true, "owner_id", true)
     : null;
@@ -73,6 +73,8 @@ async function saveLead(c, user, b, leadId) {
       }
     }
   }
+  if (importOptions.rejectExactDuplicate)
+    await require("./importDuplicates").rejectExactLead(c, data);
   Object.assign(data, await score(c, data));
   let rid = leadId;
   if (rid) await update(c, "leads", rid, data);

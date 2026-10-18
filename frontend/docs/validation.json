@@ -1,5 +1,5 @@
 {
-  "verified_at_utc": "2026-10-18T10:29:31.110029+00:00",
+  "verified_at_utc": "2026-10-18T13:18:24.759818+00:00",
   "runtime": {
     "node": "24.19.0",
     "mysql": "8.4.11",
@@ -14,12 +14,17 @@
     "lint": "passed",
     "build": "passed",
     "clean_npm_ci": "passed",
-    "full_suite_is_from_previous_release": true
+    "full_suite_is_from_previous_release": false,
+    "full_suite_before_final_org_ellipsis": true,
+    "final_affected_browser_tests": {
+      "passed": 4,
+      "total": 4
+    }
   },
   "backend": {
-    "tests_passed": 112,
-    "tests_total": 112,
-    "suites_passed": 13,
+    "tests_passed": 119,
+    "tests_total": 119,
+    "suites_passed": 14,
     "coverage_percent": {
       "lines": 90.64,
       "statements": 87.43,
@@ -397,5 +402,39 @@
     "frontend_lint": "passed",
     "backend_lint": "passed",
     "frontend_build": "passed"
+  },
+  "excel_import_org_fix": {
+    "backend_mysql": {
+      "passed": 119,
+      "total": 119,
+      "suites": 14
+    },
+    "backend_mariadb": {
+      "passed": 119,
+      "total": 119,
+      "suites": 14
+    },
+    "browser_full_before_final_ui_refinement": {
+      "passed": 48,
+      "total": 48
+    },
+    "browser_final_affected": {
+      "passed": 4,
+      "total": 4
+    },
+    "duplicate_existing_and_same_file_blocked": true,
+    "execute_and_repeat_enforced": true,
+    "concurrent_import_single_insert": true,
+    "preview_rolls_back": true,
+    "changed_tax_update_preserved": true,
+    "deal_vietnamese_workbook_with_scope": true,
+    "download_bytes_and_xml_openpyxl_verified": true,
+    "lead_score_auto_rule_and_input_recalculation": true,
+    "nested_tree_control_label_alignment": true,
+    "schema_change_required": false,
+    "smtp_reconfiguration_required": false,
+    "reports_jira_issues": 199,
+    "reports_member_day_drafts": 120,
+    "reports_do_not_claim_daily_history": true
   }
 }

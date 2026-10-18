@@ -200,6 +200,7 @@ test("Downloaded customer, lead and quote workbooks preserve exact HTTP bytes an
     ["/customers", "/api/customers/export", "Tên doanh nghiệp"],
     ["/leads", "/api/leads/export", "Họ và tên"],
     ["/quotes", "/api/quotes/export", "Tên báo giá"],
+    ["/pipeline", "/api/deals/export", "Tên cơ hội"],
   ]) {
     await page.goto(route);
     const response = page.waitForResponse(

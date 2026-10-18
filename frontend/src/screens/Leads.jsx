@@ -19,6 +19,7 @@ import {
   Table,
   Tag,
   Timeline,
+  Tooltip,
   Typography,
 } from "antd";
 import {
@@ -188,7 +189,20 @@ export default function Leads() {
       title: "Điểm / Ưu tiên",
       render: (_, row) => (
         <Space>
-          <b>{Number(row.score)}</b>
+          <Tooltip title="Điểm tự động theo quy tắc chấm điểm (AC S4-05). Admin/Giám đốc có thể chỉnh tiêu chí và ngưỡng.">
+            {admins ? (
+              <Button
+                type="link"
+                size="small"
+                aria-label={`Cấu hình điểm cho ${row.full_name}`}
+                onClick={() => setRule("scoring")}
+              >
+                <b>{Number(row.score)}</b>
+              </Button>
+            ) : (
+              <b>{Number(row.score)}</b>
+            )}
+          </Tooltip>
           <StatusTag value={row.temperature} />
         </Space>
       ),

@@ -58,8 +58,16 @@ export default function ExcelImport({ entity, open, onClose, onImported }) {
           <Tag color="green">Hợp lệ</Tag>
         ) : (
           <>
-            <Tag color={r.duplicate ? "orange" : "red"}>
-              {r.duplicate ? "Trùng dữ liệu" : "Cần kiểm tra"}
+            <Tag
+              color={
+                r.duplicate_blocked ? "red" : r.duplicate ? "orange" : "red"
+              }
+            >
+              {r.duplicate_blocked
+                ? "Không hợp lệ"
+                : r.duplicate
+                  ? "Trùng dữ liệu"
+                  : "Cần kiểm tra"}
             </Tag>
             <Typography.Text type="danger">{r.error}</Typography.Text>
           </>
@@ -68,7 +76,7 @@ export default function ExcelImport({ entity, open, onClose, onImported }) {
     {
       title: "Xử lý trùng",
       render: (_, r) =>
-        r.duplicate && entity === "customers" ? (
+        r.duplicate && !r.duplicate_blocked && entity === "customers" ? (
           <Select
             aria-label={`Xử lý dòng ${r.row}`}
             value={changes[r.row] || r.data?.duplicate_action || "skip"}
@@ -79,6 +87,8 @@ export default function ExcelImport({ entity, open, onClose, onImported }) {
             ]}
             style={{ width: 120 }}
           />
+        ) : r.duplicate_blocked ? (
+          "Không được nhập"
         ) : (
           "—"
         ),
@@ -218,6 +228,7 @@ export default function ExcelImport({ entity, open, onClose, onImported }) {
                 <Button
                   type="primary"
                   icon={<CheckCircleOutlined aria-hidden="true" />}
+                  disabled={preview.valid === 0}
                   loading={action.busy}
                   onClick={() =>
                     action.run(

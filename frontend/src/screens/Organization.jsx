@@ -56,11 +56,14 @@ export default function Organization() {
     setEditing(row);
     setOpen(true);
   };
-  const clean = (rows) =>
+  const clean = (rows, depth = 0) =>
     rows.map((row) => {
-      const children = row.children?.length ? clean(row.children) : undefined;
+      const children = row.children?.length
+        ? clean(row.children, depth + 1)
+        : undefined;
       return {
         ...row,
+        tree_depth: depth,
         children,
         total_members:
           Number(row.member_count) +
@@ -111,7 +114,9 @@ export default function Organization() {
           rowKey="id"
           dataSource={treeRows}
           loading={r.loading}
-          scroll={{ x: 1000 }}
+          className="organization-tree"
+          tableLayout="fixed"
+          scroll={{ x: 1450 }}
           pagination={false}
           expandable={{
             expandedRowKeys: groups
@@ -147,22 +152,30 @@ export default function Organization() {
             {
               title: "Nhóm / Phòng ban (Cây phân cấp)",
               dataIndex: "name",
-              render: (v) => (
-                <Space>
+              width: 440,
+              render: (v, row) => (
+                <span
+                  className="organization-node"
+                  title={v}
+                  style={{
+                    maxWidth: `calc(100% - ${row.tree_depth * 22 + 32}px)`,
+                  }}
+                >
                   <FolderOutlined
                     aria-hidden="true"
                     style={{ color: "#1677ff" }}
                   />
                   <b>{v}</b>
-                </Space>
+                </span>
               ),
             },
             {
               title: "Trưởng nhóm (Leader)",
               dataIndex: "leader_name",
+              width: 290,
               render: (v, row) =>
                 v ? (
-                  <Space>
+                  <div className="organization-leader">
                     <Avatar
                       src={assetURL(row.leader_avatar)}
                       style={{ backgroundColor: "#fa8c16" }}
@@ -173,7 +186,7 @@ export default function Organization() {
                       <strong>{v}</strong>
                       <div className="compact-meta">{row.leader_email}</div>
                     </div>
-                  </Space>
+                  </div>
                 ) : (
                   <Tag>Chưa bổ nhiệm</Tag>
                 ),
@@ -181,11 +194,13 @@ export default function Organization() {
             {
               title: "Khu vực",
               dataIndex: "region_name",
+              width: 150,
               render: (v) => (v ? <Tag color="cyan">{v}</Tag> : "—"),
             },
             {
               title: "Quy mô nhân sự",
               dataIndex: "total_members",
+              width: 150,
               render: (v, row) => (
                 <Button
                   type="link"
@@ -203,6 +218,7 @@ export default function Organization() {
             },
             {
               title: "Thao tác",
+              width: 130,
               render: (_, row) =>
                 write ? (
                   <Space>

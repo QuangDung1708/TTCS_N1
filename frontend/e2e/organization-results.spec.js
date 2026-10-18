@@ -68,6 +68,17 @@ test("One organization tree expands nested departments and lists staff from the 
   await expect(
     page.getByRole("row").filter({ hasText: "Cây kiểm tra cấp 3" }),
   ).toBeVisible();
+  // Folder and expand controls must stay on the label's line at deeper levels.
+  for (const level of [1, 2]) {
+    const row = page
+      .getByRole("row")
+      .filter({ hasText: `Cây kiểm tra cấp ${level}` });
+    const expander = await row.locator(".organization-expand").boundingBox();
+    const label = await row.locator(".organization-node").boundingBox();
+    expect(
+      Math.abs(expander.y + expander.height / 2 - label.y - label.height / 2),
+    ).toBeLessThan(3);
+  }
   const root = page.getByRole("row").filter({ hasText: "Cây kiểm tra cấp 1" });
   await expect(root).toContainText("org-tree-0@example.test");
   await root

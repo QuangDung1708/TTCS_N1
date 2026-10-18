@@ -7,9 +7,9 @@
 | Frontend `npm ci` trên thư mục Linux sạch | Thành công từ package-lock.json |
 | Frontend `npm run lint` | Thành công, gồm cả source và test |
 | Frontend `npm run build` | Thành công |
-| Playwright + Chromium + Express + MariaDB 10.4 thật | Bản trước **48/48 ca**; bản vá mail chạy lại **3/3 luồng liên quan**. Gồm gộp khách hàng, đăng ký email, animation, cây tổ chức và kéo chốt Won/Lost |
+| Playwright + Chromium + Express + MariaDB 10.4 thật | **48/48 ca** sau sửa import; **4/4 luồng ảnh hưởng trên mã cuối** gồm import trùng, tải Excel Pipeline, điểm tự tính và cây tổ chức. Gồm gộp khách hàng, đăng ký email, animation, cây tổ chức và kéo chốt Won/Lost |
 | Backend lint | Thành công |
-| Backend Jest/MySQL | **112/112 test**, 13/13 suite trên MySQL 8.4 và MariaDB 10.4 |
+| Backend Jest/MySQL | **119/119 test**, 14/14 suite trên MySQL 8.4 và MariaDB 10.4 |
 | Backend coverage của bản trước | 90.64% dòng; 76.50% nhánh; 91.2% hàm; 87.43% câu lệnh; chưa đo lại cho phần Excel/mail mới |
 | Server phát triển | Frontend HTTP 200, backend health HTTP 200; dùng crm_dev không nạp dữ liệu nghiệp vụ mẫu |
 
@@ -136,3 +136,12 @@ SMTP môi trường hiện tại thiếu SMTP_HOST. Chưa xác minh hộp thư b
 ## Sửa mail API sau khi CMD đã gửi được
 
 Đã tái hiện 503 với DB session +07:00 ở mã trước sửa. Sau sửa: 112/112 test backend trên mỗi engine, 13/13 suite; gửi OTP/reset/invitation qua SMTP TCP khi DB UTC+7, gửi bản ghi cũ attempts=0 bị lệch giờ, giữ retry attempts>0, worker bận trả 202 và sau đó chỉ gửi một lần, EAUTH thật có mã lỗi và hướng dẫn restart. Chạy lại 3/3 browser cho quên mật khẩu, đăng ký và login role; không chạy lại toàn bộ 48 browser trong bản vá mail này. Lint/build và build source giải nén được kiểm tra khi đóng gói. Người dùng xác nhận thư CMD đã về hộp thư; chưa trực tiếp xác minh mail API trong hộp thư của họ.
+
+
+## Bổ sung import và tài liệu Jira
+
+- Khách hàng/lead: preview, execute, nhập lại, cùng tệp và nhập đồng thời; dữ liệu trùng hoàn toàn bị chặn, preview không lưu DB, thay đổi có cùng MST vẫn cập nhật theo quyền.
+- Cơ hội: workbook tiếng Việt dùng chung; kiểm tra tiền numeric, tên liên hệ, bộ lọc/scope và trường tùy chỉnh. File tải từ trình duyệt giữ nguyên byte, đọc được bằng SheetJS/openpyxl và XML chuẩn; không chạy Microsoft Excel tại môi trường Linux.
+- S4-05: quy tắc/ngưỡng tính lại lead đang có và khi thông tin thay đổi; payload score không ghi đè điểm tự tính. Admin/Director chỉnh qua cấu hình, không thêm sửa tay từng score.
+- Cây tổ chức: kiểm tra nút mở rộng và nhãn cùng dòng ở nhiều cấp, mở/thu gọn và nhân sự nhánh; mã cuối bổ sung rút gọn tên dài.
+- Tài liệu: đọc đủ 199 issue, 135 Done / 9 In Progress / 55 To Do; kiểm tra XML DOCX/XLSX và 120 dòng nhật ký dự thảo cho 10 thành viên. Không suy ngày làm việc từ Updated, không ghi Sprint 4 To Do thành Done.

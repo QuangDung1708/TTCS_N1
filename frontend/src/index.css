@@ -1414,3 +1414,44 @@ a {
     transform: translateY(-6px);
   }
 }
+
+/* Keep the tree indent, expander and folder on one line at every depth. */
+.organization-tree .ant-table-tbody > tr > td:first-child {
+  white-space: nowrap;
+}
+.organization-node {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  vertical-align: middle;
+}
+.organization-node b {
+  white-space: nowrap;
+}
+.organization-expand,
+.organization-expand-placeholder {
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+.organization-leader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.organization-leader .ant-avatar {
+  flex-shrink: 0;
+}
+.organization-leader > div {
+  min-width: 0;
+}
+.organization-leader .compact-meta {
+  overflow-wrap: anywhere;
+}
+
+.organization-node b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.organization-node > .anticon {
+  flex-shrink: 0;
+}

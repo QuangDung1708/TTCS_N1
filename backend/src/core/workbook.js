@@ -1,5 +1,19 @@
 const ExcelJS = require("exceljs");
 const labels = {
+  opportunity_title: "Tên cơ hội",
+  contact_name: "Người liên hệ chính",
+  owner_name: "Người phụ trách",
+  stage_name: "Giai đoạn",
+  expected_amount: "Giá trị dự kiến (VNĐ)",
+  probability: "Xác suất thắng (%)",
+  probability_note: "Ghi chú xác suất",
+  expected_close_date: "Ngày dự kiến chốt",
+  actual_amount: "Doanh thu thực tế (VNĐ)",
+  signed_date: "Ngày ký hợp đồng",
+  win_reason_name: "Lý do thắng",
+  loss_reason_name: "Lý do thua",
+  competitor_name: "Đối thủ cạnh tranh",
+  loss_note: "Ghi chú thất bại",
   full_name: "Họ và tên",
   email: "Email",
   phone: "Số điện thoại",
@@ -81,6 +95,9 @@ async function workbook(entity, keys, data, template, lookups = []) {
             "gross_amount",
             "amount",
             "discount_percent",
+            "expected_amount",
+            "actual_amount",
+            "probability",
           ].includes(k) &&
           value !== null &&
           value !== undefined &&
@@ -111,7 +128,15 @@ async function workbook(entity, keys, data, template, lookups = []) {
       ? 36
       : 25;
     if (["phone", "tax_code"].includes(k)) col.numFmt = "@";
-    if (["total_contract_value", "gross_amount", "amount"].includes(k))
+    if (
+      [
+        "total_contract_value",
+        "gross_amount",
+        "amount",
+        "expected_amount",
+        "actual_amount",
+      ].includes(k)
+    )
       col.numFmt = '#,##0" ₫"';
   });
   sheet.eachRow((row, n) => {
@@ -142,11 +167,13 @@ async function workbook(entity, keys, data, template, lookups = []) {
     ],
     [
       "Bắt buộc",
-      entity === "user"
-        ? "Tên, Email, Vai trò (RBAC). Nhóm kinh doanh nhập đúng tên từ trang Danh mục. Mật khẩu tạm thời có thể để trống để tự sinh; tài khoản nhận email nếu SMTP được cấu hình."
-        : entity === "lead"
-          ? "Họ và tên, Tên doanh nghiệp, Email hoặc Số điện thoại, Mã nguồn lead."
-          : "Tên doanh nghiệp. Mã số thuế phải duy nhất nếu nhập.",
+      entity === "deal"
+        ? "Báo cáo cơ hội theo bộ lọc và phạm vi được phép xem. Tệp này dùng để xem báo cáo, không phải mẫu nhập. Điểm xác suất là số phần trăm; giá trị tiền là số VNĐ."
+        : entity === "user"
+          ? "Tên, Email, Vai trò (RBAC). Nhóm kinh doanh nhập đúng tên từ trang Danh mục. Mật khẩu tạm thời có thể để trống để tự sinh; tài khoản nhận email nếu SMTP được cấu hình."
+          : entity === "lead"
+            ? "Họ và tên, Tên doanh nghiệp, Email hoặc Số điện thoại, Mã nguồn lead."
+            : "Tên doanh nghiệp. Mã số thuế phải duy nhất nếu nhập.",
     ],
     [
       "Danh mục liên kết",

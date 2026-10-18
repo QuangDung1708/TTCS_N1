@@ -1,4 +1,17 @@
-# Cập nhật gộp khách hàng, animation toàn ứng dụng và đăng ký email — 18/10/2026
+# Cập nhật import Excel, Pipeline và cây tổ chức — 18/10/2026
+
+## Bản mới: chặn trùng Excel, mẫu cơ hội và cây tổ chức
+
+Dừng backend/frontend, giải nén `TTCS_N1-import-excel-organization-fix.zip`, chép đè nội dung vào thư mục dự án (nơi có hai thư mục backend/frontend), rồi khởi động lại cả hai và Ctrl+F5. Giữ nguyên `.env`, uploads và DB. Bản này không đổi dependency/schema, không cần nạp lại dữ liệu hoặc cấu hình lại SMTP đã gửi được thư. Nếu đang dùng bản rất cũ, chạy `npm ci` trong backend và frontend trước khi khởi động; không reset DB.
+
+- Nhập Excel khách hàng và lead: thông tin giống hoàn toàn hồ sơ đã có hoặc dòng trước trong cùng tệp hiện **Không hợp lệ / Không được nhập**. Chặn cả khi gọi thẳng API thực thi, nhập lại tệp và hai lượt nhập đồng thời. Preview không ghi dữ liệu thật. Dòng hợp lệ khác vẫn được nhập, dòng lỗi có báo cáo riêng.
+- So sánh dữ liệu nghiệp vụ: bỏ khoảng trắng đầu/cuối, chuẩn hóa Unicode, email và điện thoại; không dùng ID, thời gian tạo, người phụ trách hoặc điểm tự tính để lách trùng. Không coi chỉ trùng tên là giống hoàn toàn nếu thông tin khác nhau. Với khách hàng, cùng MST nhưng thông tin thay đổi vẫn có lựa chọn bỏ qua/cập nhật theo quyền; chọn xong bấm **Kiểm tra lại lựa chọn**. Dòng hoàn toàn giống không được ép cập nhật.
+- Cơ hội/Pipeline xuất XLSX bằng cùng mẫu các mục khác: tiêu đề tiếng Việt, tên khách hàng/liên hệ/phụ trách/nguồn/chiến dịch/giai đoạn, trạng thái dễ đọc, tiền và xác suất dạng số, cố định tiêu đề, lọc cột và chỉnh độ rộng. Giữ phạm vi dữ liệu và bộ lọc đang dùng, không xuất hàng loạt ID nội bộ.
+- Cây tổ chức giữ thụt cấp, nút mở rộng và tên nhóm trên một hàng. Tên quá dài rút gọn, rê chuột xem đầy đủ; bảng cuộn ngang khi thiếu chỗ. Cột trưởng nhóm/ảnh/email có độ rộng ổn định. Chức năng mở/thu gọn và xem nhân sự toàn nhánh giữ nguyên.
+- **Điểm lead theo AC S4-05 là tự động.** Admin/Director vào **Chấm điểm lead**, hoặc bấm điểm trong bảng, để chỉnh tiêu chí/ngưỡng. Lưu quy tắc sẽ tính lại lead đang hoạt động; sửa thông tin lead cũng tính lại. Nhân viên không có quyền cấu hình vẫn xem điểm. Điểm 0 là bình thường nếu chưa có tiêu chí khớp; không tự loại lead điểm thấp.
+
+Tài liệu Jira được bàn giao riêng trong ZIP tài liệu: API doc, đề xuất Sprint Review, nhật ký cá nhân/nhóm. Nhật ký chi tiết theo ngày là dự thảo cần xác nhận vì file Jira không có lịch sử Daily Scrum; giữ đúng trạng thái story/subtask của snapshot.
+
 
 ## Sửa mail API khi CMD đã gửi được — bổ sung mới nhất
 

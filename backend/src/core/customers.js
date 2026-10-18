@@ -3,7 +3,7 @@ const { fail, id, text, email, phone } = require("./http");
 const { record, ownerAllowed } = require("./access");
 const { validateCustom } = require("./customFields");
 const states = ["Tiềm năng", "Đang giao dịch", "Khách hàng", "Ngừng hợp tác"];
-async function saveCustomer(c, user, b, rowId) {
+async function saveCustomer(c, user, b, rowId, importOptions = {}) {
   const old = rowId
     ? await record(
         c,
@@ -83,6 +83,10 @@ async function saveCustomer(c, user, b, rowId) {
     "customer",
     b.custom_fields || b.custom_fields_data || old?.custom_fields,
   );
+  if (importOptions.rejectExactDuplicate)
+    await require("./importDuplicates").rejectExactCustomer(c, data, b);
+  if (importOptions.taxConflict)
+    fail(409, "Trùng mã số thuế. Chọn bỏ qua hoặc cập nhật.");
   let cid = rowId;
   if (cid) await update(c, "customers", cid, data);
   else cid = await insert(c, "customers", data);

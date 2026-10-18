@@ -163,7 +163,8 @@ test("Customer template includes configured fields and the formatted export can 
     .set("Authorization", "Bearer " + h.getTokens()["Sales Rep"])
     .attach("file", exported.body, "customers.xlsx");
   expect(preview.status).toBe(200);
-  expect(preview.body.valid).toBe(1);
+  expect(preview.body.valid).toBe(0);
+  expect(preview.body.data[0].duplicate_blocked).toBe(true);
   expect(preview.body.data[0].data.devices).toBe(42);
 });
 
