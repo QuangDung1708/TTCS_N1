@@ -65,3 +65,12 @@ Các URL tương thích như `/users/avatar`, `/users/:id/lock`, `/groups`, `/de
 `GET /public/lead-forms/:key/meta` trả tên biểu mẫu, timestamp và chữ ký chống spam (no-store), dùng cùng POST công khai với biểu mẫu HTML tương thích cũ. Nguồn/campaign được lấy từ cấu hình biểu mẫu trên server.
 
 Thông báo cá nhân đòi quyền đọc AUTO; thao tác đánh dấu đã đọc không cấp quyền chỉnh cấu hình tự động hóa. Accountant không truy cập cả URL thông báo chuẩn và URL tương thích cũ.
+
+## Bổ sung 18/10/2026
+
+- `GET /campaigns/options`: các vai trò có quyền đọc LEAD lấy `{id,name}` để chọn chiến dịch; không trả ngân sách, số liệu hoặc quyền quản lý chiến dịch.
+- `POST/PUT /leads[/:id]`: `owner_id` tùy chọn cho Admin/Director/Team Lead/Marketing. Thay người phụ trách dùng cùng giao dịch lưu; áp dụng scope, Sales Rep hoạt động, cập nhật nhóm/SLA/thông báo. `assignment_reason`, `sla_minutes` là tùy chọn. Sales không tự chuyển cho người khác.
+- `POST /categories`: `code` có thể bỏ trống để sinh mã duy nhất; loại và tên vẫn bắt buộc.
+- Import nhận tiêu đề kỹ thuật cũ hoặc tiếng Việt từ mẫu mới. Customer import ánh xạ các cột mã trường tùy chỉnh đang hoạt động vào `custom_fields` và kiểm tra kiểu/bắt buộc.
+- Theo yêu cầu người dùng ngày 18/10/2026, Admin có toàn quyền bao gồm xem/sửa giá vốn và đọc giá vốn trong audit; Director cũng có quyền giá vốn. Các vai trò khác vẫn bị ẩn từ API. Quy tắc không tự đổi email/nhóm/vai trò trong `/users/profile` vẫn giữ; Admin dùng API quản trị người dùng để sửa quyền.
+- Email tạo user chứa tài khoản, mật khẩu tạm sinh ngẫu nhiên và liên kết đặt mật khẩu; email reset có token 30 phút, một lần. Worker gửi bản text/HTML qua SMTP đã cấu hình, xóa nội dung chứa bí mật trong outbox sau khi gửi thành công. Các đường gửi mail cũ không được ứng dụng hiện tại gọi.

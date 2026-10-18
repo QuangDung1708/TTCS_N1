@@ -1,5 +1,5 @@
 {
-  "verified_at_utc": "2026-10-17T16:31:24.923032+00:00",
+  "verified_at_utc": "2026-10-18T04:40:16.745173+00:00",
   "runtime": {
     "node": "24.19.0",
     "mysql": "8.4.11",
@@ -8,24 +8,25 @@
     "mariadb": "10.4.34"
   },
   "frontend": {
-    "browser_tests_passed": 27,
-    "browser_tests_total": 27,
+    "browser_tests_passed": 34,
+    "browser_tests_total": 34,
     "mock_api": false,
     "lint": "passed",
     "build": "passed",
     "clean_npm_ci": "passed"
   },
   "backend": {
-    "tests_passed": 95,
-    "tests_total": 95,
-    "suites_passed": 11,
+    "tests_passed": 101,
+    "tests_total": 101,
+    "suites_passed": 12,
     "coverage_percent": {
       "lines": 90.64,
       "statements": 87.43,
       "functions": 91.2,
       "branches": 76.5
     },
-    "lint": "passed"
+    "lint": "passed",
+    "coverage_is_from_previous_release": true
   },
   "test_databases": [
     "crm_test",
@@ -131,5 +132,39 @@
     "examples_are_verified_real_identities": false,
     "user_database_modified": false,
     "backend_95_suite_rerun_this_change": false
+  },
+  "usability_feedback_fix": {
+    "mysql_backend": {
+      "passed": 101,
+      "total": 101,
+      "suites": 12
+    },
+    "mariadb_backend": {
+      "passed": 101,
+      "total": 101,
+      "suites": 12
+    },
+    "mariadb_chromium_browser": {
+      "passed": 34,
+      "total": 34
+    },
+    "affected_browser_followup": {
+      "passed": 5,
+      "total": 5
+    },
+    "excel_export_name_and_roundtrip_tests_both_engines": "6/6 passed on each engine",
+    "real_local_smtp": true,
+    "external_mailbox_verified": false,
+    "user_machine_accessed": false,
+    "admin_full_access_including_cost": true,
+    "profile_email_group_roles_readonly": true,
+    "schema_change_required": false,
+    "new_backend_dependency": "exceljs@4.4.0",
+    "checks": [
+      "frontend lint",
+      "frontend build",
+      "backend lint",
+      "zip CRC and source hashes"
+    ]
   }
 }

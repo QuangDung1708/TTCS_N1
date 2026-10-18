@@ -16,6 +16,11 @@ api.interceptors.response.use(
   (response) => {
     if (response.headers["x-session-idle-seconds"])
       window.dispatchEvent(new CustomEvent("crm:active-session"));
+    if (
+      ["post", "put", "patch", "delete"].includes(response.config.method) &&
+      !response.config.url.startsWith("/auth/")
+    )
+      window.dispatchEvent(new CustomEvent("crm:data-changed"));
     return response;
   },
   (error) => {

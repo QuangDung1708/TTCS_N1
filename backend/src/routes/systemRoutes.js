@@ -119,7 +119,7 @@ auditRouter.get(
       `SELECT * FROM audit_logs WHERE ${where} ORDER BY id DESC LIMIT 500`,
       args,
     );
-    if (!has(req.user, "Director")) {
+    if (!has(req.user, "Admin", "Director")) {
       for (const row of data)
         for (const field of ["before_value", "after_value"]) {
           if (row[field]) {

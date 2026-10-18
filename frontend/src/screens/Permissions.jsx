@@ -37,7 +37,7 @@ export default function Permissions() {
         showIcon
         type="info"
         title="F: Toàn quyền · W: Ghi · R: Xem · N: Không truy cập"
-        description="Dấu * giới hạn theo người sở hữu. Trưởng nhóm xem và quản lý dữ liệu thuộc cây nhóm phụ trách. Giá vốn chỉ dành cho Director; quản trị tài khoản chỉ dành cho Admin."
+        description="Dấu * giới hạn theo người sở hữu. Trưởng nhóm xem và quản lý dữ liệu thuộc cây nhóm phụ trách. Admin có toàn quyền, gồm giá vốn; Director được quản lý giá vốn; quản trị tài khoản chỉ dành cho Admin."
         className="section-gap"
       />
       <DataCard>

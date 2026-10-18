@@ -3,11 +3,17 @@ const { db, transaction, insert, update, audit } = require("../core/store");
 const { route, id, text, number, date, fail } = require("../core/http");
 const { authenticate } = require("../core/auth");
 const { authorize, record, scope, requireRoles } = require("../core/access");
-r.use(
-  authenticate,
-  authorize("LEAD"),
-  requireRoles("Admin", "Director", "Marketing"),
+r.use(authenticate, authorize("LEAD"));
+r.get(
+  "/options",
+  route(async (req, res) => {
+    const [data] = await db.query(
+      "SELECT id,name FROM campaigns ORDER BY name,id",
+    );
+    res.json({ data });
+  }),
 );
+r.use(requireRoles("Admin", "Director", "Marketing"));
 r.get(
   "/",
   route(async (req, res) => {

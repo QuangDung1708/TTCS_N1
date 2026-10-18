@@ -143,7 +143,7 @@ router.post(
     const mail = email(req.body.email);
     await transaction(async (c) => {
       const [[u]] = await c.query(
-        "SELECT id FROM users WHERE email=? AND is_active=1",
+        "SELECT id,full_name FROM users WHERE email=? AND is_active=1",
         [mail],
       );
       if (!u) return;
@@ -161,7 +161,7 @@ router.post(
         c,
         mail,
         "Đặt lại mật khẩu CRM",
-        `Liên kết có hiệu lực 30 phút, chỉ dùng một lần: ${base.replace(/\/$/, "")}/reset-password?token=${token}`,
+        `Xin chào ${u.full_name},\nBạn vừa yêu cầu khôi phục mật khẩu tài khoản Enterprise CRM.\nLiên kết có hiệu lực 30 phút, chỉ dùng một lần: ${base.replace(/\/$/, "")}/reset-password?token=${token}\nNếu không phải bạn gửi yêu cầu, hãy bỏ qua email này.`,
       );
     });
     res.json({ message: generic });

@@ -25,6 +25,7 @@ export default function EntityModal({
   const key = `crm:draft:${auth.user.id}:${entity}:${record?.id || "new"}`;
   useEffect(() => {
     if (!open) return;
+    window.dispatchEvent(new CustomEvent("crm:form-open"));
     form.resetFields();
     const cached = draft ? readJSON(sessionStorage.getItem(key), null) : null;
     form.setFieldsValue({ ...defaults, ...record, ...cached });

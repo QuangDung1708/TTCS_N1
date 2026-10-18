@@ -24,9 +24,9 @@ function catalog(table, validate, { module = "CATEGORY", beforeDelete } = {}) {
           ? " ORDER BY sort_order,id"
           : " ORDER BY id";
       let [data] = await db.query(sql, args);
-      if (table === "products" && !has(req.user, "Director"))
+      if (table === "products" && !has(req.user, "Admin", "Director"))
         data = data.map(({ cost_price, ...p }) => p);
-      res.json({ data, canViewCostPrice: has(req.user, "Director") });
+      res.json({ data, canViewCostPrice: has(req.user, "Admin", "Director") });
     }),
   );
   r.post(
@@ -76,7 +76,7 @@ function catalog(table, validate, { module = "CATEGORY", beforeDelete } = {}) {
   return r;
 }
 async function product(c, user, b, old = {}) {
-  if ("cost_price" in b && !has(user, "Director"))
+  if ("cost_price" in b && !has(user, "Admin", "Director"))
     fail(403, "Chỉ Giám đốc kinh doanh được xem và sửa giá vốn.");
   const v = { ...old, ...b };
   const types = {
@@ -162,7 +162,11 @@ async function category(c, u, b, old = {}) {
     fail(400, "Loại danh mục không hợp lệ.");
   return {
     type: v.type,
-    code: text(v.code, "Mã", 80).toUpperCase(),
+    code: text(
+      v.code || `${v.type}_${require("crypto").randomUUID().slice(0, 8)}`,
+      "Mã",
+      80,
+    ).toUpperCase(),
     name: text(v.name, "Tên", 100),
     description: v.description || null,
     sort_order: number(v.sort_order || 0, "Thứ tự", 0, 100000),

@@ -123,7 +123,7 @@ test("Malformed filters and fractional pagination do not result in server errors
     400,
   );
 });
-test("Legacy audit strings remain readable while product cost snapshots are hidden from admins", async () => {
+test("Admin full access includes legacy product cost audit strings", async () => {
   await h.db.query(
     "INSERT INTO audit_logs (user_id,user_name,action_type,entity_type,entity_id,before_value,after_value) VALUES (?,?,?,?,?,?,?)",
     [
@@ -138,8 +138,8 @@ test("Legacy audit strings remain readable while product cost snapshots are hidd
   );
   const r = await h.api("Admin", "get", "/api/audit-logs?entity_type=products");
   expect(r.status).toBe(200);
-  expect(JSON.stringify(r.body)).not.toContain("1234");
-  expect(JSON.stringify(r.body)).not.toContain("5678");
+  expect(JSON.stringify(r.body)).toContain("1234");
+  expect(JSON.stringify(r.body)).toContain("5678");
 });
 test("Legacy lock URL performs handover and immediately invalidates the previous session", async () => {
   const cid = await h.customer("salesChild");

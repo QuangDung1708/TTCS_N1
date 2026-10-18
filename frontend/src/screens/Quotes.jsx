@@ -1,3 +1,4 @@
+import Select from "../ui/LinkedSelect";
 import { useState } from "react";
 import {
   App,
@@ -6,7 +7,6 @@ import {
   Input,
   InputNumber,
   Popconfirm,
-  Select,
   Space,
   Table,
   Tag,

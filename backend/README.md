@@ -45,7 +45,7 @@ Trước khi thêm FK, migration đọc kiểu ID và engine thực tế. Cột 
 
 Ma trận vai trò nằm trong `src/config/roleMatrix.js`; lớp quyền dùng chung ở `src/core/access.js`. `user_roles` hỗ trợ nhiều vai trò, gộp quyền cho từng thao tác và kiểm tra bằng database ở mỗi yêu cầu. ID vai trò số cũ không được dùng để suy ra đặc quyền.
 
-Sales Rep/Cust. Success chỉ được thao tác bản ghi thuộc phạm vi cho phép; Team Lead theo nhóm hiện tại và cây nhóm con. Lead chưa phân công thuộc hàng chờ của nhóm hoặc chưa có nhóm có thể được trưởng nhóm phân tay trong nhóm mình. Giá vốn chỉ Director đọc/sửa được, kể cả qua audit. Quyền áp dụng cho API chi tiết, danh sách, tìm kiếm, dữ liệu liên quan và xuất Excel.
+Sales Rep/Cust. Success chỉ được thao tác bản ghi thuộc phạm vi cho phép; Team Lead theo nhóm hiện tại và cây nhóm con. Lead chưa phân công thuộc hàng chờ của nhóm hoặc chưa có nhóm có thể được trưởng nhóm phân tay trong nhóm mình. Admin có toàn quyền, gồm giá vốn và audit; Director cũng được quản lý giá vốn. Quyền áp dụng cho API chi tiết, danh sách, tìm kiếm, dữ liệu liên quan và xuất Excel.
 
 JWT phải có phiên còn hiệu lực trong `auth_sessions`. Thời gian không hoạt động là 30 phút, tự gia hạn khi sử dụng; giới hạn tuyệt đối 7 ngày. Logout/khóa tài khoản thu hồi phiên ngay phía server. Đổi mật khẩu thu hồi các phiên khác. JWT cũ từ backend trước migration không được chấp nhận; cần đăng nhập lại.
 

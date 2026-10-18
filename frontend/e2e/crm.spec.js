@@ -72,7 +72,7 @@ test("S1: real login, default light, safe invalid-login message and logout", asy
     ),
   ).toBe("light");
   await page.getByRole("button", { name: "Tài khoản của tôi" }).click();
-  await page.getByRole("menuitem", { name: "Đăng xuất" }).click();
+  await page.getByRole("button", { name: "Đăng xuất", exact: true }).click();
   await expect(page).toHaveURL(/login/);
   expect(await page.evaluate(() => localStorage.getItem("token"))).toBeNull();
 });
@@ -91,7 +91,7 @@ for (const role of Object.keys(roleIndex).filter(
     ).toHaveCount(categoryWrite ? 1 : 0);
     await expect(
       page.getByRole("columnheader", { name: "Giá vốn", exact: true }),
-    ).toHaveCount(role === "Director" ? 1 : 0);
+    ).toHaveCount(["Admin", "Director"].includes(role) ? 1 : 0);
     await expect(
       page.getByRole("menuitem", { name: "Quản trị người dùng" }),
     ).toHaveCount(["Admin", "Director"].includes(role) ? 1 : 0);
@@ -597,7 +597,9 @@ test("S2: profile, validation, real avatar and notification read state", async (
     .getByRole("button", { name: "Đóng", exact: true })
     .click();
   await page.getByRole("button", { name: "Tài khoản của tôi" }).click();
-  await page.getByRole("menuitem", { name: "Hồ sơ cá nhân" }).click();
+  await page
+    .getByRole("button", { name: "Hồ sơ cá nhân", exact: true })
+    .click();
   await page.getByLabel("Số điện thoại", { exact: true }).fill("123");
   await page.getByRole("button", { name: "Lưu hồ sơ" }).click();
   await expect(
@@ -847,6 +849,9 @@ test("S4-05: configure lead score using real source names and see automatic hot 
   ).toBeVisible();
   await dialog(page).getByLabel("Ngưỡng lead ấm").fill("20");
   await dialog(page).getByLabel("Ngưỡng lead nóng").fill("40");
+  await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+  await expect(dialog(page).getByLabel("Ngưỡng lead ấm")).toHaveValue("20");
+  await expect(dialog(page).getByLabel("Ngưỡng lead nóng")).toHaveValue("40");
   await page.getByRole("button", { name: "Thêm quy tắc", exact: true }).click();
   await dialog(page).getByLabel("Tiêu chí", { exact: true }).click();
   await page
@@ -887,25 +892,29 @@ test("Header: avatar and bell open by pointer; profile, password and logout are 
 }) => {
   await login(page, "Admin");
   await page.locator(".user-menu .ant-avatar").click();
-  for (const label of ["Hồ sơ cá nhân", "Đổi mật khẩu", "Đăng xuất"])
-    await expect(page.getByRole("menuitem", { name: label })).toBeVisible();
-  await page.getByRole("menuitem", { name: "Hồ sơ cá nhân" }).click();
+  for (const label of ["Đổi mật khẩu", "Đăng xuất"])
+    await expect(
+      page.getByRole("button", { name: label, exact: true }),
+    ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Hồ sơ cá nhân", exact: true })
+    .click();
   await expect(
     page.getByRole("dialog", { name: "Hồ sơ cá nhân" }),
   ).toBeVisible();
   await page.locator(".ant-drawer-close").click();
   await page.getByRole("button", { name: "Tài khoản của tôi" }).click();
-  await page.getByRole("menuitem", { name: "Đổi mật khẩu" }).click();
+  await page.getByRole("button", { name: "Đổi mật khẩu", exact: true }).click();
   await expect(dialog(page).getByLabel("Mật khẩu hiện tại")).toBeVisible();
   await dialog(page).locator(".ant-modal-close").click();
   await page.getByRole("button", { name: /Thông báo \(/ }).click();
   await expect(
-    page.getByText("Thông báo của bạn", { exact: true }),
+    page.getByText("Nhật ký thao tác nhạy cảm", { exact: true }),
   ).toBeVisible();
   await page.keyboard.press("Escape");
   await page.mouse.click(400, 200);
   await page.getByRole("button", { name: "Tài khoản của tôi" }).click();
-  await page.getByRole("menuitem", { name: "Đăng xuất" }).click();
+  await page.getByRole("button", { name: "Đăng xuất", exact: true }).click();
   await expect(page).toHaveURL(/login/);
 });
 
@@ -986,7 +995,7 @@ test("Account: password change updates real login credentials", async ({
 }) => {
   await login(page, "Sales Rep");
   await page.getByRole("button", { name: "Tài khoản của tôi" }).click();
-  await page.getByRole("menuitem", { name: "Đổi mật khẩu" }).click();
+  await page.getByRole("button", { name: "Đổi mật khẩu", exact: true }).click();
   const next = "ChangedOnlyForBrowser9!";
   await dialog(page)
     .getByLabel("Mật khẩu hiện tại", { exact: true })
@@ -1013,4 +1022,291 @@ test("Account: password change updates real login credentials", async ({
     data: { currentPassword: next, newPassword: password },
   });
   expect(restored.ok()).toBeTruthy();
+});
+
+test("Products: stop and resume business persist through reload with explicit confirmation", async ({
+  page,
+}) => {
+  const token = await login(page, "Admin", "/products");
+  const created = await page.request.post("/api/products", {
+    headers: { Authorization: "Bearer " + token },
+    data: {
+      code: "E2E-STOP",
+      name: "E2E Ngừng kinh doanh",
+      type: "ONE_TIME",
+      unit: "gói",
+      list_price: 100000,
+      floor_price: 80000,
+      cost_price: 50000,
+    },
+  });
+  expect(created.ok()).toBeTruthy();
+  await page.reload();
+  const row = page.getByRole("row").filter({ hasText: "E2E-STOP" });
+  await row
+    .getByRole("button", { name: "Đổi trạng thái E2E Ngừng kinh doanh" })
+    .click();
+  await expect(dialog(page)).toContainText("Ngừng kinh doanh sản phẩm?");
+  await dialog(page)
+    .getByRole("button", { name: "Xác nhận", exact: true })
+    .click();
+  await expect(row).toContainText("Ngừng kinh doanh");
+  await page.reload();
+  await expect(row).toContainText("Ngừng kinh doanh");
+  await row
+    .getByRole("button", { name: "Đổi trạng thái E2E Ngừng kinh doanh" })
+    .click();
+  await dialog(page)
+    .getByRole("button", { name: "Xác nhận", exact: true })
+    .click();
+  await expect(row).toContainText("Đang kinh doanh");
+});
+
+test("Shared lookups: newly created source and campaign can be selected by Sales in a persisted lead", async ({
+  page,
+}) => {
+  const admin = await login(page, "Admin");
+  const create = (path, data) =>
+    page.request.post("/api/" + path, {
+      headers: { Authorization: "Bearer " + admin },
+      data,
+    });
+  const source = await create("categories", {
+    type: "lead_source",
+    name: "E2E Website liên kết",
+  });
+  expect(source.ok()).toBeTruthy();
+  const campaign = await create("campaigns", {
+    name: "E2E Chiến dịch liên kết",
+    channel: "Website",
+    budget: 2000000,
+    start_date: "2026-10-18",
+    end_date: "2026-11-18",
+  });
+  expect(campaign.ok()).toBeTruthy();
+  const token = await login(page, "Sales Rep", "/leads");
+  await page.getByRole("button", { name: "Thêm lead", exact: true }).click();
+  await dialog(page)
+    .getByLabel("Họ và tên", { exact: true })
+    .fill("E2E Lead liên kết");
+  await dialog(page)
+    .getByLabel("Công ty", { exact: true })
+    .fill("E2E Công ty liên kết");
+  await dialog(page)
+    .getByLabel("Email", { exact: true })
+    .fill("linked-e2e@example.test");
+  for (const [label, name] of [
+    ["Nguồn lead", "E2E Website liên kết"],
+    ["Chiến dịch", "E2E Chiến dịch liên kết"],
+  ]) {
+    await dialog(page).getByLabel(label, { exact: true }).click();
+    await page
+      .locator(".ant-select-dropdown:visible")
+      .getByText(name, { exact: true })
+      .click();
+  }
+  await dialog(page).getByRole("button", { name: "Lưu thay đổi" }).click();
+  await expect(
+    page.getByRole("row").filter({ hasText: "E2E Lead liên kết" }),
+  ).toBeVisible();
+  const response = await page.request.get("/api/leads", {
+    headers: { Authorization: "Bearer " + token },
+  });
+  const saved = (await response.json()).data.find(
+    (l) => l.full_name === "E2E Lead liên kết",
+  );
+  expect(saved.source_id).toBe((await source.json()).id);
+  expect(saved.campaign_id).toBe((await campaign.json()).id);
+});
+
+test("Organization: group tree parent selector and separate customer company hierarchy save to API", async ({
+  page,
+}) => {
+  const token = await login(page, "Admin", "/organization");
+  await page.getByRole("button", { name: "Sửa nhóm Team B" }).click();
+  await dialog(page).getByLabel("Nhóm cha", { exact: true }).click();
+  await page
+    .locator(".ant-select-dropdown:visible")
+    .getByText("Team A", { exact: true })
+    .click();
+  await dialog(page).getByLabel("Trưởng nhóm", { exact: true }).click();
+  await page
+    .locator(".ant-select-dropdown:visible")
+    .getByText("Director", { exact: true })
+    .click();
+  await dialog(page).getByRole("button", { name: "Lưu thay đổi" }).click();
+  await expect(page.locator(".ant-modal:visible")).toHaveCount(0);
+  await page.getByRole("button", { name: "Sửa nhóm Team B" }).click();
+  const parentField = dialog(page)
+    .locator(".ant-form-item")
+    .filter({ hasText: "Nhóm cha" });
+  await parentField.hover();
+  await parentField.locator(".ant-select-clear").click();
+  await dialog(page).getByRole("button", { name: "Lưu thay đổi" }).click();
+  await expect(page.locator(".ant-modal:visible")).toHaveCount(0);
+  const groups = await page.request.get("/api/organization/tree", {
+    headers: { Authorization: "Bearer " + token },
+  });
+  expect(
+    (await groups.json()).data.find((g) => g.id === 2).parent_id,
+  ).toBeNull();
+  await page.getByRole("tab", { name: "Cây công ty mẹ / con" }).click();
+  const row = page.getByRole("row").filter({ hasText: "E2E Khách hàng B" });
+  await row.getByRole("button", { name: "Chọn công ty mẹ" }).click();
+  await dialog(page).getByLabel("Công ty mẹ", { exact: true }).click();
+  await page
+    .locator(".ant-select-dropdown:visible")
+    .getByText("E2E Khách hàng A", { exact: true })
+    .click();
+  await dialog(page).getByRole("button", { name: "Lưu thay đổi" }).click();
+  await expect(page.locator(".ant-modal:visible")).toHaveCount(0);
+  const saved = await page.request.get(`/api/customers/${ids().b}`, {
+    headers: { Authorization: "Bearer " + token },
+  });
+  expect((await saved.json()).data.parent_id).toBe(ids().a);
+});
+
+test("Lead editor: choosing owner updates assignment and survives reload", async ({
+  page,
+}) => {
+  const token = await login(page, "Admin", "/leads");
+  const made = await page.request.post("/api/leads", {
+    headers: { Authorization: "Bearer " + token },
+    data: {
+      full_name: "E2E Sửa người phụ trách",
+      company_name: "E2E Công ty phân bổ",
+      email: "owner-ui@example.test",
+      source_id: 1,
+      owner_id: 4,
+    },
+  });
+  expect(made.ok()).toBeTruthy();
+  const { id } = await made.json();
+  await page.reload();
+  await page
+    .getByRole("button", {
+      name: "Sửa lead E2E Sửa người phụ trách",
+      exact: true,
+    })
+    .click();
+  await dialog(page).getByLabel("Người phụ trách", { exact: true }).click();
+  await page
+    .locator(".ant-select-dropdown:visible")
+    .getByText("salesB · Team B", { exact: true })
+    .click();
+  await dialog(page).getByRole("button", { name: "Lưu thay đổi" }).click();
+  await expect(page.locator(".ant-modal:visible")).toHaveCount(0);
+  await page.reload();
+  const saved = await page.request.get(`/api/leads/${id}`, {
+    headers: { Authorization: "Bearer " + token },
+  });
+  expect((await saved.json()).data.owner_id).toBe(8);
+});
+
+test("Quote: existing linked opportunity is selectable and saves a real draft", async ({
+  page,
+}) => {
+  const token = await login(page, "Admin", "/quotes");
+  await page
+    .getByRole("button", { name: "Tạo báo giá nháp", exact: true })
+    .click();
+  await dialog(page)
+    .getByLabel("Tên báo giá", { exact: true })
+    .fill("E2E Báo giá liên kết");
+  await dialog(page).getByLabel("Cơ hội", { exact: true }).click();
+  await page
+    .locator(".ant-select-dropdown:visible")
+    .getByText("E2E Cơ hội A", { exact: true })
+    .click();
+  await dialog(page).getByRole("button", { name: "Lưu thay đổi" }).click();
+  await expect(
+    page.getByRole("row").filter({ hasText: "E2E Báo giá liên kết" }),
+  ).toBeVisible();
+  const saved = await page.request.get("/api/quotes", {
+    headers: { Authorization: "Bearer " + token },
+  });
+  expect(
+    (await saved.json()).data.find((q) => q.title === "E2E Báo giá liên kết")
+      .deal_id,
+  ).toBe(ids().deal);
+});
+
+test("Forgot password UI enqueues a single-use reset email and the link changes actual login", async ({
+  page,
+}) => {
+  await page.goto("/login");
+  await page.getByRole("button", { name: "Quên mật khẩu?" }).click();
+  await dialog(page)
+    .getByLabel("Email công việc", { exact: true })
+    .fill("test8@example.test");
+  const wait = page.waitForResponse(
+    (r) =>
+      r.url().endsWith("/api/auth/forgot-password") &&
+      r.request().method() === "POST",
+  );
+  await dialog(page)
+    .getByRole("button", { name: "Gửi hướng dẫn", exact: true })
+    .click();
+  expect((await wait).ok()).toBeTruthy();
+  const db = await backendRequire("mysql2/promise").createConnection({
+    host: process.env.DB_HOST,
+    port: Number(process.env.DB_PORT),
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+  });
+  let body;
+  try {
+    const [[row]] = await db.query(
+      "SELECT body FROM mail_outbox WHERE recipient='test8@example.test' ORDER BY id DESC LIMIT 1",
+    );
+    body = row.body;
+  } finally {
+    await db.end();
+  }
+  const token = body.match(/token=([a-f0-9]+)/)[1];
+  await page.goto("/reset-password?token=" + token);
+  await page.getByLabel("Mật khẩu mới", { exact: true }).fill("ResetBrowser9!");
+  await page
+    .getByLabel("Nhập lại mật khẩu", { exact: true })
+    .fill("ResetBrowser9!");
+  await page
+    .getByRole("button", { name: "Lưu mật khẩu mới", exact: true })
+    .click();
+  await expect(page).toHaveURL(/login/);
+  const fresh = await page.request.post("/api/auth/login", {
+    data: { email: "test8@example.test", password: "ResetBrowser9!" },
+  });
+  expect(fresh.ok()).toBeTruthy();
+  const reused = await page.request.post("/api/auth/reset-password", {
+    data: { token, newPassword: "AnotherBrowser9!" },
+  });
+  expect(reused.status()).toBe(400);
+});
+
+test("Category form: meaningful industry fields create a live option without a manually entered code", async ({
+  page,
+}) => {
+  await login(page, "Admin", "/categories");
+  await page.getByRole("button", { name: "Thêm mới", exact: true }).click();
+  await expect(dialog(page)).toContainText("Thêm ngành nghề");
+  await dialog(page)
+    .getByLabel("Tên ngành nghề", { exact: true })
+    .fill("E2E Ngành công nghệ mới");
+  await dialog(page).getByRole("button", { name: "Lưu thay đổi" }).click();
+  await expect(
+    page.getByRole("row").filter({ hasText: "E2E Ngành công nghệ mới" }),
+  ).toBeVisible();
+  await page.goto("/customers");
+  await page
+    .getByRole("button", { name: "Thêm khách hàng", exact: true })
+    .click();
+  await dialog(page).getByLabel("Ngành nghề", { exact: true }).click();
+  await page
+    .locator(".ant-select-dropdown:visible .ant-select-item-option")
+    .filter({ hasText: "E2E Ngành công nghệ mới" })
+    .click();
+  await expect(
+    dialog(page).getByLabel("Người phụ trách", { exact: true }),
+  ).toBeVisible();
 });

@@ -1,5 +1,6 @@
 const { Router } = require("express");
 const XLSX = require("xlsx");
+const { workbook, normalize } = require("../core/workbook");
 const multer = require("multer");
 const { db, transaction } = require("../core/store");
 const { route, fail, id } = require("../core/http");
@@ -65,12 +66,26 @@ function rows(req) {
   }
   if (!Array.isArray(data) || !data.length || data.length > 1000)
     fail(400, "Cần từ 1 đến 1000 dòng.");
-  return data;
+  return data
+    .map(normalize)
+    .filter((r) => Object.values(r).some((v) => v !== null && v !== ""));
 }
 async function apply(c, entity, user, row) {
   if (entity === "user")
     return require("./userRoutes").createUser(c, user, row);
   if (entity === "customer") {
+    const [fields] = await c.query(
+      "SELECT field_key FROM custom_fields WHERE entity_type='customer' AND is_active=1",
+    );
+    const custom = {};
+    for (const f of fields)
+      if (Object.hasOwn(row, f.field_key))
+        custom[f.field_key] = row[f.field_key];
+    if (Object.keys(custom).length)
+      row = {
+        ...row,
+        custom_fields: { ...(row.custom_fields || {}), ...custom },
+      };
     let existing;
     if (row.tax_code) {
       const [[r]] = await c.query("SELECT id FROM customers WHERE tax_code=?", [
@@ -108,12 +123,62 @@ function routerFor(entity) {
   r.get(
     "/import/template",
     route(async (req, res) => {
-      const sheet = XLSX.utils.aoa_to_sheet([headers[entity]]);
-      const book = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(book, sheet, "Import");
+      const lookups = [];
+      const templateKeys = [...headers[entity]];
+      if (entity === "customer") {
+        const [fields] = await db.query(
+          "SELECT field_key,field_name FROM custom_fields WHERE entity_type='customer' AND is_active=1 ORDER BY id",
+        );
+        templateKeys.push(...fields.map((f) => f.field_key));
+        lookups.push(
+          ...fields.map((f) => ({
+            type: "Trường tùy chỉnh",
+            id: f.field_key,
+            name: f.field_name,
+          })),
+        );
+      }
+      if (entity !== "user") {
+        const [cats] = await db.query(
+          "SELECT id,name,type FROM sales_categories WHERE status='active' ORDER BY type,sort_order,id",
+        );
+        if (entity === "lead") {
+          const [campaigns] = await db.query(
+            "SELECT id,name FROM campaigns ORDER BY name",
+          );
+          lookups.push(...campaigns.map((r) => ({ ...r, type: "Chiến dịch" })));
+        }
+        lookups.push(
+          ...cats.map((r) => ({
+            ...r,
+            type: {
+              industry: "Ngành nghề",
+              company_size: "Quy mô",
+              lead_source: "Nguồn lead",
+              activity_type: "Hoạt động",
+            }[r.type],
+          })),
+        );
+      } else {
+        const [groups] = await db.query(
+          "SELECT id,name FROM `groups` ORDER BY name",
+        );
+        lookups.push(
+          ...groups.map((r) => ({ ...r, type: "Nhóm kinh doanh" })),
+          ...[
+            "Admin",
+            "Director",
+            "Team Lead",
+            "Sales Rep",
+            "Marketing",
+            "Cust. Success",
+            "Accountant",
+          ].map((r) => ({ type: "Vai trò", id: r, name: r })),
+        );
+      }
       res
         .attachment(entity + "-template.xlsx")
-        .send(XLSX.write(book, { type: "buffer", bookType: "xlsx" }));
+        .send(await workbook(entity, templateKeys, [], true, lookups));
     }),
   );
   r.post(
@@ -206,6 +271,16 @@ function routerFor(entity) {
             ? require("./customerRoutes")
             : require("./leadRoutes")
         ).list(req.user, req.query);
+        const sourceNames = new Map(),
+          campaignNames = new Map();
+        if (entity === "lead") {
+          const [sources] = await db.query(
+            "SELECT id,name FROM sales_categories WHERE type='lead_source'",
+          );
+          const [campaigns] = await db.query("SELECT id,name FROM campaigns");
+          for (const r of sources) sourceNames.set(r.id, r.name);
+          for (const r of campaigns) campaignNames.set(r.id, r.name);
+        }
         const data = result.data.map((row) => {
           let cf = {};
           try {
@@ -214,23 +289,39 @@ function routerFor(entity) {
                 ? JSON.parse(row.custom_fields)
                 : row.custom_fields || {};
           } catch {}
-          const out = { ...row, ...cf };
+          const out = {
+            ...row,
+            ...cf,
+            ...(entity === "lead"
+              ? {
+                  source_name: sourceNames.get(row.source_id) || "",
+                  campaign_name: campaignNames.get(row.campaign_id) || "",
+                }
+              : {}),
+          };
           delete out.custom_fields;
           delete out.custom_fields_data;
-          for (const k of Object.keys(out))
-            if (typeof out[k] === "string" && /^[=+@\-\t\r]/.test(out[k]))
-              out[k] = "'" + out[k];
           return out;
         });
-        const book = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(
-          book,
-          XLSX.utils.json_to_sheet(data),
-          "Data",
-        );
+        const extras =
+          entity === "customer"
+            ? ["created_by", "parent_id", "total_contract_value"]
+            : ["owner_id", "status", "source_name", "campaign_name"];
+        const keys = [...headers[entity], ...extras];
+        for (const row of result.data) {
+          let cf = {};
+          try {
+            cf =
+              typeof row.custom_fields === "string"
+                ? JSON.parse(row.custom_fields)
+                : row.custom_fields || {};
+          } catch {}
+          for (const key of Object.keys(cf))
+            if (!keys.includes(key)) keys.push(key);
+        }
         res
           .attachment(entity + "-export.xlsx")
-          .send(XLSX.write(book, { type: "buffer", bookType: "xlsx" }));
+          .send(await workbook(entity, keys, data, false));
       }),
     );
   return r;

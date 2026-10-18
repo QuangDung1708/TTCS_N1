@@ -1,3 +1,4 @@
+import PopupPanel from "./ui/PopupPanel";
 import { Component, Suspense, lazy, useState } from "react";
 import {
   Alert,
@@ -6,7 +7,6 @@ import {
   Button,
   ConfigProvider,
   Drawer,
-  Dropdown,
   Layout,
   Menu,
   Result,
@@ -23,8 +23,6 @@ import {
   BranchesOutlined,
   DashboardOutlined,
   FileSearchOutlined,
-  LockOutlined,
-  LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   RiseOutlined,
@@ -316,68 +314,72 @@ function Workspace() {
           </div>
           <Space size={12}>
             {auth.can("AUTO") && <Notifications />}
-            <Dropdown
+            <PopupPanel
               open={accountOpen}
-              onOpenChange={setAccountOpen}
-              getPopupContainer={() => document.body}
-              trigger={["click"]}
-              menu={{
-                items: [
-                  {
-                    key: "profile",
-                    label: "Hồ sơ cá nhân",
-                    icon: <UserOutlined aria-hidden="true" />,
-                  },
-                  {
-                    key: "password",
-                    label: "Đổi mật khẩu",
-                    icon: <LockOutlined aria-hidden="true" />,
-                  },
-                  { type: "divider" },
-                  {
-                    key: "logout",
-                    label: "Đăng xuất",
-                    icon: <LogoutOutlined aria-hidden="true" />,
-                    danger: true,
-                  },
-                ],
-                onClick: ({ key }) => {
-                  setAccountOpen(false);
-                  if (key === "profile") setProfile(true);
-                  if (key === "password") setPassword(true);
-                  if (key === "logout")
-                    action.run(
-                      () => auth.logout(),
-                      () => nav("/login"),
-                      null,
-                    );
-                },
-              }}
+              onClose={() => setAccountOpen(false)}
+              label="Tài khoản"
+              className="account-popup"
+              trigger={
+                <button
+                  type="button"
+                  className="user-menu"
+                  aria-label="Tài khoản của tôi"
+                  aria-haspopup="dialog"
+                  aria-expanded={accountOpen}
+                  onClick={() => setAccountOpen((v) => !v)}
+                >
+                  <Avatar
+                    src={assetURL(auth.user.avatar)}
+                    icon={<UserOutlined aria-hidden="true" />}
+                  />
+                  <div>
+                    <Typography.Text strong>
+                      {auth.user.full_name}
+                    </Typography.Text>
+                    <span>
+                      {auth.user.roles.length > 1
+                        ? `${auth.user.roles.length} vai trò`
+                        : roleLabels[auth.user.roles[0]]}
+                    </span>
+                  </div>
+                </button>
+              }
             >
-              <button
-                type="button"
-                className="user-menu"
-                aria-label="Tài khoản của tôi"
-                aria-haspopup="menu"
-                aria-expanded={accountOpen}
-                onClick={() => setAccountOpen(!accountOpen)}
+              <Button
+                type="text"
+                block
+                onClick={() => {
+                  setAccountOpen(false);
+                  setProfile(true);
+                }}
               >
-                <Avatar
-                  src={assetURL(auth.user.avatar)}
-                  icon={<UserOutlined aria-hidden="true" />}
-                />
-                <div>
-                  <Typography.Text strong>
-                    {auth.user.full_name}
-                  </Typography.Text>
-                  <span>
-                    {auth.user.roles.length > 1
-                      ? `${auth.user.roles.length} vai trò`
-                      : roleLabels[auth.user.roles[0]]}
-                  </span>
-                </div>
-              </button>
-            </Dropdown>
+                Hồ sơ cá nhân
+              </Button>
+              <Button
+                type="text"
+                block
+                onClick={() => {
+                  setAccountOpen(false);
+                  setPassword(true);
+                }}
+              >
+                Đổi mật khẩu
+              </Button>
+              <Button
+                type="text"
+                danger
+                block
+                onClick={() =>
+                  action.run(
+                    () => auth.logout(),
+                    () => nav("/login"),
+                    null,
+                  )
+                }
+              >
+                Đăng xuất
+              </Button>
+            </PopupPanel>
           </Space>
         </Layout.Header>
         <Layout.Content className="app-content">
@@ -533,7 +535,21 @@ function Workspace() {
           </footer>
         </Layout.Content>
       </Layout>
-      <ProfileDrawer open={profile} onClose={() => setProfile(false)} />
+      <ProfileDrawer
+        open={profile}
+        onClose={() => setProfile(false)}
+        onPassword={() => {
+          setProfile(false);
+          setPassword(true);
+        }}
+        onLogout={() =>
+          action.run(
+            () => auth.logout(),
+            () => nav("/login"),
+            null,
+          )
+        }
+      />
       <PasswordModal open={password} onClose={() => setPassword(false)} />
     </Layout>
   );

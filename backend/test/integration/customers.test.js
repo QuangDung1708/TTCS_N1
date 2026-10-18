@@ -225,9 +225,9 @@ test("S3-07: saved filters are private and export is scoped", async () => {
   const wb = XLSX.read(r.body, { type: "buffer" });
   const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
   expect(rows.length).toBeGreaterThan(0);
-  expect(rows.every((x) => x.created_by === h.getUsers()["Sales Rep"].id)).toBe(
-    true,
-  );
+  expect(
+    rows.every((x) => x["Mã người phụ trách"] === h.getUsers()["Sales Rep"].id),
+  ).toBe(true);
 });
 test("S3-08/09: support risk and notification use persisted tickets; care marking updates real activity", async () => {
   const cid = await h.customer("Cust. Success");
@@ -300,7 +300,7 @@ test("S2-03: avatar validates actual image, creates square and thumbnail", async
     expect(meta.height).toBe(width);
   }
 });
-test("S2-05: only director sees or sets cost, product references prevent deletion", async () => {
+test("S2-05: Admin and Director see and set cost, product references prevent deletion", async () => {
   const p = await h.api("Director", "post", "/api/products", {
     code: "P01",
     name: "Product",
@@ -312,7 +312,6 @@ test("S2-05: only director sees or sets cost, product references prevent deletio
   });
   expect(p.status).toBe(201);
   for (const role of [
-    "Admin",
     "Sales Rep",
     "Team Lead",
     "Marketing",
@@ -329,7 +328,7 @@ test("S2-05: only director sees or sets cost, product references prevent deletio
         cost_price: 50,
       })
     ).status,
-  ).toBe(403);
+  ).toBe(200);
   expect(
     (await h.api("Sales Rep", "post", "/api/products", { name: "No" })).status,
   ).toBe(403);

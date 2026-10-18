@@ -1,3 +1,4 @@
+import Select from "../ui/LinkedSelect";
 import { useEffect, useState } from "react";
 import {
   Alert,
@@ -14,7 +15,6 @@ import {
   Modal,
   Popconfirm,
   Row,
-  Select,
   Space,
   Switch,
   Table,
@@ -85,9 +85,7 @@ export default function Leads() {
   const r = useResource("/leads", filters),
     directory = useResource("/customers/users-list"),
     catalog = useResource("/categories"),
-    campaigns = useResource(
-      auth.has("Admin", "Director", "Marketing") ? "/campaigns" : null,
-    ),
+    campaigns = useResource("/campaigns/options"),
     a = useAction();
   const { message } = App.useApp();
   const managers = auth.has("Admin", "Director", "Team Lead", "Marketing"),
@@ -398,6 +396,23 @@ export default function Leads() {
         }
       >
         <div className="form-grid">
+          {auth.has("Admin", "Director", "Team Lead", "Marketing") && (
+            <Form.Item
+              name="owner_id"
+              label="Người phụ trách"
+              extra="Phân bổ cho nhân viên kinh doanh đang hoạt động; thời hạn phản hồi mặc định 60 phút."
+            >
+              <Select
+                showSearch
+                optionFilterProp="label"
+                options={userOptions(
+                  directory.rows.filter((u) =>
+                    readJSON(u.roles, [u.role_code]).includes("Sales Rep"),
+                  ),
+                )}
+              />
+            </Form.Item>
+          )}
           <Form.Item name="full_name" label="Họ và tên" rules={required}>
             <Input />
           </Form.Item>
@@ -437,7 +452,7 @@ export default function Leads() {
               notFoundContent="Chưa có nguồn lead được khai báo."
             />
           </Form.Item>
-          {auth.has("Admin", "Director", "Marketing") && (
+          {auth.can("LEAD") && (
             <Form.Item name="campaign_id" label="Chiến dịch">
               <Select allowClear options={options(campaigns.rows)} />
             </Form.Item>

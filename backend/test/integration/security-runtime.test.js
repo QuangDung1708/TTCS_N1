@@ -86,7 +86,7 @@ test("Readonly roles cannot mutate related endpoints or configure categories", a
       ).status,
     ).toBe(403);
 });
-test("Cost price is also redacted from admin audit snapshots", async () => {
+test("Admin has full pricing access in audit snapshots", async () => {
   await h.api("Director", "post", "/api/products", {
     code: "AUDIT",
     name: "Product",
@@ -102,7 +102,7 @@ test("Cost price is also redacted from admin audit snapshots", async () => {
     "/api/audit-logs?entity_type=products",
   );
   expect(admin.status).toBe(200);
-  expect(JSON.stringify(admin.body)).not.toContain("cost_price");
+  expect(JSON.stringify(admin.body)).toContain("cost_price");
   const director = await h.api(
     "Director",
     "get",
@@ -397,11 +397,22 @@ test("SMTP outbox sends over a real local SMTP socket and clears delivered secre
       .request(h.app)
       .post("/api/auth/forgot-password")
       .send({ email: h.getUsers()["Sales Rep"].email });
+    const created = await h.api("Admin", "post", "/api/users", {
+      email: "smtp-created@example.test",
+      full_name: "SMTP Created",
+      roles: ["Sales Rep"],
+      group_id: 1,
+    });
+    expect(created.status).toBe(201);
     const [[pending]] = await h.db.query(
       "SELECT COUNT(*) n FROM mail_outbox WHERE sent_at IS NULL AND next_attempt_at<=UTC_TIMESTAMP() AND attempts<10",
     );
     await Promise.all([mailJobs(), mailJobs()]);
     expect(captured).toHaveLength(pending.n);
+    expect(
+      captured.some((body) => body.includes("smtp-created@example.test")),
+    ).toBe(true);
+    expect(captured.some((body) => body.includes("text/html"))).toBe(true);
     await mailJobs();
     expect(captured).toHaveLength(pending.n);
     expect(

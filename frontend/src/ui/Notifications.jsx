@@ -1,12 +1,20 @@
 import { useEffect, useState } from "react";
-import { Badge, Button, Empty, List, Popover, Typography } from "antd";
+import { Badge, Button, Empty, List, Tabs, Tag, Typography } from "antd";
 import { BellOutlined, ReloadOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import { api, dateTime } from "../lib/api";
 import { useResource, useAction } from "../lib/hooks";
+import PopupPanel from "./PopupPanel";
+import { useAuth } from "../auth/AuthProvider";
+import { auditActions, auditEntities, auditEntries } from "../lib/auditText";
 import { ResourceError } from "./common";
 export default function Notifications() {
-  const [visible, setVisible] = useState(false);
+  const auth = useAuth();
+  const [visible, setVisible] = useState(false),
+    [tab, setTab] = useState(auth.can("USER_LOG") ? "audit" : "personal");
+  const audit = useResource(
+    visible && auth.can("USER_LOG") ? "/audit-logs" : null,
+  );
   const resource = useResource("/notifications"),
     action = useAction(),
     nav = useNavigate();
@@ -66,30 +74,119 @@ export default function Notifications() {
     </div>
   );
   return (
-    <Popover
-      trigger="click"
+    <PopupPanel
       open={visible}
-      onOpenChange={setVisible}
-      getPopupContainer={() => document.body}
-      placement="bottomRight"
-      content={content}
+      onClose={() => setVisible(false)}
+      label="Thông báo và nhật ký"
+      trigger={
+        <Button
+          type="text"
+          shape="circle"
+          aria-label={`Thông báo (${unread} chưa đọc)`}
+          aria-expanded={visible}
+          onClick={() => {
+            resource.reload();
+            setVisible((v) => !v);
+          }}
+        >
+          <Badge count={unread} size="small">
+            <BellOutlined
+              aria-hidden="true"
+              className={
+                unread ? "notification-bell has-unread" : "notification-bell"
+              }
+            />
+          </Badge>
+        </Button>
+      }
     >
-      <Button
-        type="text"
-        shape="circle"
-        aria-label={`Thông báo (${unread} chưa đọc)`}
-        aria-expanded={visible}
-        onClick={() => setVisible(!visible)}
-      >
-        <Badge count={unread} size="small">
-          <BellOutlined
-            aria-hidden="true"
-            className={
-              unread ? "notification-bell has-unread" : "notification-bell"
-            }
+      {auth.can("USER_LOG") ? (
+        <>
+          <Tabs
+            activeKey={tab}
+            onChange={setTab}
+            items={[
+              { key: "audit", label: "Nhật ký thao tác" },
+              { key: "personal", label: "Thông báo của tôi" },
+            ]}
           />
-        </Badge>
-      </Button>
-    </Popover>
+          {tab === "personal" ? (
+            content
+          ) : (
+            <>
+              <div className="inline-between">
+                <Typography.Text strong>
+                  Nhật ký thao tác nhạy cảm
+                </Typography.Text>
+                <Button
+                  type="text"
+                  aria-label="Làm mới nhật ký"
+                  onClick={audit.reload}
+                  icon={<ReloadOutlined spin={audit.loading} />}
+                />
+              </div>
+              <ResourceError resource={audit} />
+              <List
+                dataSource={audit.rows.slice(0, 8)}
+                locale={{ emptyText: "Chưa có thao tác được ghi nhận." }}
+                renderItem={(row) => (
+                  <List.Item>
+                    <div className="audit-notification">
+                      <div className="inline-between">
+                        <Tag color="blue">
+                          {auditActions[row.action_type] || "Thay đổi dữ liệu"}
+                        </Tag>
+                        <Typography.Text type="secondary">
+                          {dateTime(row.created_at)}
+                        </Typography.Text>
+                      </div>
+                      <p>
+                        {row.user_name ||
+                          (row.user_id
+                            ? `Tài khoản #${row.user_id}`
+                            : "Hệ thống")}{" "}
+                        · {auditEntities[row.entity_type] || row.entity_type} #
+                        {row.entity_id}
+                      </p>
+                      {row.description && <p>{row.description}</p>}
+                      <div className="audit-notification-change">
+                        {auditEntries(row.before_value, row.after_value)
+                          .slice(0, 2)
+                          .map(([label, text]) => (
+                            <div key={label}>
+                              <del>
+                                {label}: {text}
+                              </del>
+                            </div>
+                          ))}
+                        {auditEntries(row.after_value, row.before_value)
+                          .slice(0, 2)
+                          .map(([label, text]) => (
+                            <div key={label} className="audit-new">
+                              → {label}: {text}
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  </List.Item>
+                )}
+              />
+              <Button
+                type="link"
+                block
+                onClick={() => {
+                  setVisible(false);
+                  nav("/audit-logs");
+                }}
+              >
+                Xem toàn bộ nhật ký hệ thống
+              </Button>
+            </>
+          )}
+        </>
+      ) : (
+        content
+      )}
+    </PopupPanel>
   );
 }

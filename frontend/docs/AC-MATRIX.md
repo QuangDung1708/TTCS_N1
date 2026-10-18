@@ -172,8 +172,19 @@ Ma trận đọc từ API đang áp dụng trên server. UI không tự khai bá
 | Cust. Success | Khách hàng được giao, chăm sóc/hỗ trợ; không có lead; cơ hội/báo giá theo quyền xem. |
 | Accountant | Khách hàng/cơ hội chỉ xem; không có lead hoặc trình ghi hoạt động; báo giá theo grants. |
 
-Giá vốn/biên lợi nhuận chỉ Director, gồm cả dữ liệu audit trả về. Đa vai trò: quyền đọc rộng không tự mở rộng quyền sửa. Biểu mẫu website công khai chỉ nhận dữ liệu có chữ ký và nguồn xác định trên server.
+Theo yêu cầu ngày 18/10/2026: Admin có toàn quyền, gồm giá vốn/biên lợi nhuận và audit; Director cũng được quản lý giá vốn. Đa vai trò: quyền đọc rộng không tự mở rộng quyền sửa. Biểu mẫu website công khai chỉ nhận dữ liệu có chữ ký và nguồn xác định trên server.
 
 ## Phụ thuộc triển khai
 
 Chưa áp dụng migration vào MySQL thật trong ảnh của người dùng; chưa xác minh mailbox SMTP ngoài, hiệu năng staging, tương thích mọi dữ liệu cũ trong ZIP hoặc nghiệm thu PO. ZIP gốc vượt giới hạn tải công cụ nên phạm vi sửa là checkout TTCS_N1 trên nhánh đang làm. Các giới hạn này không được chuyển thành nhãn “đã đạt” chỉ vì build/test xanh.
+
+## Bổ sung theo phản hồi ngày 18/10/2026
+
+- S2-02/03: menu tài khoản mở bằng pointer/keyboard; hồ sơ tên/điện thoại/chữ ký và upload ảnh; email/nhóm/vai trò chỉ xem trong hồ sơ. Chỉnh quyền tài khoản ở Quản trị người dùng.
+- S2-05/07: xác nhận đổi trạng thái sản phẩm bằng Modal, mã danh mục tự sinh nếu bỏ trống, form có tên/hướng dẫn riêng từng loại.
+- S2-06/S3-05: bộ chọn cây nhóm và công ty mẹ/con loại nhánh gây vòng lặp; API vẫn kiểm tra độc lập. Hai cây tách thành hai thẻ rõ ràng.
+- S3-01/S4-02: người phụ trách trong form lead/khách; phân bổ lead cập nhật cùng giao dịch và giữ kiểm tra scope. API chiến dịch dạng lựa chọn không trả ngân sách/báo cáo.
+- S2-01/S3-06: ExcelJS tạo bảng có bộ lọc, dòng tiêu đề cố định, độ rộng cột, trang hướng dẫn và danh mục; nhập tiêu đề tiếng Việt lẫn kỹ thuật cũ; hỗ trợ trường tùy chỉnh đã cấu hình.
+- S1-03/08: mail text/HTML, tài khoản/mật khẩu tạm/liên kết đặt mật khẩu; quên mật khẩu gửi token 30 phút một lần; kiểm thử SMTP cục bộ và reset qua API/UI.
+
+Các ca bổ sung nằm tại `backend/test/integration/usability.test.js`, kiểm thử SMTP tại `security-runtime.test.js`, kiểm thử pointer và dữ liệu lưu thật tại `frontend/e2e/crm.spec.js`. Kết quả thực chạy được ghi tại VALIDATION.md.

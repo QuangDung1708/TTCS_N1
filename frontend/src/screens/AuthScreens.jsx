@@ -159,6 +159,7 @@ export function LoginScreen() {
         </Typography.Paragraph>
         <Form
           layout="vertical"
+          name="forgot-password"
           form={forgotForm}
           onFinish={(v) =>
             action.run(

@@ -1,3 +1,5 @@
+import HierarchySelect from "../ui/HierarchySelect";
+import Select from "../ui/LinkedSelect";
 import { useEffect, useState } from "react";
 import {
   Alert,
@@ -15,7 +17,6 @@ import {
   Modal,
   Popconfirm,
   Row,
-  Select,
   Space,
   Switch,
   Table,
@@ -440,8 +441,14 @@ export default function Customers() {
           a.run(
             () =>
               editing
-                ? api.put("/customers/" + editing.id, v)
-                : api.post("/customers", v),
+                ? api.put("/customers/" + editing.id, {
+                    ...v,
+                    parent_id: v.parent_id || null,
+                  })
+                : api.post("/customers", {
+                    ...v,
+                    parent_id: v.parent_id || null,
+                  }),
             reload,
           )
         }
@@ -508,7 +515,7 @@ export default function Customers() {
               }))}
             />
           </Form.Item>
-          <Form.Item name="created_by" label="Người sở hữu" rules={required}>
+          <Form.Item name="created_by" label="Người phụ trách" rules={required}>
             <Select
               options={userOptions(directory.rows)}
               showSearch
@@ -516,13 +523,10 @@ export default function Customers() {
             />
           </Form.Item>
           <Form.Item name="parent_id" label="Công ty mẹ">
-            <Select
-              allowClear
-              showSearch
-              optionFilterProp="label"
-              options={parentOptions.rows
-                .filter((c) => c.id !== editing?.id)
-                .map((c) => ({ value: c.id, label: c.company_name || c.name }))}
+            <HierarchySelect
+              rows={parentOptions.rows}
+              label="company_name"
+              exclude={editing?.id}
             />
           </Form.Item>
           <Form.Item className="full-span" name="address" label="Địa chỉ">

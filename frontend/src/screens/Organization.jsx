@@ -1,3 +1,6 @@
+import HierarchySelect from "../ui/HierarchySelect";
+import CompanyHierarchy from "./CompanyHierarchy";
+import Select from "../ui/LinkedSelect";
 import { useState } from "react";
 import {
   Button,
@@ -5,10 +8,10 @@ import {
   Form,
   Input,
   Popconfirm,
-  Select,
   Space,
   Table,
   Tag,
+  Tabs,
   Typography,
 } from "antd";
 import {
@@ -42,7 +45,8 @@ export default function Organization() {
     [open, setOpen] = useState(false),
     [members, setMembers] = useState(null),
     [assign, setAssign] = useState(false),
-    [regionOpen, setRegionOpen] = useState(false);
+    [regionOpen, setRegionOpen] = useState(false),
+    [tab, setTab] = useState("groups");
   const staff = useResource(members ? `/groups/${members.id}/members` : null);
   const groups = flattenGroups(r.rows);
   const start = (row) => {
@@ -81,89 +85,104 @@ export default function Organization() {
       />
       <ResourceError resource={r} />
       <DataCard>
-        <Table
-          rowKey="id"
-          dataSource={clean(r.rows)}
-          loading={r.loading}
-          scroll={{ x: 1000 }}
-          pagination={false}
-          expandable={{ defaultExpandAllRows: true }}
-          columns={[
-            {
-              title: "Nhóm / Phòng ban",
-              dataIndex: "name",
-              render: (v) => (
-                <Space>
-                  <FolderOutlined
-                    aria-hidden="true"
-                    style={{ color: "#1677ff" }}
-                  />
-                  <b>{v}</b>
-                </Space>
-              ),
-            },
-            {
-              title: "Trưởng nhóm",
-              dataIndex: "leader_name",
-              render: (v) =>
-                v || (
-                  <Typography.Text type="secondary">
-                    Chưa bổ nhiệm
-                  </Typography.Text>
-                ),
-            },
-            {
-              title: "Khu vực",
-              dataIndex: "region_name",
-              render: (v) => (v ? <Tag color="cyan">{v}</Tag> : "—"),
-            },
-            {
-              title: "Nhân sự trực tiếp",
-              dataIndex: "member_count",
-              render: (v, row) => (
-                <Button
-                  type="link"
-                  icon={<TeamOutlined aria-hidden="true" />}
-                  onClick={() => setMembers(row)}
-                >
-                  {Number(v)} nhân sự
-                </Button>
-              ),
-            },
-            { title: "Mô tả", dataIndex: "description" },
-            {
-              title: "Thao tác",
-              render: (_, row) =>
-                write ? (
-                  <Space>
-                    <Button
-                      icon={<EditOutlined aria-hidden="true" />}
-                      aria-label={`Sửa nhóm ${row.name}`}
-                      onClick={() => start(row)}
-                    />
-                    <Popconfirm
-                      title="Xóa nhóm này?"
-                      description="Nhóm đang có nhân sự hoặc dữ liệu sẽ được giữ lại."
-                      onConfirm={() =>
-                        a.run(
-                          () => api.delete("/organization/groups/" + row.id),
-                          r.reload,
-                        )
-                      }
-                    >
-                      <Button
-                        danger
-                        icon={<DeleteOutlined aria-hidden="true" />}
-                        aria-label={`Xóa nhóm ${row.name}`}
-                      />
-                    </Popconfirm>
-                  </Space>
-                ) : (
-                  <Tag>Chỉ xem</Tag>
-                ),
-            },
+        <Tabs
+          activeKey={tab}
+          onChange={setTab}
+          items={[
+            { key: "groups", label: "Cây nhóm kinh doanh" },
+            ...(auth.can("CUSTOMER")
+              ? [{ key: "companies", label: "Cây công ty mẹ / con" }]
+              : []),
           ]}
         />
+        {tab === "companies" ? (
+          <CompanyHierarchy />
+        ) : (
+          <Table
+            key={groups.map((g) => `${g.id}:${g.parent_id}`).join(",")}
+            rowKey="id"
+            dataSource={clean(r.rows)}
+            loading={r.loading}
+            scroll={{ x: 1000 }}
+            pagination={false}
+            expandable={{ defaultExpandAllRows: true }}
+            columns={[
+              {
+                title: "Nhóm / Phòng ban",
+                dataIndex: "name",
+                render: (v) => (
+                  <Space>
+                    <FolderOutlined
+                      aria-hidden="true"
+                      style={{ color: "#1677ff" }}
+                    />
+                    <b>{v}</b>
+                  </Space>
+                ),
+              },
+              {
+                title: "Trưởng nhóm",
+                dataIndex: "leader_name",
+                render: (v) =>
+                  v || (
+                    <Typography.Text type="secondary">
+                      Chưa bổ nhiệm
+                    </Typography.Text>
+                  ),
+              },
+              {
+                title: "Khu vực",
+                dataIndex: "region_name",
+                render: (v) => (v ? <Tag color="cyan">{v}</Tag> : "—"),
+              },
+              {
+                title: "Nhân sự trực tiếp",
+                dataIndex: "member_count",
+                render: (v, row) => (
+                  <Button
+                    type="link"
+                    icon={<TeamOutlined aria-hidden="true" />}
+                    onClick={() => setMembers(row)}
+                  >
+                    {Number(v)} nhân sự
+                  </Button>
+                ),
+              },
+              { title: "Mô tả", dataIndex: "description" },
+              {
+                title: "Thao tác",
+                render: (_, row) =>
+                  write ? (
+                    <Space>
+                      <Button
+                        icon={<EditOutlined aria-hidden="true" />}
+                        aria-label={`Sửa nhóm ${row.name}`}
+                        onClick={() => start(row)}
+                      />
+                      <Popconfirm
+                        title="Xóa nhóm này?"
+                        description="Nhóm đang có nhân sự hoặc dữ liệu sẽ được giữ lại."
+                        onConfirm={() =>
+                          a.run(
+                            () => api.delete("/organization/groups/" + row.id),
+                            r.reload,
+                          )
+                        }
+                      >
+                        <Button
+                          danger
+                          icon={<DeleteOutlined aria-hidden="true" />}
+                          aria-label={`Xóa nhóm ${row.name}`}
+                        />
+                      </Popconfirm>
+                    </Space>
+                  ) : (
+                    <Tag>Chỉ xem</Tag>
+                  ),
+              },
+            ]}
+          />
+        )}
       </DataCard>
       <EntityModal
         entity="group"
@@ -176,8 +195,16 @@ export default function Organization() {
           a.run(
             () =>
               editing
-                ? api.put("/organization/groups/" + editing.id, v)
-                : api.post("/organization/groups", v),
+                ? api.put("/organization/groups/" + editing.id, {
+                    ...v,
+                    parent_id: v.parent_id || null,
+                    region_id: v.region_id || null,
+                  })
+                : api.post("/organization/groups", {
+                    ...v,
+                    parent_id: v.parent_id || null,
+                    region_id: v.region_id || null,
+                  }),
             () => {
               r.reload();
               directory.reload();
@@ -190,12 +217,7 @@ export default function Organization() {
           <Input />
         </Form.Item>
         <Form.Item name="parent_id" label="Nhóm cha">
-          <Select
-            allowClear
-            options={groups
-              .filter((g) => g.id !== editing?.id)
-              .map((g) => ({ value: g.id, label: g.name }))}
-          />
+          <HierarchySelect rows={groups} exclude={editing?.id} />
         </Form.Item>
         <Form.Item name="leader_id" label="Trưởng nhóm" rules={required}>
           <Select

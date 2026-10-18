@@ -1,6 +1,7 @@
 const { db } = require("../core/store");
 const { assignPending } = require("../core/leads");
 const nodemailer = require("nodemailer");
+const { mailHTML } = require("../core/mailContent");
 async function businessJobs() {
   const c = await db.getConnection();
   let locked = false;
@@ -90,6 +91,7 @@ async function mailJobs() {
           to: row.recipient,
           subject: row.subject,
           text: row.body,
+          html: mailHTML(row.subject, row.body),
           messageId: `<crm-${row.id}@${process.env.MAIL_MESSAGE_DOMAIN || "crm.local"}>`,
         });
         await c.query(
@@ -111,7 +113,9 @@ async function mailJobs() {
   } finally {
     try {
       if (locked)
-        await c.query("SELECT RELEASE_LOCK(CONCAT(DATABASE(),':crm-mail-worker'))");
+        await c.query(
+          "SELECT RELEASE_LOCK(CONCAT(DATABASE(),':crm-mail-worker'))",
+        );
     } finally {
       c.release();
       transport.close();

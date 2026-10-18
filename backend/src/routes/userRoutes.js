@@ -177,8 +177,8 @@ async function createUser(c, actor, b) {
   await queueMail(
     c,
     mail,
-    "Kích hoạt tài khoản CRM",
-    `Tài khoản: ${mail}\nMật khẩu tạm: ${temp}\nĐặt mật khẩu riêng tại ${(process.env.FRONTEND_URL || "http://localhost:5173").replace(/\/$/, "")}/reset-password?token=${activation} (30 phút).`,
+    "Thông tin tài khoản Enterprise CRM của bạn",
+    `Xin chào ${name},\nQuản trị viên đã tạo tài khoản cho bạn.\nTài khoản: ${mail}\nMật khẩu tạm: ${temp}\nBạn cần đổi mật khẩu trong lần đăng nhập đầu tiên.\nĐặt mật khẩu riêng tại ${(process.env.FRONTEND_URL || "http://localhost:5173").replace(/\/$/, "")}/reset-password?token=${activation} (30 phút).`,
   );
   await audit(c, actor, "CREATE", "users", uid, null, {
     email: mail,

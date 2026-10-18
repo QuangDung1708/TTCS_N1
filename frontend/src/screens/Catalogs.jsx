@@ -1,3 +1,4 @@
+import Select from "../ui/LinkedSelect";
 import { useState } from "react";
 import {
   Button,
@@ -5,7 +6,7 @@ import {
   Input,
   InputNumber,
   Popconfirm,
-  Select,
+  Modal,
   Space,
   Switch,
   Table,
@@ -79,7 +80,8 @@ export default function Catalogs({ kind }) {
     ),
     [search, setSearch] = useState(""),
     [editing, setEditing] = useState(null),
-    [open, setOpen] = useState(false);
+    [open, setOpen] = useState(false),
+    [statusTarget, setStatusTarget] = useState(null);
   const mode = modes[kind],
     stage = kind === "categories" && tab === "stages",
     competitor = kind === "deal-reasons" && tab === "competitors";
@@ -121,7 +123,7 @@ export default function Catalogs({ kind }) {
             ...row,
             list_price: Number(row.list_price),
             floor_price: Number(row.floor_price),
-            ...(auth.has("Director")
+            ...(auth.has("Admin", "Director")
               ? {
                   cost_price:
                     row.cost_price == null ? undefined : Number(row.cost_price),
@@ -176,7 +178,7 @@ export default function Catalogs({ kind }) {
       },
       { title: "Giá niêm yết", dataIndex: "list_price", render: money },
       { title: "Giá sàn", dataIndex: "floor_price", render: money },
-      ...(auth.has("Director")
+      ...(auth.has("Admin", "Director")
         ? [
             {
               title: "Giá vốn",
@@ -298,21 +300,12 @@ export default function Catalogs({ kind }) {
               />
             ))}
           {isProduct ? (
-            <Popconfirm
-              title="Thay đổi trạng thái kinh doanh?"
-              onConfirm={() =>
-                a.run(
-                  () => api.put(`${path}/${row.id}/toggle-status`),
-                  r.reload,
-                )
-              }
-            >
-              <Button
-                type="text"
-                aria-label={`Đổi trạng thái ${row.name}`}
-                icon={<StopOutlined aria-hidden="true" />}
-              />
-            </Popconfirm>
+            <Button
+              type="text"
+              aria-label={`Đổi trạng thái ${row.name}`}
+              onClick={() => setStatusTarget(row)}
+              icon={<StopOutlined aria-hidden="true" />}
+            />
           ) : kind === "custom-fields" ? null : (
             <Popconfirm
               title="Xóa bản ghi này?"
@@ -335,7 +328,7 @@ export default function Catalogs({ kind }) {
   const save = async (v) => {
     const data = { ...v };
     if (kind === "categories" && !stage) data.type = tab;
-    if (kind === "deal-reasons" && !competitor) data.type = tab;
+    if (kind === "deal-reasons" && !competitor) data.type = v.type || tab;
     if (kind === "custom-fields") {
       data.entity_type = tab;
       data.options = (v.options || "")
@@ -343,11 +336,14 @@ export default function Catalogs({ kind }) {
         .map((t) => t.trim())
         .filter(Boolean);
     }
-    if (isProduct && !auth.has("Director")) delete data.cost_price;
+    if (isProduct && !auth.has("Admin", "Director")) delete data.cost_price;
     return !!(await a.run(
       () =>
         editing ? api.put(path + "/" + editing.id, data) : api.post(path, data),
-      r.reload,
+      () => {
+        r.reload();
+        if (kind === "deal-reasons" && !competitor) setTab(data.type);
+      },
     ));
   };
   const tabs =
@@ -422,10 +418,35 @@ export default function Catalogs({ kind }) {
           }}
         />
       </DataCard>
+      <Modal
+        open={!!statusTarget}
+        title={
+          statusTarget?.status === "ACTIVE"
+            ? "Ngừng kinh doanh sản phẩm?"
+            : "Kinh doanh trở lại?"
+        }
+        onCancel={() => setStatusTarget(null)}
+        confirmLoading={a.busy}
+        okText="Xác nhận"
+        cancelText="Hủy"
+        onOk={() =>
+          a.run(
+            () => api.put(`${path}/${statusTarget.id}/toggle-status`),
+            () => {
+              setStatusTarget(null);
+              r.reload();
+            },
+          )
+        }
+      >
+        <Typography.Paragraph>
+          {statusTarget?.name}. Các báo giá cũ được giữ nguyên.
+        </Typography.Paragraph>
+      </Modal>
       <EntityModal
         open={open}
         onClose={() => setOpen(false)}
-        title={editing ? "Chỉnh sửa thông tin" : "Thêm thông tin mới"}
+        title={`${editing ? "Chỉnh sửa" : "Thêm"} ${isProduct ? "sản phẩm" : stage ? "giai đoạn pipeline" : competitor ? "đối thủ cạnh tranh" : kind === "categories" ? categoryTabs.find(([key]) => key === tab)?.[1].toLowerCase() : kind === "deal-reasons" ? (tab === "WON" ? "lý do thắng" : "lý do thua") : "trường tùy chỉnh"}`}
         record={editing}
         entity={kind + "-" + tab}
         busy={a.busy}
@@ -443,7 +464,9 @@ export default function Catalogs({ kind }) {
                 }
               : kind === "custom-fields"
                 ? { field_type: "text", is_active: true, is_required: false }
-                : {}
+                : kind === "deal-reasons" && !competitor
+                  ? { type: tab }
+                  : {}
         }
       >
         <div className="form-grid">
@@ -514,17 +537,60 @@ export default function Catalogs({ kind }) {
               {(isProduct ||
                 stage ||
                 (kind === "categories" && !competitor)) && (
-                <Form.Item name="code" label="Mã định danh" rules={required}>
+                <Form.Item
+                  name="code"
+                  label="Mã định danh"
+                  rules={isProduct || stage ? required : []}
+                  extra={
+                    kind === "categories" && !stage
+                      ? "Để trống để hệ thống tạo mã duy nhất."
+                      : undefined
+                  }
+                >
                   <Input maxLength={50} />
                 </Form.Item>
               )}
               <Form.Item
                 name="name"
-                label={competitor ? "Tên đối thủ" : "Tên"}
+                label={
+                  competitor
+                    ? "Tên đối thủ"
+                    : kind === "categories"
+                      ? `Tên ${categoryTabs.find(([key]) => key === tab)?.[1].toLowerCase()}`
+                      : kind === "deal-reasons"
+                        ? tab === "WON"
+                          ? "Lý do thắng"
+                          : "Lý do thua"
+                        : "Tên sản phẩm"
+                }
                 rules={required}
               >
-                <Input maxLength={255} />
+                <Input
+                  maxLength={100}
+                  placeholder={
+                    kind === "categories"
+                      ? {
+                          industry: "Ví dụ: Công nghệ thông tin",
+                          company_size: "Ví dụ: 51–200 nhân sự",
+                          lead_source: "Ví dụ: Website",
+                          activity_type: "Ví dụ: Gọi điện tư vấn",
+                        }[tab]
+                      : kind === "deal-reasons"
+                        ? "Ví dụ: Giải pháp phù hợp nhu cầu"
+                        : undefined
+                  }
+                />
               </Form.Item>
+              {kind === "deal-reasons" && !competitor && (
+                <Form.Item name="type" label="Phân loại" rules={required}>
+                  <Select
+                    options={[
+                      { value: "WON", label: "Lý do thắng" },
+                      { value: "LOST", label: "Lý do thua" },
+                    ]}
+                  />
+                </Form.Item>
+              )}
               {isProduct ? (
                 <>
                   <Form.Item name="type" label="Loại sản phẩm" rules={required}>
@@ -552,7 +618,7 @@ export default function Catalogs({ kind }) {
                   >
                     <MoneyField />
                   </Form.Item>
-                  {auth.has("Director") && (
+                  {auth.has("Admin", "Director") && (
                     <Form.Item name="cost_price" label="Giá vốn">
                       <MoneyField />
                     </Form.Item>

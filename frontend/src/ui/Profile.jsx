@@ -94,7 +94,7 @@ export function PasswordModal({ open, onClose }) {
     </Modal>
   );
 }
-export function ProfileDrawer({ open, onClose }) {
+export function ProfileDrawer({ open, onClose, onPassword, onLogout }) {
   const auth = useAuth(),
     action = useAction(),
     small = useMedia("(max-width: 575px)");
@@ -112,6 +112,12 @@ export function ProfileDrawer({ open, onClose }) {
       size={small ? "100%" : 520}
       destroyOnHidden
     >
+      <Space className="section-gap" wrap>
+        <Button onClick={onPassword}>Đổi mật khẩu</Button>
+        <Button danger onClick={onLogout}>
+          Đăng xuất
+        </Button>
+      </Space>
       <div className="profile-summary">
         <Avatar
           size={80}

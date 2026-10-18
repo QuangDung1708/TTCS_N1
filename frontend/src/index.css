@@ -1035,3 +1035,81 @@ a {
     box-shadow: 0 6px 20px #172b4d0a;
   }
 }
+
+.header-popup-anchor {
+  position: relative;
+}
+.header-popup {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 12px);
+  width: min(460px, calc(100vw - 32px));
+  max-height: min(680px, calc(100dvh - 110px));
+  overflow: auto;
+  padding: 18px;
+  border: 1px solid #e7edf5;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 8px 32px #172b4d26;
+  z-index: 1100;
+  animation: popup-enter 0.18s ease-out;
+}
+.header-popup.account-popup {
+  width: 210px;
+  padding: 8px;
+}
+.account-popup .ant-btn {
+  text-align: left;
+  justify-content: flex-start;
+}
+.header-popup .notifications-panel {
+  width: 100%;
+}
+.audit-notification {
+  width: 100%;
+}
+.audit-notification p {
+  margin: 8px 0;
+}
+.audit-notification-change {
+  background: #f5f7fb;
+  padding: 6px 8px;
+  border-radius: 5px;
+  font-size: 12px;
+}
+.audit-notification-change del {
+  color: #8795a8;
+}
+.audit-new {
+  color: #089777;
+}
+@keyframes popup-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .header-popup {
+    animation: none;
+  }
+}
+
+@media (max-width: 575px) {
+  .header-popup {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    top: 76px;
+    width: auto;
+  }
+  .header-popup.account-popup {
+    left: auto;
+    right: 12px;
+    width: 210px;
+  }
+}

@@ -1,6 +1,6 @@
 const { insert, update, audit } = require("./store");
-const { fail, id, text, email, phone, json } = require("./http");
-const { scope, record, ownerAllowed } = require("./access");
+const { fail, id, text, email, phone, json, number } = require("./http");
+const { scope, record, ownerAllowed, has } = require("./access");
 async function score(c, b) {
   const [rules] = await c.query("SELECT * FROM lead_scoring_rules");
   let points = 0;
@@ -86,6 +86,22 @@ async function saveLead(c, user, b, leadId) {
     old || null,
     data,
   );
+  if (
+    b.owner_id != null &&
+    Number(b.owner_id) !== Number(old?.owner_id || data.owner_id || 0)
+  ) {
+    if (!has(user || {}, "Admin", "Director", "Team Lead", "Marketing"))
+      fail(403, "Bạn không có quyền phân bổ lead.");
+    await ownerAllowed(c, user, "LEAD", b.owner_id);
+    await assign(
+      c,
+      { ...old, ...data, id: rid },
+      b.owner_id,
+      user,
+      text(b.assignment_reason || "Phân bổ trong hồ sơ lead", "Lý do", 2000),
+      number(b.sla_minutes || 60, "SLA", 1, 43200),
+    );
+  }
   return rid;
 }
 async function assign(c, lead, userId, actor, reason, sla = 60) {

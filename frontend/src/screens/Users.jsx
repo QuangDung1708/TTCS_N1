@@ -254,7 +254,7 @@ export default function Users() {
           <Alert
             type="info"
             showIcon
-            title="Thông tin kích hoạt được gửi qua email đã cấu hình."
+            title="Hệ thống tạo mật khẩu tạm ngẫu nhiên và gửi cùng email đăng nhập, liên kết đặt mật khẩu tới email bạn nhập. Cần cấu hình SMTP."
             className="section-gap"
           />
         )}

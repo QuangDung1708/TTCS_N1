@@ -48,7 +48,7 @@ Vite dev proxy chỉ dùng cho phát triển. `vite preview` chỉ xem build, kh
 
 - `/auth/me` cung cấp vai trò, grants và phạm vi cây nhóm từ server. Không dùng `role_id` số cố định hoặc tin vai trò được sửa trong localStorage.
 - Kiểm soát menu, route, nút và từng bản ghi. Quyền xem và quyền sửa được hợp nhất riêng khi có nhiều vai trò.
-- Giá vốn chỉ Director xem/sửa; Admin quản trị tài khoản; Director đọc danh sách tài khoản/nhật ký/ma trận.
+- Admin có toàn quyền, gồm xem/sửa giá vốn; Director cũng được quản lý giá vốn; Admin quản trị tài khoản; Director đọc danh sách tài khoản/nhật ký/ma trận.
 - Marketing không được chuyển lead thành cơ hội nếu không có thêm vai trò cho phép ghi cơ hội. Kế toán không thấy lead hoặc trình ghi hoạt động.
 - Server vẫn kiểm tra quyền ở mọi yêu cầu, kể cả export và tải tệp. Không thể mở rộng quyền bằng cách hiện lại nút trong trình duyệt.
 - Bản nháp biểu mẫu/ghi chú lưu trong sessionStorage, tách theo tài khoản và bản ghi. Hết phiên đưa về đăng nhập rồi quay lại công việc đang làm.

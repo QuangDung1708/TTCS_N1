@@ -1,4 +1,4 @@
-# Kiểm chứng frontend / backend — 17-10-2026
+# Kiểm chứng frontend / backend — cập nhật 18-10-2026
 
 ## Kết quả thực chạy
 
@@ -7,10 +7,10 @@
 | Frontend `npm ci` trên thư mục Linux sạch | Thành công từ package-lock.json |
 | Frontend `npm run lint` | Thành công, gồm cả source và test |
 | Frontend `npm run build` | Thành công |
-| Playwright + Chromium + Express + MariaDB 10.4 thật | **27/27 test**, sau sửa UI/form/nhật ký |
+| Playwright + Chromium + Express + MariaDB 10.4 thật | **34/34 ca**, gồm các phản hồi bổ sung ngày 18/10 |
 | Backend lint | Thành công |
-| Backend Jest/MySQL | **95/95 test**, 11/11 suite |
-| Backend coverage | 90.64% dòng; 76.50% nhánh; 91.2% hàm; 87.43% câu lệnh |
+| Backend Jest/MySQL | **101/101 test**, 12/12 suite trên MySQL 8.4 và MariaDB 10.4 |
+| Backend coverage của bản trước | 90.64% dòng; 76.50% nhánh; 91.2% hàm; 87.43% câu lệnh; chưa đo lại cho phần Excel/mail mới |
 | Server phát triển | Frontend HTTP 200, backend health HTTP 200; dùng crm_dev không nạp dữ liệu nghiệp vụ mẫu |
 
 Môi trường: Node 24.19.0, MySQL 8.4.11 / MariaDB 10.4.34, Chromium 154.0.8037.57, Playwright 1.56.1. Dữ liệu máy đọc ở [validation.json](validation.json). Có workflow CI cho backend và frontend; chưa theo dõi kết quả chạy GitHub Actions của lần push này.
@@ -74,3 +74,15 @@ Lượt cuối **27/27 ca trình duyệt trên MariaDB 10.4** (2,9 phút); front
 CLI `npm run data:examples` được chạy trên crm_test_examples riêng: 8 tài khoản thật có mật khẩu bcrypt và vai trò đúng; 2 nhóm; 4 khách hàng/liên hệ; 2 sản phẩm; 3 lead (2 lead giao hai Sales khác nhau); 2 cơ hội liên kết đúng khách hàng/liên hệ; 1 chiến dịch. Dữ liệu nghiệp vụ đi qua API thật, account provisioning là CLI cục bộ dùng core store/auth, không cần SMTP. Chạy lại không nhân đôi hoặc đổi mật khẩu khi checkpoint hoàn tất; kiểm tra SQL xác nhận role, liên kết và chủ sở hữu. Tệp mật khẩu riêng tư bị gitignore, không đưa vào gói bàn giao. Không tạo dữ liệu trên máy người dùng. Tên ví dụ không phải danh tính đã xác minh.
 
 Không sửa backend API nghiệp vụ trong đợt này; kết quả 95/95 backend trên hai engine ở đợt trước vẫn ghi riêng, không tuyên bố đã chạy lại suite đó cho CLI mới. Có cảnh báo AntD List deprecated và useForm chưa gắn khi form ẩn ở một số luồng; chúng không làm thất bại các ca chức năng, chưa đổi component ngoài phạm vi sửa. Chưa tái hiện đầy đủ cấu hình trình duyệt của người dùng; nút/popup được điều khiển rõ trạng thái và kiểm thử bằng con trỏ trên Chromium. Xem [hướng dẫn cập nhật](../../UPDATE-UI-AND-DATA.md) và [dữ liệu kiểm thử](../../backend/docs/EXAMPLE-DATA.md).
+
+## Bản sửa liên kết dữ liệu, tài khoản, Excel và tổ chức — 18/10/2026
+
+Backend 101 ca / 12 suite chạy trên hai engine MySQL 8.4 và MariaDB 10.4. Gồm tạo/sửa danh mục với mã tự sinh, API tên chiến dịch không lộ ngân sách, phân bổ lead cùng giao dịch và rollback khi vượt scope, bảng Excel có định dạng, nhập tiêu đề tiếng Việt, mẫu có trường tùy chỉnh, xuất/nhập lại giữ kiểu và số điện thoại; nội dung bắt đầu bằng dấu bằng được lưu dạng chuỗi Excel, không phải công thức. Admin có quyền đầy đủ gồm giá vốn và audit theo yêu cầu mới; các vai trò khác vẫn bị giới hạn theo ma trận.
+
+Bổ sung trình duyệt thực: mở avatar/chuông, hồ sơ/password/logout, dữ liệu nguồn/chiến dịch mới xuất hiện cho Sales, đổi trạng thái sản phẩm còn đúng sau tải lại, chọn người phụ trách trong form, cây nhóm và công ty mẹ/con (gồm bỏ liên kết cha), chọn cơ hội để lưu báo giá, form ngành nghề tạo mã tự động và dùng lại trong khách hàng, quên mật khẩu qua UI rồi đăng nhập bằng mật khẩu mới, từ chối dùng lại reset token. Bộ chọn tên được lấy từ API/MySQL thật; không chặn API để trả dữ liệu giả.
+
+Email tạo tài khoản và quên mật khẩu được đưa vào hàng đợi thực, gửi text/HTML qua kết nối socket SMTP cục bộ thật; kiểm tra không gửi trùng khi worker chạy đồng thời và xóa bí mật trong outbox sau gửi. Chưa xác minh Gmail/App Password, hộp thư thật, trình duyệt Cốc Cốc Windows hoặc DB trên máy người dùng. Bài browser chạy Chromium Linux.
+
+Thêm ExcelJS là thay đổi dependency backend; hướng dẫn cập nhật yêu cầu npm ci, giữ .env/uploads/DB, không yêu cầu migration hay reset database.
+
+Lượt hồi quy phát hành cuối đạt **34/34 ca trình duyệt** trên Chromium + MariaDB 10.4. Hai engine backend đạt **101/101 ca, 12/12 suite**; sau tinh chỉnh tên nguồn/chiến dịch trong Excel, chạy lại 6/6 ca phần bổ sung trên mỗi engine. Frontend lint/build và backend lint đạt. Cảnh báo List bị đánh dấu deprecated và useForm khi đổi màn hình vẫn xuất hiện; không có ngoại lệ JavaScript làm hỏng luồng trong các ca đã kiểm tra.

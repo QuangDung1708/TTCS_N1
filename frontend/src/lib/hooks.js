@@ -27,7 +27,39 @@ export function useResource(path, params = {}) {
       });
     return () => controller.abort();
   }, [path, key, version]);
-  return { ...state, reload, rows: state.data?.data || [] };
+  useEffect(() => {
+    const refreshLookups = () => {
+      if (
+        [
+          "/categories",
+          "/campaigns/options",
+          "/customers",
+          "/customers/users-list",
+          "/pipeline-stages",
+          "/deals",
+          "/custom-fields",
+          "/organization/tree",
+          "/organization/regions",
+          "/roles",
+          "/groups",
+        ].includes(path)
+      )
+        reload();
+    };
+    window.addEventListener("crm:form-open", refreshLookups);
+    window.addEventListener("crm:data-changed", reload);
+    window.addEventListener("focus", refreshLookups);
+    return () => {
+      window.removeEventListener("crm:form-open", refreshLookups);
+      window.removeEventListener("crm:data-changed", reload);
+      window.removeEventListener("focus", refreshLookups);
+    };
+  }, [reload, path]);
+  return {
+    ...state,
+    reload,
+    rows: Array.isArray(state.data) ? state.data : state.data?.data || [],
+  };
 }
 export function useAction() {
   const { message } = App.useApp();

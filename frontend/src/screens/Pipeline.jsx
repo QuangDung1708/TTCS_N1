@@ -1,3 +1,4 @@
+import Select from "../ui/LinkedSelect";
 import { useEffect, useState } from "react";
 import {
   Alert,
@@ -13,7 +14,6 @@ import {
   Progress,
   Row,
   Segmented,
-  Select,
   Space,
   Statistic,
   Table,
@@ -611,9 +611,7 @@ function DealEditor({ open, onClose, record, stages, fields, users, onSaved }) {
     ),
     sources = useResource("/categories", { type: "lead_source" }),
     auth = useAuth(),
-    campaigns = useResource(
-      auth.has("Admin", "Director", "Marketing") ? "/campaigns" : null,
-    ),
+    campaigns = useResource("/campaigns/options"),
     a = useAction();
   const sourceRows = Array.isArray(contacts.data)
     ? contacts.data
