@@ -1,10 +1,10 @@
+import { Drawer } from "../ui/Motion";
 import HierarchySelect from "../ui/HierarchySelect";
 import Select from "../ui/LinkedSelect";
 import { useState } from "react";
 import {
   Avatar,
   Button,
-  Drawer,
   Form,
   Input,
   Popconfirm,

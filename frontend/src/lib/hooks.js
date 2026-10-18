@@ -78,6 +78,7 @@ export function useAction() {
       const result = await fn();
       if (success)
         message.open({ key, type: "success", content: success, duration: 2 });
+      if (result?.data?.warning) message.warning(result.data.warning, 6);
       await onSuccess?.(result);
       return result;
     } catch (e) {

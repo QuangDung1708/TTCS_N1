@@ -1,3 +1,4 @@
+import { Drawer, Modal } from "../ui/Motion";
 import Select from "../ui/LinkedSelect";
 import { useEffect, useState } from "react";
 import {
@@ -6,13 +7,11 @@ import {
   Button,
   Col,
   Descriptions,
-  Drawer,
   Empty,
   Form,
   Input,
   InputNumber,
   List,
-  Modal,
   Popconfirm,
   Row,
   Space,
@@ -877,11 +876,11 @@ function LeadRules({ kind, onClose, onChanged }) {
         hot: r.data?.thresholds?.hot,
       }
     : { rules: r.rows.map((row) => ({ ...row, is_active: !!row.is_active })) };
-  return r.loading ? (
+  return r.loading && !r.data ? (
     <Modal open title="Đang tải cấu hình" onCancel={onClose} footer={null}>
       <p>Đang tải quy tắc đã lưu…</p>
     </Modal>
-  ) : r.error ? (
+  ) : r.error && !r.data ? (
     <Modal open title="Chưa tải được cấu hình" onCancel={onClose} footer={null}>
       <ResourceError resource={r} />
     </Modal>

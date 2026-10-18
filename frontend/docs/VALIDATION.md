@@ -7,9 +7,9 @@
 | Frontend `npm ci` trên thư mục Linux sạch | Thành công từ package-lock.json |
 | Frontend `npm run lint` | Thành công, gồm cả source và test |
 | Frontend `npm run build` | Thành công |
-| Playwright + Chromium + Express + MariaDB 10.4 thật | **44/44 ca**, gồm cây tổ chức và kéo chốt Won/Lost |
+| Playwright + Chromium + Express + MariaDB 10.4 thật | **48/48 ca**, gồm gộp khách hàng, đăng ký email, animation, cây tổ chức và kéo chốt Won/Lost |
 | Backend lint | Thành công |
-| Backend Jest/MySQL | **106/106 test**, 12/12 suite trên MySQL 8.4 và MariaDB 10.4 |
+| Backend Jest/MySQL | **109/109 test**, 13/13 suite trên MySQL 8.4 và MariaDB 10.4 |
 | Backend coverage của bản trước | 90.64% dòng; 76.50% nhánh; 91.2% hàm; 87.43% câu lệnh; chưa đo lại cho phần Excel/mail mới |
 | Server phát triển | Frontend HTTP 200, backend health HTTP 200; dùng crm_dev không nạp dữ liệu nghiệp vụ mẫu |
 
@@ -122,3 +122,13 @@ Nguyên nhân kéo sang Won/Lost không được là cột đóng đặt `disabl
 Bốn ca mục tiêu đạt: một cây mở/thu gọn và xem nhân sự toàn nhánh; quan hệ công ty mẹ/con qua form khách; pointer thật vào Won (thiếu lý do, 422 điều kiện rồi override hợp lệ và lưu số thực); pointer vào Lost (hủy giữ OPEN, lưu reason/competitor, tải lại thấy LOST). Backend đầy đủ đạt 106/106 ca, 12/12 suite trên mỗi engine; frontend/backend lint và build đạt.
 
 Hồi quy cuối bản tổ chức/pipeline: **44/44 ca Chromium + MariaDB 10.4**, **106/106 backend mỗi MySQL 8.4/MariaDB 10.4**, lint/build đạt. Không thao tác DB trên máy người dùng; chỉ nạp dữ liệu cây KT khi người dùng chạy tệp CMD hoặc lệnh data:examples trên DB họ cấu hình.
+
+## Gộp, animation toàn ứng dụng và đăng ký email
+
+Bản này chạy lại 48/48 E2E trên Chromium + MariaDB 10.4 và 109/109 test backend trên mỗi MySQL 8.4 / MariaDB 10.4. Sau khi sửa vòng đời form lead khi tự refresh, 6/6 luồng ảnh hưởng đã qua kiểm tra lại. Tạo/gộp khách hàng rồi reload giữ liên hệ/cơ hội/công ty con; tab/route và đóng modal/drawer có animation.
+
+Đăng ký qua browser xác minh mã 6 số, countdown 60 giây, mật khẩu xác nhận và Sales Rep mặc định; backend thử hai request đồng thời, mã cũ/hết hạn và email đã tồn tại. SMTP TCP cục bộ kiểm tra gửi ngay OTP/reset/invitation không cần vòng worker, trả lỗi khi SMTP từ chối, CLI gửi thư kiểm tra và giữ nguyên mật khẩu SMTP có ký tự đặc biệt khi ghi dotenv. Chạy thêm 3/3 test mail/CLI trên mỗi engine sau lần kiểm tra toàn bộ.
+
+Nâng cấp dữ liệu từ bản trước và chạy lại trên hai engine: thêm Admin KT riêng, giữ mật khẩu/role cũ, 7 vai trò đăng nhập thật, production không trả tài khoản kiểm thử. Xem ảnh [login](images/login-roles-desktop.png), [đăng ký](images/register-email-desktop.png), [360px](images/login-roles-mobile.png).
+
+SMTP môi trường hiện tại thiếu SMTP_HOST. Chưa xác minh hộp thư bên ngoài hoặc chạy CMD trên Windows của người dùng; dùng CAU-HINH-MAIL.cmd để nhập cấu hình tại máy và gửi thư kiểm tra nhận thực tế.

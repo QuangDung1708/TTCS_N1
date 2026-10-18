@@ -1,4 +1,5 @@
-import { App, Avatar, Button, Modal, Upload } from "antd";
+import { Modal } from "./ui/Motion";
+import { App, Avatar, Button, Upload } from "antd";
 import { UploadOutlined, UserOutlined } from "@ant-design/icons";
 import { useAuth } from "./auth/AuthProvider";
 import { assetURL, upload } from "./lib/api";

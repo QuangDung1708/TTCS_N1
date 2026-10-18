@@ -86,3 +86,9 @@ Test tự chạy backend cổng 5002 và Vite cổng 5174, tắt worker/SMTP ngo
 Với folder đang chạy, làm theo [UPDATE-UI-AND-DATA.md](../UPDATE-UI-AND-DATA.md); giữ `.env`, uploads và DB. Cài lại dependency cả frontend/backend theo lockfile để tránh dùng cache/version cũ. Tệp CMD ở gốc nạp dữ liệu qua API vào DB hiện tại, có thể nhập email tài khoản đang test để nhận dữ liệu theo đúng scope.
 
 Bộ chọn dùng nút mở danh sách, ô tìm ở trong popup. Giá trị không nhập tự do. Chưa chọn khách hàng thì người liên hệ bị khóa; khách chưa có liên hệ hiện hướng dẫn. Xem [nguồn dữ liệu của từng nhóm dropdown và kiểm chứng mail](docs/DROPDOWNS-AND-MAIL.md).
+
+## Login, đăng ký và animation
+
+Nạp dữ liệu bằng `CAP-NHAT-VA-NAP-DU-LIEU.cmd` tại gốc để có đủ tài khoản kiểm thử theo 7 User Roles dưới form login. Bấm vai trò điền tài khoản thật, vẫn xác thực qua API; production luôn ẩn bộ chọn. Link Tạo tài khoản mở form mã 6 số, xác nhận mật khẩu, giới hạn gửi lại 60 giây; mặc định Sales Rep. Gửi mail thật cần SMTP riêng, dùng `CAU-HINH-MAIL.cmd`.
+
+Motion dùng chung cho route, tab, modal, drawer, menu tài khoản/thông báo và feedback lưu, tôn trọng Giảm chuyển động. Ảnh giao diện thật: [login desktop](docs/images/login-roles-desktop.png), [đăng ký email](docs/images/register-email-desktop.png), [login 360px](docs/images/login-roles-mobile.png).

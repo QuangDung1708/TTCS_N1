@@ -18,10 +18,10 @@ Cấu hình qua biến môi trường hoặc tệp `.env` cục bộ theo tên b
 - MySQL: `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`. Tạo database bằng `utf8mb4`; tài khoản migration cần quyền DDL, tài khoản ứng dụng cần quyền thao tác dữ liệu.
 - `JWT_SECRET`: khóa ngẫu nhiên ít nhất 32 ký tự, ổn định qua các lần khởi động. Khóa trong bản `.env` có sẵn chưa đáp ứng điều kiện này. Thay khóa sẽ làm JWT cũ hết hiệu lực. Không ghi khóa vào Git.
 - HTTP: `PORT` mặc định 5001, `BIND_HOST` mặc định 127.0.0.1; `FRONTEND_URL`, `PUBLIC_API_URL`, `CORS_ORIGINS` là các URL triển khai thực tế. Chỉ đặt `TRUST_PROXY_HOPS` khi biết số reverse proxy tin cậy.
-- Email: `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`. Không cấu hình SMTP thì thư nằm trong `mail_outbox`, không báo đã gửi ra ngoài. Worker dùng TLS/chứng chỉ mặc định của Nodemailer, không tắt xác minh.
+- Email: `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`. Thiếu SMTP thì đăng ký/quên mật khẩu báo lỗi cấu hình; tạo user vẫn lưu tài khoản nhưng báo riêng mail đang chờ trong `mail_outbox`. Worker dùng TLS/chứng chỉ mặc định của Nodemailer, không tắt xác minh.
 - Worker tự chạy cùng `npm start`, mỗi 30 giây xử lý phân bổ/SLA. Đánh giá cơ hội đình trệ mỗi ngày một lần, dựa trên mốc UTC và lưu trạng thái chạy trong database. Có thể dùng `RUN_WORKER=false` trên API và chạy `npm run worker` riêng. Advisory lock ngăn hai worker xử lý cùng lượt phân bổ.
 - Nếu XAMPP báo `worker_failed ER_PARSE_ERROR`: bản vá worker dùng `FOR UPDATE` cùng advisory lock, không còn yêu cầu `SKIP LOCKED` vốn chưa có trên MariaDB 10.4. Hàng đợi mail có khóa riêng để các worker không gửi đồng thời cùng bản ghi. Không cần tắt worker hoặc sửa App Password để xử lý lỗi cú pháp SQL này. Xem [bản vá và kiểm chứng](docs/WORKER-COMPATIBILITY.md); MySQL 8 vẫn là nền tảng kiểm thử đầy đủ.
-- Đăng ký công khai bằng OTP được giữ dưới tùy chọn `ALLOW_SELF_REGISTRATION=true`; tài khoản tự đăng ký chỉ có vai trò Sales Rep. Mặc định quản trị viên cấp tài khoản.
+- Đăng ký công khai bằng OTP được giữ dưới tùy chọn `ALLOW_SELF_REGISTRATION=true`; tài khoản tự đăng ký chỉ có vai trò Sales Rep. Development mặc định bật khi chưa có cấu hình; `ALLOW_SELF_REGISTRATION=false` tắt đăng ký. Production cần bật rõ `true`. Mã 6 số có hiệu lực 10 phút, gửi lại sau 60 giây theo email, mật khẩu xác nhận phải khớp.
 
 Để chạy thử cục bộ với khóa phiên tạm thời (mọi phiên của lần chạy trước sẽ không dùng lại được):
 
@@ -78,3 +78,9 @@ XLSX dùng worksheet đơn giản, bộ lọc/cố định tiêu đề và kiể
 Chạy `npm run mail:check` sau khi cấu hình `SMTP_HOST`, cổng/TLS, người gửi và thông tin xác thực trong `.env`. Chỉ kiểm tra SMTP, không gửi thư. `SMTP_USER`/`SMTP_PASS` mà thiếu host sẽ không gửi được. Không dùng lại bí mật có sẵn trong repository. Admin xem `/api/admin/mail/status` hoặc thẻ trạng thái trên Quản trị người dùng: cấu hình thiếu, queue pending/sent/failed, mã lỗi; không trả nội dung thư, địa chỉ người nhận hoặc thông tin xác thực. Các role khác bị từ chối endpoint này.
 
 Worker mail chạy độc lập tác vụ lead/báo cáo; chỉ đánh dấu sent khi SMTP chấp nhận người nhận. SMTP từ chối giữ pending/attempts/last_error, thử lại sau 5 phút tối đa 10 lượt. Điều này không xác nhận thư tới Inbox; cần kiểm tra hộp thư thật khi triển khai. Liên kết reset dùng `FRONTEND_URL`, 30 phút, một lần. Hướng dẫn Gmail và cập nhật có trong `UPDATE-UI-AND-DATA.md` ở gốc.
+
+## Cấu hình và thử nhận mail tại máy bạn
+
+Chạy `npm run mail:configure` để nhập cấu hình (ẩn mật khẩu), kiểm tra SMTP rồi mới lưu các khóa SMTP vào `.env`. Chạy `npm run mail:send-test -- email-cua-ban` để gửi một thư kiểm tra thực sự. Với Gmail phải dùng App Password. Khởi động lại backend sau khi cập nhật. Có thể dùng `CAU-HINH-MAIL.cmd` ở gốc trên Windows. Ba luồng đăng ký/quên mật khẩu/cấp user gửi ngay sau commit; worker xử lý lại thư lỗi. SMTP chấp nhận không đồng nghĩa đã vào Inbox.
+
+`npm run auth:enable` bật đăng ký và tài khoản kiểm thử cho bản cục bộ, giữ cấu hình DB/SMTP. Sau `npm run data:examples`, login có đủ 7 User Roles để điền form từ tài khoản thật. Có Admin KT riêng, không đổi Admin có sẵn. Không có mật khẩu chung; checkpoint riêng tư luôn loại khỏi Git/ZIP. Tắt bằng `ENABLE_TEST_ACCOUNTS=false`; production luôn tắt bộ chọn này.

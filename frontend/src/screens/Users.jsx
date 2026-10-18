@@ -99,8 +99,8 @@ export default function Users() {
             <>
               <div>
                 {!mail.data.configured
-                  ? `Thiếu/sai: ${mail.data.missing.join(", ")}. Bổ sung backend/.env rồi chạy npm run mail:check.`
-                  : "Tạo tài khoản và quên mật khẩu sẽ xếp thư vào hàng đợi; SMTP chấp nhận thư mới được đánh dấu đã gửi."}
+                  ? `Thiếu/sai: ${mail.data.missing.join(", ")}. Chạy npm run mail:configure trong backend, khởi động lại máy chủ rồi chạy npm run mail:send-test -- email-cua-ban.`
+                  : "Đăng ký, tạo tài khoản và quên mật khẩu gửi ngay qua SMTP; thư chưa gửi được sẽ tiếp tục nằm trong hàng đợi để thử lại."}
               </div>
               <div>
                 Đang chờ: {mail.data.queue.pending} · SMTP đã nhận:{" "}
@@ -109,9 +109,11 @@ export default function Users() {
                   ? ` · Lỗi gần nhất: ${mail.data.last_error}`
                   : ""}
               </div>
+              {mail.data.error_help && <div>{mail.data.error_help}</div>}
               {!mail.data.worker_enabled && (
                 <div>
-                  Worker đi kèm API đã tắt; cần chạy tiến trình npm run worker.
+                  Worker thử lại đã tắt; yêu cầu mới vẫn gửi ngay. Chạy npm run
+                  worker để xử lý thư đang chờ.
                 </div>
               )}
               <Button type="link" onClick={mail.reload} loading={mail.loading}>
@@ -285,6 +287,7 @@ export default function Users() {
                 : api.post("/users", v),
             () => {
               r.reload();
+              mail.reload();
               directory.reload();
               auth.refresh();
             },
@@ -351,6 +354,7 @@ export default function Users() {
               api.put(`/users/${lock.id}/status`, { status: "inactive", ...v }),
             () => {
               r.reload();
+              mail.reload();
               directory.reload();
             },
           )

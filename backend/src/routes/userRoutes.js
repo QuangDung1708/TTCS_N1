@@ -191,11 +191,29 @@ async function createUser(c, actor, b) {
 }
 router.post(
   "/",
-  route(async (req, res) =>
-    res.status(201).json({
-      id: await transaction((c) => createUser(c, req.user, req.body)),
-    }),
-  ),
+  route(async (req, res) => {
+    const uid = await transaction((c) => createUser(c, req.user, req.body));
+    const [rows] = await db.query(
+      "SELECT id FROM mail_outbox WHERE recipient=? AND subject='Thông tin tài khoản Enterprise CRM của bạn' ORDER BY id DESC LIMIT 1",
+      [email(req.body.email)],
+    );
+    const mail = await require("../core/mailDelivery").deliverMail(
+      rows.map((row) => row.id),
+    );
+    res
+      .status(201)
+      .json({
+        id: uid,
+        mail,
+        ...(mail.status !== "sent"
+          ? {
+              warning:
+                mail.warning ||
+                "Đã tạo tài khoản nhưng email chưa gửi được. Kiểm tra cấu hình SMTP trong Quản trị người dùng.",
+            }
+          : {}),
+      });
+  }),
 );
 router.get(
   "/",

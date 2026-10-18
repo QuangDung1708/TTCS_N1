@@ -1,5 +1,5 @@
 {
-  "verified_at_utc": "2026-10-18T09:14:11.874971+00:00",
+  "verified_at_utc": "2026-10-18T09:59:05.860326+00:00",
   "runtime": {
     "node": "24.19.0",
     "mysql": "8.4.11",
@@ -8,17 +8,17 @@
     "mariadb": "10.4.34"
   },
   "frontend": {
-    "browser_tests_passed": 44,
-    "browser_tests_total": 44,
+    "browser_tests_passed": 48,
+    "browser_tests_total": 48,
     "mock_api": false,
     "lint": "passed",
     "build": "passed",
     "clean_npm_ci": "passed"
   },
   "backend": {
-    "tests_passed": 106,
-    "tests_total": 106,
-    "suites_passed": 12,
+    "tests_passed": 109,
+    "tests_total": 109,
+    "suites_passed": 13,
     "coverage_percent": {
       "lines": 90.64,
       "statements": 87.43,
@@ -314,5 +314,58 @@
     "backend_lint": "passed",
     "user_database_accessed": false,
     "schema_change_required": false
+  },
+  "auth_merge_motion_fix": {
+    "browser": {
+      "passed": 48,
+      "total": 48,
+      "engine": "Chromium",
+      "database": "MariaDB 10.4.34"
+    },
+    "mysql_backend": {
+      "passed": 109,
+      "total": 109,
+      "suites": 13
+    },
+    "mariadb_backend": {
+      "passed": 109,
+      "total": 109,
+      "suites": 13
+    },
+    "affected_browser_followup": {
+      "passed": 6,
+      "total": 6
+    },
+    "immediate_smtp_and_cli_tests_each_engine": {
+      "passed": 3,
+      "total": 3
+    },
+    "customer_merge_contact_deal_child_persistence": true,
+    "workspace_tab_route_modal_drawer_motion": true,
+    "lead_rules_refresh_does_not_interrupt_close": true,
+    "registration_code_six_digits": true,
+    "registration_resend_atomic_seconds": 60,
+    "password_confirmation_server_and_client": true,
+    "duplicate_email_rejected": true,
+    "self_registration_role": "Sales Rep",
+    "all_seven_persisted_test_roles_login_both_engines": true,
+    "production_test_picker_disabled": true,
+    "example_upgrade_and_repeat_both_engines": true,
+    "example_password_hashes_preserved": true,
+    "smtp_delivery_immediate_without_periodic_worker": true,
+    "smtp_rejection_reported": true,
+    "smtp_test_cli_accepted_by_local_socket": true,
+    "dotenv_smtp_secret_roundtrip": true,
+    "desktop_and_360px_visual_review": true,
+    "frontend_lint": "passed",
+    "frontend_build": "passed",
+    "backend_lint": "passed",
+    "external_mailbox_verified": false,
+    "user_database_accessed": false,
+    "windows_cmd_executed": false,
+    "schema_change_required": false,
+    "local_mail_check_missing": [
+      "SMTP_HOST"
+    ]
   }
 }

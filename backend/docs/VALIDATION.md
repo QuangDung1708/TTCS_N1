@@ -19,3 +19,7 @@
 Chưa áp dụng migration vào database thật trong ảnh; chưa đối chiếu được ZIP vì giới hạn tải 32 MiB. Khóa JWT hiện có quá ngắn; server dùng khóa ngẫu nhiên trong bộ nhớ cho lần chạy thử hiện tại. Cần JWT_SECRET ổn định ít nhất 32 ký tự khi triển khai. SMTP_HOST chưa cấu hình, nên chưa xác nhận gửi thư tới hộp thư bên ngoài. Tại mốc backend, GitHub CI, staging, UI 360px và nghiệm thu PO chưa chạy; kiểm tra 360px mới được ghi ở báo cáo frontend.
 
 Bảng 151 AC trong AC-MATRIX.md nêu rõ các phần backend, frontend và phụ thuộc triển khai. Kết quả test này không phải cam kết mọi lỗi đã được loại bỏ hoặc toàn bộ 151 AC đã được nghiệm thu.
+
+## Bản cập nhật gộp/motion/đăng ký email — 18/10/2026
+
+109/109 test, 13/13 suite trên từng MySQL 8.4.11 và MariaDB 10.4.34; xem frontend/docs/validation.json cho số liệu mới nhất. Đăng ký mã 6 số, cooldown 60 giây chống đồng thời, xác nhận mật khẩu, email duy nhất và role cố định Sales Rep đã kiểm tra. SMTP socket kiểm tra gửi ngay cả ba luồng, báo lỗi từ chối, CLI gửi thư thật tới SMTP cục bộ và serialization dotenv. Chạy thêm 3/3 test mail trên mỗi engine ở mã nguồn cuối. Chưa xác minh SMTP/hộp thư thật của người dùng; mail:check trong môi trường hiện tại báo thiếu SMTP_HOST.

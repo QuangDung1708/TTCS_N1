@@ -12,6 +12,11 @@ const {
   queueMail,
   bcrypt,
 } = require("../core/auth");
+const { requireMail, requireDelivery } = require("../core/mailDelivery");
+const registrationEnabled = () =>
+  process.env.ALLOW_SELF_REGISTRATION !== "false" &&
+  (process.env.NODE_ENV !== "production" ||
+    process.env.ALLOW_SELF_REGISTRATION === "true");
 const generic = "Nếu email tồn tại, hướng dẫn sẽ được gửi đến hộp thư của bạn.";
 router.post(
   "/login",
@@ -116,7 +121,7 @@ router.get(
       grants,
       managed_group_ids: managedGroupIds,
       managed_user_ids: managedUsers.map((u) => u.id),
-      self_registration: process.env.ALLOW_SELF_REGISTRATION === "true",
+      self_registration: registrationEnabled(),
     });
   }),
 );
@@ -132,15 +137,25 @@ router.get(
   "/options",
   route(async (req, res) =>
     res.json({
-      self_registration: process.env.ALLOW_SELF_REGISTRATION === "true",
+      self_registration: registrationEnabled(),
     }),
   ),
+);
+router.get(
+  "/test-accounts",
+  route(async (req, res) => {
+    res.set("Cache-Control", "no-store");
+    const accounts = await require("../core/testAccounts").testAccounts(req);
+    res.json({ data: accounts });
+  }),
 );
 router.post(
   "/forgot-password",
   route(async (req, res) => {
     await rateLimit("reset:" + req.ip, 10);
     const mail = email(req.body.email);
+    requireMail();
+    const queued = [];
     await transaction(async (c) => {
       const [[u]] = await c.query(
         "SELECT id,full_name FROM users WHERE email=? AND is_active=1",
@@ -157,13 +172,20 @@ router.post(
         [hash(token), u.id],
       );
       const base = process.env.FRONTEND_URL || "http://localhost:5173";
-      await queueMail(
-        c,
-        mail,
-        "Đặt lại mật khẩu CRM",
-        `Xin chào ${u.full_name},\nBạn vừa yêu cầu khôi phục mật khẩu tài khoản Enterprise CRM.\nLiên kết có hiệu lực 30 phút, chỉ dùng một lần: ${base.replace(/\/$/, "")}/reset-password?token=${token}\nNếu không phải bạn gửi yêu cầu, hãy bỏ qua email này.`,
+      await c.query(
+        "DELETE FROM mail_outbox WHERE recipient=? AND subject='Đặt lại mật khẩu CRM' AND sent_at IS NULL",
+        [mail],
+      );
+      queued.push(
+        await queueMail(
+          c,
+          mail,
+          "Đặt lại mật khẩu CRM",
+          `Xin chào ${u.full_name},\nBạn vừa yêu cầu khôi phục mật khẩu tài khoản Enterprise CRM.\nLiên kết có hiệu lực 30 phút, chỉ dùng một lần: ${base.replace(/\/$/, "")}/reset-password?token=${token}\nNếu không phải bạn gửi yêu cầu, hãy bỏ qua email này.`,
+        ),
       );
     });
+    if (queued.length) await requireDelivery(queued);
     res.json({ message: generic });
   }),
 );
@@ -240,18 +262,42 @@ router.put(
     res.json({ success: true });
   }),
 );
-// Public self-registration is explicitly opt-in; clients cannot choose privileged roles.
+// Production registration is opt-in; clients cannot choose privileged roles.
 router.post(
   "/send-register-otp",
   route(async (req, res) => {
-    if (process.env.ALLOW_SELF_REGISTRATION !== "true")
-      fail(403, "Tài khoản do quản trị viên cấp.");
-    await rateLimit("register:" + req.ip, 5);
+    if (!registrationEnabled()) fail(403, "Tài khoản do quản trị viên cấp.");
+    await rateLimit("register:" + req.ip, 30);
     const mail = email(req.body.email);
+    requireMail();
     const code = String(crypto.randomInt(100000, 1000000));
-    await transaction(async (c) => {
+    const queued = await transaction(async (c) => {
       const [[u]] = await c.query("SELECT id FROM users WHERE email=?", [mail]);
-      if (u) return;
+      if (u)
+        fail(
+          409,
+          "Email đã tồn tại trong hệ thống. Vui lòng đăng nhập hoặc quên mật khẩu.",
+        );
+      // A persistent per-email lock makes the cooldown atomic across tabs/processes.
+      const bucket = "register-cooldown:" + hash(mail);
+      await c.query(
+        "INSERT INTO api_rate_limits (bucket,hits,expires_at) VALUES (?,0,UTC_TIMESTAMP()) ON DUPLICATE KEY UPDATE bucket=VALUES(bucket)",
+        [bucket],
+      );
+      const [[cooldown]] = await c.query(
+        "SELECT GREATEST(0,TIMESTAMPDIFF(SECOND,UTC_TIMESTAMP(),expires_at)) seconds FROM api_rate_limits WHERE bucket=? FOR UPDATE",
+        [bucket],
+      );
+      if (cooldown.seconds > 0) {
+        res.set("Retry-After", String(cooldown.seconds));
+        fail(429, "Chỉ gửi mã một lần mỗi 60 giây.", {
+          retry_after: cooldown.seconds,
+        });
+      }
+      await c.query(
+        "UPDATE api_rate_limits SET hits=hits+1,expires_at=DATE_ADD(UTC_TIMESTAMP(),INTERVAL 60 SECOND) WHERE bucket=?",
+        [bucket],
+      );
       await c.query(
         "UPDATE auth_email_codes SET used_at=UTC_TIMESTAMP() WHERE email=? AND used_at IS NULL",
         [mail],
@@ -260,26 +306,41 @@ router.post(
         "INSERT INTO auth_email_codes (email,code_hash,expires_at) VALUES (?,?,DATE_ADD(UTC_TIMESTAMP(),INTERVAL 10 MINUTE))",
         [mail, hash(code)],
       );
-      await queueMail(
+      await c.query(
+        "DELETE FROM mail_outbox WHERE recipient=? AND subject='Xác minh email CRM' AND sent_at IS NULL",
+        [mail],
+      );
+      return queueMail(
         c,
         mail,
         "Xác minh email CRM",
-        `Mã xác minh (10 phút): ${code}`,
+        `Mã xác minh đăng ký Enterprise CRM: ${code}\nMã có hiệu lực 10 phút và chỉ dùng một lần. Không chia sẻ mã này với người khác.`,
       );
     });
-    res.json({ message: generic });
+    await requireDelivery([queued]);
+    res.json({
+      message: "Đã gửi mã xác nhận gồm 6 số đến email của bạn.",
+      retry_after: 60,
+    });
   }),
 );
 router.post(
   "/register",
   route(async (req, res) => {
-    if (process.env.ALLOW_SELF_REGISTRATION !== "true")
-      fail(403, "Tài khoản do quản trị viên cấp.");
+    if (!registrationEnabled()) fail(403, "Tài khoản do quản trị viên cấp.");
     await rateLimit("register-check:" + req.ip, 10);
     const mail = email(req.body.email);
     const pass = password(req.body.password);
+    if (req.body.confirm_password !== pass)
+      fail(400, "Mật khẩu xác nhận chưa khớp.");
+    if (!/^\d{6}$/.test(String(req.body.otp_code || "")))
+      fail(400, "Mã xác nhận gồm 6 chữ số.");
     const name = text(req.body.full_name, "Họ tên", 100);
     const result = await transaction(async (c) => {
+      const [[existing]] = await c.query("SELECT id FROM users WHERE email=?", [
+        mail,
+      ]);
+      if (existing) fail(409, "Email đã tồn tại trong hệ thống.");
       const [[r]] = await c.query(
         "SELECT * FROM auth_email_codes WHERE email=? AND used_at IS NULL AND expires_at>UTC_TIMESTAMP() ORDER BY id DESC LIMIT 1 FOR UPDATE",
         [mail],

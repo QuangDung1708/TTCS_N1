@@ -15,6 +15,7 @@ module.exports = async () => {
   Object.assign(process.env, {
     JWT_SECRET: crypto.randomBytes(48).toString("hex"),
     RUN_WORKER: "false",
+    ALLOW_SELF_REGISTRATION: "true",
     NODE_ENV: "test",
     SMTP_HOST: "",
     SMTP_USER: "",
@@ -37,6 +38,18 @@ module.exports = async () => {
   await connection.end();
   const h = require(path.join(backend, "test/integration/helpers"));
   await h.setup();
+  // This manifest belongs only to the explicitly reset disposable database.
+  const fingerprint = crypto
+    .createHash("sha256")
+    .update(
+      `${process.env.DB_HOST || "127.0.0.1"}:${process.env.DB_PORT || 3306}:${process.env.DB_NAME}`,
+    )
+    .digest("hex")
+    .slice(0, 12);
+  fs.rmSync(
+    path.join(backend, ".local-test-data", `examples-${fingerprint}.json`),
+    { force: true },
+  );
   const a = await h.customer("Sales Rep", {
     company_name: "E2E Khách hàng A",
     tax_code: "1234567890",

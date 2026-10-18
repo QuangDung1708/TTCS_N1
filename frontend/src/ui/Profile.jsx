@@ -1,13 +1,12 @@
+import { Drawer, Modal } from "./Motion";
 import { useEffect, useState } from "react";
 import {
   App,
   Alert,
   Avatar,
   Button,
-  Drawer,
   Form,
   Input,
-  Modal,
   Space,
   Tag,
   Typography,

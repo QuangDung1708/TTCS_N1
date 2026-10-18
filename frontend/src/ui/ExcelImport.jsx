@@ -1,10 +1,10 @@
+import { Modal } from "./Motion";
 import Select from "./LinkedSelect";
 import { useState } from "react";
 import {
   Alert,
   App,
   Button,
-  Modal,
   Space,
   Steps,
   Table,

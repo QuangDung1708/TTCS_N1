@@ -14,6 +14,7 @@ Lệnh dùng kết nối MySQL từ `.env`. Giữ database hiện tại; không 
 
 | Email | Vai trò | Nhóm |
 |---|---|---|
+| demo-admin.crm-test@example.test | Admin kiểm thử riêng | Toàn hệ thống |
 | director.crm-test@example.test | Giám đốc kinh doanh | Toàn hệ thống |
 | leader-a.crm-test@example.test | Trưởng nhóm | Miền Bắc |
 | leader-b.crm-test@example.test | Trưởng nhóm | Miền Nam |
@@ -23,7 +24,7 @@ Lệnh dùng kết nối MySQL từ `.env`. Giữ database hiện tại; không 
 | care.crm-test@example.test | Chăm sóc khách hàng | Miền Bắc |
 | accountant.crm-test@example.test | Kế toán | Theo ma trận quyền |
 
-Admin hiện có được giữ nguyên. Mật khẩu mới (gồm ba tài khoản trưởng đơn vị bổ sung), ID và checkpoint nằm trong `backend/.local-test-data/examples-<mã-database>.json`; đường dẫn đầy đủ được in sau lệnh. Mở tệp bằng VS Code và sao chép mật khẩu của tài khoản tương ứng. Tệp này chứa bí mật đăng nhập: không đưa lên GitHub hoặc gửi cho người khác. Nó được gitignore và không nằm trong ZIP. Lệnh không in mật khẩu ra terminal. Chạy lại sau khi hoàn tất chỉ kiểm tra tài khoản và chỉ dẫn tới tệp, không nhân đôi bộ dữ liệu hoặc đổi mật khẩu.
+Admin hiện có được giữ nguyên. Bản mới tạo thêm Admin KT riêng, tổng 12 tài khoản KT; không đổi mật khẩu các tài khoản cũ. Trên login, bộ chọn dưới form tự điền tài khoản thật cho đủ 7 vai trò, vẫn cần bấm đăng nhập. Bộ chọn chỉ dành cho kết nối cục bộ và luôn tắt khi NODE_ENV=production; đặt ENABLE_TEST_ACCOUNTS=false để tắt. Mật khẩu mới (gồm ba tài khoản trưởng đơn vị bổ sung), ID và checkpoint nằm trong `backend/.local-test-data/examples-<mã-database>.json`; đường dẫn đầy đủ được in sau lệnh. Mở tệp bằng VS Code và sao chép mật khẩu của tài khoản tương ứng. Tệp này chứa bí mật đăng nhập: không đưa lên GitHub hoặc gửi cho người khác. Nó được gitignore và không nằm trong ZIP. Lệnh không in mật khẩu ra terminal. Chạy lại sau khi hoàn tất chỉ kiểm tra tài khoản và chỉ dẫn tới tệp, không nhân đôi bộ dữ liệu hoặc đổi mật khẩu.
 
 Nếu đã tạo lại database cùng tên hoặc tự xóa một phần bộ dữ liệu, giữ tệp checkpoint và đối chiếu trước khi chạy lại; lệnh không tự đoán hay ghi đè tài khoản khác trùng email. Nếu có trường tùy chỉnh bắt buộc mới, API có thể từ chối bản ghi thiếu trường; các bước đã tạo vẫn được lưu, không tự rollback bằng cách xóa dữ liệu.
 

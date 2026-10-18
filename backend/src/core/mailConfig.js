@@ -47,6 +47,18 @@ async function mailStatus(db) {
   return {
     configured,
     missing,
+    error_help:
+      {
+        EAUTH:
+          "SMTP từ chối xác thực. Gmail cần bật xác minh 2 bước và dùng App Password, không dùng mật khẩu Gmail.",
+        ETIMEDOUT:
+          "Kết nối SMTP quá hạn. Kiểm tra host, cổng và kết nối mạng/tường lửa.",
+        ECONNECTION: "Không kết nối được máy chủ SMTP. Kiểm tra host và cổng.",
+        ESOCKET:
+          "Lỗi kết nối/TLS SMTP. Kiểm tra cổng 465 + secure=true hoặc cổng 587 + secure=false.",
+        EENVELOPE:
+          "SMTP từ chối người gửi hoặc người nhận. Kiểm tra From và địa chỉ email nhận.",
+      }[last?.last_error] || null,
     worker_enabled: process.env.RUN_WORKER !== "false",
     queue,
     last_error: last?.last_error

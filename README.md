@@ -2,7 +2,7 @@
 
 > Bản triển khai Sprint 1–5: xem [hướng dẫn chạy frontend và backend](frontend/README.md), [đối chiếu AC](frontend/docs/AC-MATRIX.md), và [kết quả kiểm thử](frontend/docs/VALIDATION.md). Gói tải về và checksum nằm trong [delivery](delivery/README.md).
 
-> Cập nhật dropdown/dữ liệu/mail: [hướng dẫn chép đè và nạp DB hiện tại](UPDATE-UI-AND-DATA.md). Có tệp Windows `CAP-NHAT-VA-NAP-DU-LIEU.cmd`; kiểm tra SMTP bằng `npm run mail:check` tại backend.
+> Cập nhật gộp khách hàng, animation toàn ứng dụng, đăng ký email và mail thật: [hướng dẫn chép đè và nạp DB hiện tại](UPDATE-UI-AND-DATA.md). Có tệp Windows `CAP-NHAT-VA-NAP-DU-LIEU.cmd`; cấu hình SMTP và gửi thư kiểm tra bằng `CAU-HINH-MAIL.cmd`.
 
 > Dự án thực tập tốt nghiệp / môn học - Nhóm 4  
 > Mô hình triển khai: Scrum (8 Sprints × 1 tuần)

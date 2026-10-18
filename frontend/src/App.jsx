@@ -1,3 +1,4 @@
+import { Drawer, animateChange } from "./ui/Motion";
 import PopupPanel from "./ui/PopupPanel";
 import { Component, Suspense, lazy, useState } from "react";
 import {
@@ -6,7 +7,6 @@ import {
   Breadcrumb,
   Button,
   ConfigProvider,
-  Drawer,
   Layout,
   Menu,
   Result,
@@ -237,7 +237,7 @@ function Workspace() {
         items={grouped}
         selectedKeys={[location.pathname]}
         onClick={({ key }) => {
-          nav(key);
+          animateChange(() => nav(key));
           setNavOpen(false);
         }}
       />

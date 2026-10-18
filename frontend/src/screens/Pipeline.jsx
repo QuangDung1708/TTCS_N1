@@ -1,3 +1,4 @@
+import { Drawer, Segmented, Tabs } from "../ui/Motion";
 import Select from "../ui/LinkedSelect";
 import { useEffect, useState } from "react";
 import {
@@ -7,17 +8,14 @@ import {
   Card,
   Col,
   Descriptions,
-  Drawer,
   Form,
   Input,
   InputNumber,
   Progress,
   Row,
-  Segmented,
   Space,
   Statistic,
   Table,
-  Tabs,
   Tag,
   Timeline,
   Typography,

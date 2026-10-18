@@ -90,3 +90,13 @@ Xuất khách hàng/lead/báo giá nháp trả XLSX nhị phân có tiêu đề 
 `GET /organization/tree` thêm `leader_email`, `leader_avatar` để hiển thị, giữ `member_count` là số người trực tiếp. `GET /groups/:id/members?include_descendants=1` trả người trong nhóm và toàn bộ nhóm con, mỗi user một lần, thêm `group_name`; mặc định không có tham số vẫn chỉ lấy trực tiếp. Các endpoint giữ quyền CATEGORY như trước, không trả mật khẩu. UI cộng số trực tiếp theo cây để hiển thị tổng nhánh, không ghi tổng giả vào DB.
 
 Kéo cơ hội sang Won/Lost sử dụng chính `POST /deals/:id/close` sau khi người dùng hoàn tất form; không gửi chuỗi WON/LOST vào endpoint đổi stage số. Quyền, điều kiện giai đoạn, lý do và nhật ký vẫn do server kiểm tra; hủy form không gọi close.
+
+## Đăng ký và gửi SMTP ngay
+
+- `GET /auth/options`: `self_registration` là cấu hình thực của server. Development mặc định bật nếu chưa cấu hình; production phải bật rõ bằng `ALLOW_SELF_REGISTRATION=true`.
+- `GET /auth/test-accounts`: chỉ các tài khoản KT do CLI nạp, mật khẩu còn khớp DB, kết nối cục bộ; luôn rỗng trong production. Cache-Control: no-store. Không công khai danh sách tài khoản hiện hữu.
+- `POST /auth/send-register-otp {email}`: mã 6 chữ số, băm trong DB, hết hạn 10 phút; một lần gửi / email / 60 giây, khóa DB chống yêu cầu đồng thời. Email có sẵn trả 409; cooldown trả 429 + Retry-After + details.retry_after. SMTP lỗi trả 503.
+- `POST /auth/register {full_name,email,otp_code,password,confirm_password}`: kiểm tra xác nhận, độ mạnh, mã chưa dùng/hết hạn/giới hạn thử; role cố định Sales Rep, email trùng 409.
+- Quên mật khẩu gửi ngay sau commit; SMTP lỗi 503, không trả thành công giả. Khi gửi bình thường phản hồi chung để tránh lộ danh sách email.
+- `POST /users` trả thêm `mail.status` (sent/pending), có warning nếu tài khoản đã tạo nhưng SMTP chưa nhận thư. Không tạo lại user trong trường hợp này.
+- `npm run mail:configure` lưu cấu hình SMTP tại máy người vận hành sau khi verify thành công; `npm run mail:send-test -- recipient` gửi một thư kiểm tra, không chứa bí mật.

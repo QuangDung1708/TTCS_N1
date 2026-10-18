@@ -1,3 +1,4 @@
+import { Modal, Tabs } from "../ui/Motion";
 import Select from "../ui/LinkedSelect";
 import { useState } from "react";
 import {
@@ -6,11 +7,9 @@ import {
   Input,
   InputNumber,
   Popconfirm,
-  Modal,
   Space,
   Switch,
   Table,
-  Tabs,
   Tag,
   Typography,
 } from "antd";

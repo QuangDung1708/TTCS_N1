@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { Alert, App, Button, Card, Form, Input, Modal, Typography } from "antd";
+import { Modal } from "../ui/Motion";
+import { useEffect, useState } from "react";
+import { Alert, App, Button, Card, Form, Input, Typography } from "antd";
 import {
   ArrowRightOutlined,
   LockOutlined,
@@ -15,11 +16,40 @@ import {
 import { useAuth } from "../auth/AuthProvider";
 import { api, errorText } from "../lib/api";
 import { useResource, useAction } from "../lib/hooks";
-import { passwordRules, required } from "../ui/common";
+import { passwordRules, required, roleLabels } from "../ui/common";
 function AuthFrame({ children, title, subtitle }) {
   return (
     <main className="auth-screen">
       <section className="auth-intro">
+        <div className="auth-network" aria-hidden="true">
+          <svg viewBox="0 0 600 600" fill="none">
+            <path
+              d="M40 290L180 130L390 100L540 270L430 460L200 510Z M180 130L300 300L540 270 M40 290L300 300L430 460 M200 510L300 300L390 100"
+              stroke="currentColor"
+              strokeWidth="1.5"
+            />
+            {[
+              [40, 290],
+              [180, 130],
+              [390, 100],
+              [540, 270],
+              [430, 460],
+              [200, 510],
+              [300, 300],
+            ].map(([x, y]) => (
+              <g key={x}>
+                <circle
+                  cx={x}
+                  cy={y}
+                  r="22"
+                  fill="white"
+                  stroke="currentColor"
+                />
+                <circle cx={x} cy={y} r="6" fill="currentColor" />
+              </g>
+            ))}
+          </svg>
+        </div>
         <Link className="brand" to="/">
           <span className="brand-mark">
             <ApartmentOutlined aria-hidden="true" />
@@ -65,6 +95,8 @@ export function LoginScreen() {
     [forgot, setForgot] = useState(false);
   const option = useResource("/auth/options");
   const [forgotForm] = Form.useForm();
+  const [loginForm] = Form.useForm();
+  const demo = useResource("/auth/test-accounts");
   const action = useAction();
   return (
     <AuthFrame
@@ -83,6 +115,7 @@ export function LoginScreen() {
         <Alert type="error" title={error} showIcon className="section-gap" />
       )}
       <Form
+        form={loginForm}
         layout="vertical"
         requiredMark={false}
         onFinish={async (values) => {
@@ -138,9 +171,36 @@ export function LoginScreen() {
           Đăng nhập
         </Button>
       </Form>
+      {!!demo.rows.length && (
+        <div className="test-accounts">
+          <Typography.Text strong>
+            Tài khoản kiểm thử theo User Roles
+          </Typography.Text>
+          <Typography.Paragraph type="secondary">
+            Chọn vai trò để điền tài khoản, sau đó bấm Đăng nhập.
+          </Typography.Paragraph>
+          <div className="test-account-grid">
+            {demo.rows.map((user) => (
+              <Button
+                key={user.email}
+                title={user.email}
+                onClick={() => {
+                  loginForm.setFieldsValue({
+                    email: user.email,
+                    password: user.password,
+                  });
+                  setError("");
+                }}
+              >
+                {user.roles.map((role) => roleLabels[role] || role).join(" / ")}
+              </Button>
+            ))}
+          </div>
+        </div>
+      )}
       {option.data?.self_registration && (
         <Typography.Paragraph className="auth-register">
-          Chưa có tài khoản? <Link to="/register">Đăng ký</Link>
+          Chưa có tài khoản? <Link to="/register">Tạo tài khoản</Link>
         </Typography.Paragraph>
       )}
       <Typography.Paragraph className="auth-help" type="secondary">
@@ -251,9 +311,16 @@ export function RegisterScreen() {
   const option = useResource("/auth/options"),
     [form] = Form.useForm(),
     [sent, setSent] = useState(false),
+    [deadline, setDeadline] = useState(0),
+    [now, setNow] = useState(Date.now()),
     nav = useNavigate();
   const action = useAction();
   const { message } = App.useApp();
+  const remaining = Math.max(0, Math.ceil((deadline - now) / 1000));
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 500);
+    return () => clearInterval(timer);
+  }, []);
   return (
     <AuthFrame
       title="Tạo tài khoản"
@@ -287,6 +354,7 @@ export function RegisterScreen() {
             block
             className="section-gap"
             loading={action.busy}
+            disabled={remaining > 0}
             onClick={async () => {
               try {
                 await form.validateFields(["email"]);
@@ -295,15 +363,25 @@ export function RegisterScreen() {
                     api.post("/auth/send-register-otp", {
                       email: form.getFieldValue("email"),
                     }),
-                  () => setSent(true),
-                  "Nếu email có thể đăng ký, mã xác nhận sẽ được gửi đến hộp thư.",
+                  (result) => {
+                    setSent(true);
+                    const expiry =
+                      Date.now() + (result.data.retry_after || 60) * 1000;
+                    setNow(Date.now());
+                    setDeadline(expiry);
+                  },
+                  "Đã gửi mã xác nhận đến email của bạn.",
                 );
               } catch {
                 message.warning("Kiểm tra email công việc.");
               }
             }}
           >
-            {sent ? "Gửi lại mã xác nhận" : "Gửi mã xác nhận"}
+            {remaining
+              ? `Gửi lại sau ${remaining}s`
+              : sent
+                ? "Gửi lại mã xác nhận"
+                : "Gửi mã xác nhận"}
           </Button>
           <Form.Item
             name="otp_code"
@@ -313,12 +391,43 @@ export function RegisterScreen() {
               { pattern: /^\d{6}$/, message: "Mã xác nhận gồm 6 chữ số." },
             ]}
           >
-            <Input autoComplete="one-time-code" maxLength={6} />
+            <Input
+              autoComplete="one-time-code"
+              inputMode="numeric"
+              maxLength={6}
+              placeholder="Nhập 6 chữ số trong email"
+            />
           </Form.Item>
           <Form.Item name="password" label="Mật khẩu" rules={passwordRules}>
             <Input.Password autoComplete="new-password" />
           </Form.Item>
-          <Button block type="primary" htmlType="submit" loading={action.busy}>
+          <Form.Item
+            name="confirm_password"
+            label="Xác nhận mật khẩu"
+            dependencies={["password"]}
+            rules={[
+              ...required,
+              ({ getFieldValue }) => ({
+                validator: (_, value) =>
+                  value === getFieldValue("password")
+                    ? Promise.resolve()
+                    : Promise.reject(new Error("Mật khẩu chưa khớp.")),
+              }),
+            ]}
+          >
+            <Input.Password autoComplete="new-password" />
+          </Form.Item>
+          <Typography.Paragraph type="secondary">
+            Mật khẩu ít nhất 8 ký tự, gồm chữ và số. Vai trò mặc định: Nhân viên
+            kinh doanh (Sales Rep).
+          </Typography.Paragraph>
+          <Button
+            aria-label="Tạo tài khoản"
+            block
+            type="primary"
+            htmlType="submit"
+            loading={action.busy}
+          >
             Tạo tài khoản
           </Button>
         </Form>

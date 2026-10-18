@@ -1,5 +1,6 @@
+import { Tabs } from "./Motion";
 import { useEffect, useState } from "react";
-import { Badge, Button, Empty, List, Tabs, Tag, Typography } from "antd";
+import { Badge, Button, Empty, List, Tag, Typography } from "antd";
 import { BellOutlined, ReloadOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import { api, dateTime } from "../lib/api";

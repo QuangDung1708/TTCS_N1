@@ -16,7 +16,10 @@
     "test:coverage": "jest --runInBand --detectOpenHandles --coverage",
     "data:examples": "node scripts/create-example-data.js",
     "data:catalogs": "node scripts/initialize-catalogs.js",
-    "mail:check": "node scripts/check-mail.js"
+    "mail:check": "node scripts/check-mail.js",
+    "mail:configure": "node scripts/configure-mail.js",
+    "mail:send-test": "node scripts/send-test-mail.js",
+    "auth:enable": "node scripts/enable-local-auth.js"
   },
   "keywords": [],
   "author": "",

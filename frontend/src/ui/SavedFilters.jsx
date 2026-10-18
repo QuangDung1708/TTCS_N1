@@ -1,6 +1,7 @@
+import { Modal } from "./Motion";
 import Select from "./LinkedSelect";
 import { useState } from "react";
-import { Button, Form, Input, Modal, Popconfirm, Typography } from "antd";
+import { Button, Form, Input, Popconfirm, Typography } from "antd";
 import {
   DeleteOutlined,
   FolderOpenOutlined,

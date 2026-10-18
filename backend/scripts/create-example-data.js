@@ -437,6 +437,9 @@ async function main() {
     );
     console.log("Số bản ghi đang có trong DB: " + JSON.stringify(counts));
   }
+  state.loginPickerEnabled = true;
+  await account("demo-admin", "Quản trị kiểm thử", "Admin");
+  await save();
   if (state.complete) {
     for (const user of Object.values(state.accounts)) {
       const [[found]] = await db.query(
@@ -737,7 +740,7 @@ async function main() {
     "Đã tạo bản ghi thật trong MySQL qua luồng ứng dụng. Không phải khách hàng/danh tính đã xác minh.",
   );
   console.log(
-    "11 tài khoản kiểm thử; 5 nhóm theo cây 4 cấp; 4 khách hàng và liên hệ; 2 sản phẩm; 3 lead; 2 cơ hội; 1 chiến dịch.",
+    "12 tài khoản kiểm thử (gồm Admin riêng); 5 nhóm theo cây 4 cấp; 4 khách hàng và liên hệ; 2 sản phẩm; 3 lead; 2 cơ hội; 1 chiến dịch.",
   );
   console.log(
     "Tài khoản, mật khẩu ngẫu nhiên và ID nằm trong tệp riêng tư: " + file,

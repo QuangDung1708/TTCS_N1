@@ -60,7 +60,7 @@ async function businessJobs() {
     c.release();
   }
 }
-async function mailJobs() {
+async function mailJobs(ids = []) {
   // No implicit use of repository-embedded Gmail credentials. Configure an SMTP endpoint explicitly.
   const config = mailConfiguration();
   if (!config.configured) return { configured: false, missing: config.missing };
@@ -77,7 +77,8 @@ async function mailJobs() {
     locked = true;
     await c.beginTransaction();
     const [rows] = await c.query(
-      "SELECT * FROM mail_outbox WHERE sent_at IS NULL AND next_attempt_at<=UTC_TIMESTAMP() AND attempts<10 ORDER BY id LIMIT 10 FOR UPDATE",
+      `SELECT * FROM mail_outbox WHERE sent_at IS NULL AND next_attempt_at<=UTC_TIMESTAMP() AND attempts<10 ${ids.length ? "AND id IN (" + ids.map(() => "?").join(",") + ")" : ""} ORDER BY id LIMIT 10 FOR UPDATE`,
+      ids,
     );
     for (const row of rows) {
       try {

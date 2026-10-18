@@ -1,3 +1,4 @@
+import { Drawer, Modal, Tabs } from "../ui/Motion";
 import HierarchySelect from "../ui/HierarchySelect";
 import Select from "../ui/LinkedSelect";
 import { useEffect, useState } from "react";
@@ -8,19 +9,16 @@ import {
   Button,
   Col,
   Descriptions,
-  Drawer,
   Empty,
   Form,
   Input,
   InputNumber,
   List,
-  Modal,
   Popconfirm,
   Row,
   Space,
   Switch,
   Table,
-  Tabs,
   Tag,
   Timeline,
   Tooltip,
@@ -574,10 +572,15 @@ function CustomerMerge({ onClose, onMerged }) {
     a = useAction(),
     auth = useAuth();
   const [pair, setPair] = useState(null),
-    [target, setTarget] = useState(null);
+    [target, setTarget] = useState(null),
+    [confirming, setConfirming] = useState(false),
+    [finished, setFinished] = useState(false);
   return (
     <Modal
-      open
+      open={!finished}
+      afterOpenChange={(visible) => {
+        if (!visible && finished) onClose();
+      }}
       title="So sánh & gộp khách hàng trùng"
       onCancel={onClose}
       footer={null}
@@ -596,6 +599,7 @@ function CustomerMerge({ onClose, onMerged }) {
           label: `${p.left.company_name} ↔ ${p.right.company_name}`,
         }))}
         onChange={(i) => {
+          setConfirming(false);
           setPair(r.rows[i]);
           setTarget(r.rows[i].left.id);
         }}
@@ -620,7 +624,10 @@ function CustomerMerge({ onClose, onMerged }) {
                   <Button
                     block
                     type={target === row.id ? "primary" : "default"}
-                    onClick={() => setTarget(row.id)}
+                    onClick={() => {
+                      setTarget(row.id);
+                      setConfirming(false);
+                    }}
                   >
                     {target === row.id
                       ? "Hồ sơ được giữ lại"
@@ -631,10 +638,26 @@ function CustomerMerge({ onClose, onMerged }) {
             ))}
           </Row>
           <div className="form-actions">
-            <Popconfirm
-              title="Gộp hai khách hàng này?"
-              description="Thao tác sẽ chuyển dữ liệu liên quan và không thể hoàn tác trực tiếp."
-              onConfirm={() =>
+            {confirming && (
+              <Alert
+                type="warning"
+                showIcon
+                title="Gộp hai hồ sơ này?"
+                description="Liên hệ, cơ hội, hoạt động và tệp sẽ được chuyển về hồ sơ đã chọn. Thao tác không thể hoàn tác trực tiếp."
+              />
+            )}
+            <Button
+              type="primary"
+              loading={a.busy}
+              disabled={
+                !auth.can("CUSTOMER", "write", pair.left) ||
+                !auth.can("CUSTOMER", "write", pair.right)
+              }
+              onClick={() => {
+                if (!confirming) {
+                  setConfirming(true);
+                  return;
+                }
                 a.run(
                   () =>
                     api.post("/customers/merge", {
@@ -645,22 +668,14 @@ function CustomerMerge({ onClose, onMerged }) {
                     }),
                   () => {
                     onMerged();
-                    onClose();
+                    setFinished(true);
                   },
-                )
-              }
+                  "Đã gộp khách hàng và chuyển dữ liệu liên quan.",
+                );
+              }}
             >
-              <Button
-                type="primary"
-                loading={a.busy}
-                disabled={
-                  !auth.can("CUSTOMER", "write", pair.left) ||
-                  !auth.can("CUSTOMER", "write", pair.right)
-                }
-              >
-                Xác nhận gộp
-              </Button>
-            </Popconfirm>
+              {confirming ? "Gộp hai hồ sơ" : "Xác nhận gộp"}
+            </Button>
           </div>
         </>
       )}

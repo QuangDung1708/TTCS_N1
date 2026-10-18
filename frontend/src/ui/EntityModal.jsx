@@ -1,5 +1,6 @@
+import { Modal } from "./Motion";
 import { useEffect, useState } from "react";
-import { Alert, Button, Form, Modal } from "antd";
+import { Alert, Button, Form } from "antd";
 import { useAuth } from "../auth/AuthProvider";
 import { useMedia } from "../lib/hooks";
 import { readJSON } from "../lib/api";
@@ -21,11 +22,13 @@ export default function EntityModal({
     form = provided || own,
     auth = useAuth(),
     [restored, setRestored] = useState(false),
+    [closing, setClosing] = useState(false),
     small = useMedia("(max-width:575px)");
   const key = `crm:draft:${auth.user.id}:${entity}:${record?.id || "new"}`;
   useEffect(() => {
     if (!open) return;
     window.dispatchEvent(new CustomEvent("crm:form-open"));
+    setClosing(false);
     form.resetFields();
     const cached = draft ? readJSON(sessionStorage.getItem(key), null) : null;
     form.setFieldsValue({ ...defaults, ...record, ...cached });
@@ -33,7 +36,10 @@ export default function EntityModal({
   }, [open, record?.id, key]);
   return (
     <Modal
-      open={open}
+      open={open && !closing}
+      afterOpenChange={(visible) => {
+        if (!visible && closing) onClose();
+      }}
       title={title}
       onCancel={onClose}
       footer={null}
@@ -52,8 +58,7 @@ export default function EntityModal({
           const ok = await onSave(values);
           if (ok) {
             sessionStorage.removeItem(key);
-            form.resetFields();
-            onClose();
+            setClosing(true);
           }
         }}
       >
@@ -67,7 +72,7 @@ export default function EntityModal({
         )}
         {typeof children === "function" ? children(form) : children}
         <div className="form-actions">
-          <Button disabled={busy} onClick={onClose}>
+          <Button disabled={busy} onClick={() => setClosing(true)}>
             Hủy
           </Button>
           <Button type="primary" loading={busy} htmlType="submit">

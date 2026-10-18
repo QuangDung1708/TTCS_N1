@@ -243,6 +243,7 @@ test("Opt-in OTP registration cannot request a privileged role and consumes the 
       email,
       full_name: "New registration",
       password: "SecureRegistration9",
+      confirm_password: "SecureRegistration9",
       otp_code: otp,
       role_code: "Admin",
       roles: ["Admin"],
@@ -252,7 +253,7 @@ test("Opt-in OTP registration cannot request a privileged role and consumes the 
     ).toBe(201);
     expect(
       (await h.request(h.app).post("/api/auth/register").send(body)).status,
-    ).toBe(400);
+    ).toBe(409);
     const [[u]] = await h.db.query(
       "SELECT role_code FROM users WHERE email=?",
       [email],

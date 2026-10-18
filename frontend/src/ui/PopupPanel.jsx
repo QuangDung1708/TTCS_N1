@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 export default function PopupPanel({
   open,
   onClose,
@@ -8,6 +8,18 @@ export default function PopupPanel({
   trigger,
 }) {
   const ref = useRef(null);
+  const [present, setPresent] = useState(open);
+  useEffect(() => {
+    if (open) {
+      setPresent(true);
+      return;
+    }
+    const timer = setTimeout(
+      () => setPresent(false),
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 180,
+    );
+    return () => clearTimeout(timer);
+  }, [open]);
   useEffect(() => {
     if (!open) return;
     const outside = (e) => {
@@ -29,9 +41,11 @@ export default function PopupPanel({
   return (
     <div className="header-popup-anchor" ref={ref}>
       {trigger}
-      {open && (
+      {(open || present) && (
         <div
-          className={`header-popup ${className}`}
+          className={`header-popup ${className} ${open ? "" : "header-popup-exit"}`}
+          aria-hidden={!open}
+          inert={!open}
           role="dialog"
           aria-label={label}
         >
