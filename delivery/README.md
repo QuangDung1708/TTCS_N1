@@ -2,15 +2,27 @@
 
 [Tải gói source đầy đủ](https://github.com/QuangDung1708/TTCS_N1/raw/refs/heads/codex/frontend-sprint-1-5/delivery/TTCS_N1-fullstack.zip) · [Mở trang tệp trên GitHub](https://github.com/QuangDung1708/TTCS_N1/blob/codex/frontend-sprint-1-5/delivery/TTCS_N1-fullstack.zip) · [SHA-256](TTCS_N1-fullstack.zip.sha256)
 
-Nếu trình duyệt mở trang tệp, chọn **Download raw file**. Gói khoảng 871 KiB, chứa hai thư mục `frontend`/`backend`, lockfile, migration, test và tài liệu. Không kèm `.env`, node_modules, coverage, báo cáo trình duyệt hoặc tệp người dùng tải lên. Ứng dụng không seed dữ liệu nghiệp vụ mẫu; fixture QA chỉ chạy trong database kiểm thử có cờ reset rõ ràng.
+Nếu trình duyệt mở trang tệp, chọn **Download raw file**. Gói khoảng 889 KiB, chứa hai thư mục `frontend`/`backend`, lockfile, migration, test và tài liệu. Không kèm `.env`, node_modules, coverage, báo cáo trình duyệt hoặc tệp người dùng tải lên. Ứng dụng không seed dữ liệu nghiệp vụ mẫu; fixture QA chỉ chạy trong database kiểm thử có cờ reset rõ ràng.
 
 Giải nén vào thư mục mới và làm theo [hướng dẫn chạy](../frontend/README.md). Cần Node.js 24 LTS và MySQL 8. Cấu hình database hiện có của bạn trong `backend/.env`; giữ bản sao cấu hình và dữ liệu đang có. Dùng **backend trong cùng gói fullstack** với frontend này để khớp các API phân quyền, thông báo và cơ cấu tổ chức mới.
 
-Source ứng dụng: `bd3d8f925107bdeca3f9dafcd94a97b23ca0cca5`. `DELIVERY.json` bên trong ZIP liệt kê commit nguồn và SHA-256 của từng tệp. Gói đã kiểm tra CRC, đối chiếu byte từng tệp với source, và lint/build thành công từ mã giải nén.
+Source ứng dụng: `7ca974c1864d158af82e6e4c367f83ddb5f680dc`. `DELIVERY.json` bên trong ZIP liệt kê commit nguồn và SHA-256 của từng tệp. Gói đã kiểm tra CRC, đối chiếu byte từng tệp với source, và lint/build thành công từ mã giải nén.
 
-Kiểm chứng cục bộ: **39/39 kiểm thử trình duyệt** qua API/MariaDB thật, **104/104 kiểm thử backend trên từng engine MySQL 8.4 và MariaDB 10.4**, lint/build thành công. Xem [kết quả và giới hạn xác minh](../frontend/docs/VALIDATION.md), [đối chiếu 151 AC](../frontend/docs/AC-MATRIX.md), [ảnh desktop](../frontend/docs/images/customers-desktop.png) và [ảnh 360px](../frontend/docs/images/customers-mobile-360.png).
+Kiểm chứng cục bộ: **41/41 kiểm thử trình duyệt** qua API/MariaDB thật, **105/105 kiểm thử backend trên từng engine MySQL 8.4 và MariaDB 10.4**, lint/build thành công. Xem [kết quả và giới hạn xác minh](../frontend/docs/VALIDATION.md), [đối chiếu 151 AC](../frontend/docs/AC-MATRIX.md), [ảnh desktop](../frontend/docs/images/customers-desktop.png) và [ảnh 360px](../frontend/docs/images/customers-mobile-360.png).
 
-## Bản mới nhất: dropdown và Excel
+## Bản mới nhất: dropdown, nạp dữ liệu và gửi mail
+
+[Tải ZIP cập nhật](https://github.com/QuangDung1708/TTCS_N1/raw/refs/heads/codex/frontend-sprint-1-5/delivery/TTCS_N1-dropdown-data-mail-fix.zip) · [SHA-256](TTCS_N1-dropdown-data-mail-fix.zip.sha256). Gói khoảng 299 KiB, gồm các bản sửa trước và tệp `CAP-NHAT-VA-NAP-DU-LIEU.cmd`.
+
+Dừng server, chép đè backend/frontend và CMD vào folder dự án, giữ `.env`/uploads/DB. Chạy CMD để cài dependency **cả hai phía** và nạp dữ liệu vào DB trong `.env`; nhập email tài khoản đang test để nhận bộ dữ liệu theo scope, hoặc để trống nếu dùng Admin. Không reset DB. Sau đó chạy lại backend/frontend và Ctrl+F5. Hướng dẫn: UPDATE-UI-AND-DATA.md trong ZIP.
+
+Rà 78 điểm dùng bộ chọn, đổi trigger thành nút mở danh sách có ô tìm riêng; có dữ liệu liên kết thực và trạng thái rỗng rõ ràng. Liên hệ chỉ tải sau chọn khách hàng. Nạp danh mục, 8 tài khoản KT, nhóm/khu vực, khách hàng/liên hệ, sản phẩm, lead, cơ hội, chiến dịch, báo giá và lý do/đối thủ; chạy lại không nhân đôi/đổi mật khẩu. Có thể bổ sung dữ liệu thuộc tài khoản hiện có, không thay quyền.
+
+Kiểm tra mail bằng `npm run mail:check`. Thiếu `SMTP_HOST` thì SMTP_USER/PASS chưa đủ; bổ sung cấu hình riêng và chạy lại backend. Admin có bảng trạng thái queue/lỗi, mail chạy dù business job lỗi. SMTP local thật đã kiểm tra thư cấp tài khoản/mật khẩu đăng nhập được, token reset dùng đúng một lần, verify không gửi mail và từ chối/retry. Chưa xác minh Gmail/Inbox máy người dùng.
+
+Kiểm chứng: **41/41 ca Chromium + MariaDB**, **105/105 backend mỗi MySQL/MariaDB**, 15/15 ca SMTP/security mở rộng mỗi engine, lint/build đạt. Nạp/rerun/upgrade dữ liệu và quyền đọc qua API Sales đã kiểm tra trên DB QA. CMD Windows chưa chạy trực tiếp trên Windows; các lệnh Node/npm bên trong đã kiểm tra. [Chi tiết](../frontend/docs/DROPDOWNS-AND-MAIL.md).
+
+## Bản trước: dropdown và Excel
 
 [Tải ZIP chép đè backend/frontend](https://github.com/QuangDung1708/TTCS_N1/raw/refs/heads/codex/frontend-sprint-1-5/delivery/TTCS_N1-dropdown-excel-fix.zip) · [SHA-256](TTCS_N1-dropdown-excel-fix.zip.sha256). Gói khoảng 281 KiB, gồm các bản sửa UI trước đó và hướng dẫn `UPDATE-UI-AND-DATA.md`. Dừng server, chép hai thư mục vào TTCS_N1, giữ .env/uploads/database; chạy `npm ci` tại backend rồi khởi động lại backend/frontend và Ctrl+F5. Không reset DB hay chạy migration cho bản này.
 
