@@ -14,7 +14,8 @@
     "lint": "eslint .",
     "schema:report": "node scripts/schema-report.js",
     "test:coverage": "jest --runInBand --detectOpenHandles --coverage",
-    "data:examples": "node scripts/create-example-data.js"
+    "data:examples": "node scripts/create-example-data.js",
+    "data:catalogs": "node scripts/initialize-catalogs.js"
   },
   "keywords": [],
   "author": "",

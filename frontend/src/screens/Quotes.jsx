@@ -1,7 +1,6 @@
 import Select from "../ui/LinkedSelect";
 import { useState } from "react";
 import {
-  App,
   Button,
   Form,
   Input,
@@ -12,18 +11,14 @@ import {
   Tag,
   Typography,
 } from "antd";
-import {
-  DeleteOutlined,
-  DownloadOutlined,
-  EditOutlined,
-  PlusOutlined,
-} from "@ant-design/icons";
+import { DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
-import { api, download, errorText, money } from "../lib/api";
+import { api, money } from "../lib/api";
 import { useAction, useResource } from "../lib/hooks";
 import {
   DataCard,
+  ExportButton,
   PageHeader,
   RefreshButton,
   ResourceError,
@@ -36,8 +31,7 @@ export default function Quotes() {
     [search, setSearch] = useState(""),
     r = useResource("/quotes", { search }),
     deals = useResource("/deals"),
-    a = useAction(),
-    { message } = App.useApp();
+    a = useAction();
   const [open, setOpen] = useState(
       params.has("create") && auth.can("QUOTE", "write"),
     ),
@@ -50,16 +44,11 @@ export default function Quotes() {
         actions={
           <>
             <RefreshButton resource={r} />
-            <Button
-              icon={<DownloadOutlined aria-hidden="true" />}
-              onClick={() =>
-                download("/quotes/export", { search }, "bao-gia.xlsx").catch(
-                  (e) => message.error(errorText(e)),
-                )
-              }
-            >
-              Xuất Excel
-            </Button>
+            <ExportButton
+              path="/quotes/export"
+              params={{ search }}
+              filename="bao-gia.xlsx"
+            />
             {auth.can("QUOTE", "write") && (
               <Button
                 type="primary"
@@ -180,6 +169,7 @@ export default function Quotes() {
             <Select
               showSearch
               optionFilterProp="label"
+              loading={deals.loading}
               options={deals.rows.map((d) => ({ value: d.id, label: d.title }))}
             />
           </Form.Item>

@@ -73,4 +73,10 @@ Thông báo cá nhân đòi quyền đọc AUTO; thao tác đánh dấu đã đ�
 - `POST /categories`: `code` có thể bỏ trống để sinh mã duy nhất; loại và tên vẫn bắt buộc.
 - Import nhận tiêu đề kỹ thuật cũ hoặc tiếng Việt từ mẫu mới. Customer import ánh xạ các cột mã trường tùy chỉnh đang hoạt động vào `custom_fields` và kiểm tra kiểu/bắt buộc.
 - Theo yêu cầu người dùng ngày 18/10/2026, Admin có toàn quyền bao gồm xem/sửa giá vốn và đọc giá vốn trong audit; Director cũng có quyền giá vốn. Các vai trò khác vẫn bị ẩn từ API. Quy tắc không tự đổi email/nhóm/vai trò trong `/users/profile` vẫn giữ; Admin dùng API quản trị người dùng để sửa quyền.
-- Email tạo user chứa tài khoản, mật khẩu tạm sinh ngẫu nhiên và liên kết đặt mật khẩu; email reset có token 30 phút, một lần. Worker gửi bản text/HTML qua SMTP đã cấu hình, xóa nội dung chứa bí mật trong outbox sau khi gửi thành công. Các đường gửi mail cũ không được ứng dụng hiện tại gọi.
+- Email tạo user chứa tài khoản, mật khẩu tạm hợp lệ từ đầu vào (hoặc sinh ngẫu nhiên nếu để trống) và liên kết đặt mật khẩu; email reset có token 30 phút, một lần. Worker gửi bản text/HTML qua SMTP đã cấu hình, xóa nội dung chứa bí mật trong outbox sau khi gửi thành công. Các đường gửi mail cũ không được ứng dụng hiện tại gọi.
+
+### Mẫu user và dữ liệu chọn (bổ sung 18/10)
+
+`GET /users/import/template` trả XLSX sáu cột: `Tên`, `Email`, `Mật khẩu tạm thời`, `Vai trò (RBAC)`, `Nhóm kinh doanh`, `Số điện thoại`. Nhận alias `full_name`, `email`, `temporary_password`, `role_code`, `group_name`, `phone`; `group_id` vẫn được hỗ trợ. `group_name` phải khớp duy nhất nhóm có sẵn, không tự tạo nhóm. `POST /users` cũng nhận `temporary_password`; nếu có phải đạt cùng quy tắc mật khẩu, nếu trống tự sinh. Không trả mật khẩu trong response, không xuất hash; thư SMTP chứa thông tin khởi tạo và yêu cầu đổi lần đầu.
+
+Xuất khách hàng/lead/báo giá nháp trả XLSX nhị phân có tiêu đề ngay cả khi không có bản ghi. Các bộ chọn UI tìm theo tên không phân biệt dấu/hoa thường; dữ liệu lựa chọn tiếp tục do các API hiện hữu kiểm soát phạm vi và quyền. Khởi tạo danh mục chuẩn do backend thực hiện một lần hoặc CLI `npm run data:catalogs`, không có endpoint công khai để nạp dữ liệu.

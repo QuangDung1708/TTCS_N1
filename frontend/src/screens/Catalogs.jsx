@@ -385,6 +385,7 @@ export default function Catalogs({ kind }) {
       <DataCard>
         {tabs.length > 0 && (
           <Tabs
+            animated={{ inkBar: true, tabPane: true }}
             activeKey={tab}
             onChange={(v) => {
               setTab(v);
@@ -406,6 +407,8 @@ export default function Catalogs({ kind }) {
           {!canWrite && <Tag>Quyền chỉ xem</Tag>}
         </div>
         <Table
+          key={kind + ":" + tab}
+          className="tab-content-enter"
           rowKey="id"
           dataSource={rows}
           loading={r.loading}
@@ -446,7 +449,7 @@ export default function Catalogs({ kind }) {
       <EntityModal
         open={open}
         onClose={() => setOpen(false)}
-        title={`${editing ? "Chỉnh sửa" : "Thêm"} ${isProduct ? "sản phẩm" : stage ? "giai đoạn pipeline" : competitor ? "đối thủ cạnh tranh" : kind === "categories" ? categoryTabs.find(([key]) => key === tab)?.[1].toLowerCase() : kind === "deal-reasons" ? (tab === "WON" ? "lý do thắng" : "lý do thua") : "trường tùy chỉnh"}`}
+        title={`${editing ? "Chỉnh sửa" : "Thêm"} ${isProduct ? "sản phẩm" : stage ? "giai đoạn pipeline" : competitor ? "đối thủ cạnh tranh" : kind === "categories" ? (tab === "company_size" ? "mức quy mô doanh nghiệp" : categoryTabs.find(([key]) => key === tab)?.[1].toLowerCase()) : kind === "deal-reasons" ? (tab === "WON" ? "lý do thắng" : "lý do thua") : "trường tùy chỉnh"}`}
         record={editing}
         entity={kind + "-" + tab}
         busy={a.busy}
@@ -469,6 +472,15 @@ export default function Catalogs({ kind }) {
                   : {}
         }
       >
+        {kind === "categories" && tab === "company_size" && (
+          <Typography.Paragraph type="secondary">
+            Đây là danh mục quy mô dùng chung, ví dụ 51–200 nhân sự.{" "}
+            <a href="/customers?create=1">
+              Thêm doanh nghiệp có tên riêng tại Khách hàng &amp; liên hệ
+            </a>
+            .
+          </Typography.Paragraph>
+        )}
         <div className="form-grid">
           {kind === "custom-fields" ? (
             <>
@@ -547,7 +559,7 @@ export default function Catalogs({ kind }) {
                       : undefined
                   }
                 >
-                  <Input maxLength={50} />
+                  <Input maxLength={50} autoComplete="off" />
                 </Form.Item>
               )}
               <Form.Item
@@ -556,7 +568,9 @@ export default function Catalogs({ kind }) {
                   competitor
                     ? "Tên đối thủ"
                     : kind === "categories"
-                      ? `Tên ${categoryTabs.find(([key]) => key === tab)?.[1].toLowerCase()}`
+                      ? tab === "company_size"
+                        ? "Khoảng nhân sự / tên quy mô"
+                        : `Tên ${categoryTabs.find(([key]) => key === tab)?.[1].toLowerCase()}`
                       : kind === "deal-reasons"
                         ? tab === "WON"
                           ? "Lý do thắng"
@@ -567,6 +581,7 @@ export default function Catalogs({ kind }) {
               >
                 <Input
                   maxLength={100}
+                  autoComplete="off"
                   placeholder={
                     kind === "categories"
                       ? {

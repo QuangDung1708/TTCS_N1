@@ -27,7 +27,6 @@ import {
   CheckOutlined,
   CloseOutlined,
   DeleteOutlined,
-  DownloadOutlined,
   EditOutlined,
   PlusOutlined,
   SearchOutlined,
@@ -38,17 +37,11 @@ import {
 } from "@ant-design/icons";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
-import {
-  api,
-  dateTime,
-  download,
-  errorText,
-  options,
-  readJSON,
-} from "../lib/api";
+import { api, dateTime, options, readJSON } from "../lib/api";
 import { useAction, useMedia, useResource } from "../lib/hooks";
 import {
   DataCard,
+  ExportButton,
   MoneyField,
   DateField,
   PageHeader,
@@ -86,8 +79,8 @@ export default function Leads() {
     directory = useResource("/customers/users-list"),
     catalog = useResource("/categories"),
     campaigns = useResource("/campaigns/options"),
+    regions = useResource("/organization/regions"),
     a = useAction();
-  const { message } = App.useApp();
   const managers = auth.has("Admin", "Director", "Team Lead", "Marketing"),
     admins = auth.has("Admin", "Director");
   useEffect(() => {
@@ -225,16 +218,11 @@ export default function Leads() {
         actions={
           <>
             <RefreshButton resource={r} />
-            <Button
-              icon={<DownloadOutlined aria-hidden="true" />}
-              onClick={() =>
-                download("/leads/export", filters, "leads.xlsx").catch((e) =>
-                  message.error(errorText(e)),
-                )
-              }
-            >
-              Xuất Excel
-            </Button>
+            <ExportButton
+              path="/leads/export"
+              params={filters}
+              filename="leads.xlsx"
+            />
             {auth.can("LEAD", "write") && (
               <>
                 <Button
@@ -395,28 +383,19 @@ export default function Leads() {
           )
         }
       >
+        <ResourceError resource={catalog} />
+        <ResourceError resource={campaigns} />
+        <ResourceError resource={regions} />
+        <ResourceError resource={directory} />
         <div className="form-grid">
-          {auth.has("Admin", "Director", "Team Lead", "Marketing") && (
-            <Form.Item
-              name="owner_id"
-              label="Người phụ trách"
-              extra="Phân bổ cho nhân viên kinh doanh đang hoạt động; thời hạn phản hồi mặc định 60 phút."
-            >
-              <Select
-                showSearch
-                optionFilterProp="label"
-                options={userOptions(
-                  directory.rows.filter((u) =>
-                    readJSON(u.roles, [u.role_code]).includes("Sales Rep"),
-                  ),
-                )}
-              />
-            </Form.Item>
-          )}
           <Form.Item name="full_name" label="Họ và tên" rules={required}>
             <Input />
           </Form.Item>
-          <Form.Item name="company_name" label="Công ty" rules={required}>
+          <Form.Item
+            name="company_name"
+            label="Tên doanh nghiệp"
+            rules={required}
+          >
             <Input />
           </Form.Item>
           <Form.Item
@@ -446,6 +425,7 @@ export default function Leads() {
           </Form.Item>
           <Form.Item name="source_id" label="Nguồn lead" rules={required}>
             <Select
+              loading={catalog.loading}
               options={options(
                 catalog.rows.filter((c) => c.type === "lead_source"),
               )}
@@ -454,12 +434,17 @@ export default function Leads() {
           </Form.Item>
           {auth.can("LEAD") && (
             <Form.Item name="campaign_id" label="Chiến dịch">
-              <Select allowClear options={options(campaigns.rows)} />
+              <Select
+                allowClear
+                loading={campaigns.loading}
+                options={options(campaigns.rows)}
+              />
             </Form.Item>
           )}
           <Form.Item name="industry" label="Ngành nghề">
             <Select
               allowClear
+              loading={catalog.loading}
               options={catalog.rows
                 .filter((c) => c.type === "industry")
                 .map((c) => ({ value: c.name, label: c.name }))}
@@ -468,17 +453,48 @@ export default function Leads() {
           <Form.Item name="company_size" label="Quy mô doanh nghiệp">
             <Select
               allowClear
+              loading={catalog.loading}
               options={catalog.rows
                 .filter((c) => c.type === "company_size")
                 .map((c) => ({ value: c.name, label: c.name }))}
             />
           </Form.Item>
           <Form.Item name="region" label="Khu vực">
-            <Input />
+            <Select
+              allowClear
+              loading={regions.loading}
+              options={regions.rows.map((r) => ({
+                value: r.name,
+                label: r.name,
+              }))}
+            />
           </Form.Item>
           <Form.Item name="interest_level" label="Mức độ quan tâm">
-            <Input />
+            <Select
+              allowClear
+              options={["Chưa xác định", "Thấp", "Trung bình", "Cao"].map(
+                (value) => ({ value, label: value }),
+              )}
+            />
           </Form.Item>
+          {auth.has("Admin", "Director", "Team Lead", "Marketing") && (
+            <Form.Item
+              className="full-span"
+              name="owner_id"
+              label="Người phụ trách"
+              extra="Phân bổ cho nhân viên kinh doanh đang hoạt động; thời hạn phản hồi mặc định 60 phút."
+            >
+              <Select
+                showSearch
+                optionFilterProp="label"
+                options={userOptions(
+                  directory.rows.filter((u) =>
+                    readJSON(u.roles, [u.role_code]).includes("Sales Rep"),
+                  ),
+                )}
+              />
+            </Form.Item>
+          )}
           <Form.Item
             name="interest"
             label="Nhu cầu quan tâm"

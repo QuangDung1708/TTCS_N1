@@ -640,6 +640,10 @@ function DealEditor({ open, onClose, record, stages, fields, users, onSaved }) {
         )
       }
     >
+      <ResourceError resource={customers} />
+      <ResourceError resource={sources} />
+      <ResourceError resource={campaigns} />
+      <ResourceError resource={contacts} />
       <div className="form-grid">
         <Form.Item
           name="title"
@@ -658,6 +662,7 @@ function DealEditor({ open, onClose, record, stages, fields, users, onSaved }) {
             showSearch
             optionFilterProp="label"
             onChange={() => form.setFieldValue("contact_id", null)}
+            loading={customers.loading}
             options={customers.rows.map((c) => ({
               value: c.id,
               label: c.company_name || c.name,
@@ -700,6 +705,7 @@ function DealEditor({ open, onClose, record, stages, fields, users, onSaved }) {
         </Form.Item>
         <Form.Item name="source_id" label="Nguồn cơ hội" rules={required}>
           <Select
+            loading={sources.loading}
             options={sources.rows.map((s) => ({ value: s.id, label: s.name }))}
           />
         </Form.Item>
@@ -751,6 +757,7 @@ function DealEditor({ open, onClose, record, stages, fields, users, onSaved }) {
           <Form.Item name="campaign_id" label="Chiến dịch">
             <Select
               allowClear
+              loading={campaigns.loading}
               options={campaigns.rows.map((c) => ({
                 value: c.id,
                 label: c.name,
@@ -950,6 +957,7 @@ function DealDrawer({
               ]}
             />
             <Tabs
+              animated={{ inkBar: true, tabPane: true }}
               items={[
                 {
                   key: "items",

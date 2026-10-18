@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { App } from "antd";
 import { api, errorText } from "./api";
 export function useResource(path, params = {}) {
@@ -64,15 +64,24 @@ export function useResource(path, params = {}) {
 export function useAction() {
   const { message } = App.useApp();
   const [busy, setBusy] = useState(false);
+  const key = useId();
   const run = async (fn, onSuccess, success = "Đã lưu thay đổi.") => {
     setBusy(true);
+    if (success)
+      message.open({
+        key,
+        type: "loading",
+        content: "Đang xử lý…",
+        duration: 0,
+      });
     try {
       const result = await fn();
-      if (success) message.success(success);
+      if (success)
+        message.open({ key, type: "success", content: success, duration: 2 });
       await onSuccess?.(result);
       return result;
     } catch (e) {
-      message.error(errorText(e));
+      message.open({ key, type: "error", content: errorText(e), duration: 4 });
       return null;
     } finally {
       setBusy(false);

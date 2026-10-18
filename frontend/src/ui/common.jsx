@@ -1,3 +1,5 @@
+import { useAction } from "../lib/hooks";
+import Select from "./LinkedSelect";
 import {
   Alert,
   Button,
@@ -6,7 +8,6 @@ import {
   Form,
   Input,
   InputNumber,
-  Select,
   DatePicker,
   Space,
   Tag,
@@ -15,13 +16,14 @@ import {
   Spin,
 } from "antd";
 import {
+  DownloadOutlined,
   ReloadOutlined,
   ArrowLeftOutlined,
   SyncOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
-import { errorText, readJSON } from "../lib/api";
+import { download, errorText, readJSON } from "../lib/api";
 import { useAuth } from "../auth/AuthProvider";
 export const roleLabels = {
   Admin: "Quản trị hệ thống",
@@ -235,3 +237,27 @@ export const userOptions = (rows) =>
   }));
 export const lookup = (rows, id) =>
   rows.find((r) => Number(r.id) === Number(id));
+
+export function ExportButton({
+  path,
+  params,
+  filename,
+  children = "Xuất Excel",
+}) {
+  const action = useAction();
+  return (
+    <Button
+      icon={<DownloadOutlined aria-hidden="true" />}
+      loading={action.busy}
+      onClick={() =>
+        action.run(
+          () => download(path, params, filename),
+          null,
+          "Đã tải tệp Excel.",
+        )
+      }
+    >
+      {children}
+    </Button>
+  );
+}

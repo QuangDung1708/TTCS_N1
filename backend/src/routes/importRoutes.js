@@ -11,7 +11,14 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 },
 }).single("file");
 const headers = {
-  user: ["full_name", "email", "phone", "role_code", "group_id"],
+  user: [
+    "full_name",
+    "email",
+    "temporary_password",
+    "role_code",
+    "group_name",
+    "phone",
+  ],
   customer: [
     "company_name",
     "tax_code",
@@ -71,8 +78,22 @@ function rows(req) {
     .filter((r) => Object.values(r).some((v) => v !== null && v !== ""));
 }
 async function apply(c, entity, user, row) {
-  if (entity === "user")
+  if (entity === "user") {
+    if (row.group_name) {
+      const [groups] = await c.query("SELECT id FROM `groups` WHERE name=?", [
+        row.group_name,
+      ]);
+      if (groups.length !== 1)
+        fail(
+          400,
+          groups.length
+            ? "Tên nhóm bị trùng, dùng group_id để chọn chính xác."
+            : "Nhóm kinh doanh không tồn tại.",
+        );
+      row = { ...row, group_id: groups[0].id };
+    }
     return require("./userRoutes").createUser(c, user, row);
+  }
   if (entity === "customer") {
     const [fields] = await c.query(
       "SELECT field_key FROM custom_fields WHERE entity_type='customer' AND is_active=1",

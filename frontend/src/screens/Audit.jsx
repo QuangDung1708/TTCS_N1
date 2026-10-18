@@ -1,6 +1,7 @@
+import Select from "../ui/LinkedSelect";
 import dayjs from "dayjs";
 import { useState } from "react";
-import { Button, DatePicker, Select, Table, Tag, Typography } from "antd";
+import { Button, DatePicker, Table, Tag, Typography } from "antd";
 import { ClearOutlined } from "@ant-design/icons";
 import { dateTime } from "../lib/api";
 import { useResource } from "../lib/hooks";

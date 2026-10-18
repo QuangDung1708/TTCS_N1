@@ -379,7 +379,7 @@ test("S4: create lead, receive and convert preserves activity in customer 360", 
   await page.getByRole("button", { name: "Thêm lead", exact: true }).click();
   await dialog(page).getByLabel("Họ và tên").fill("E2E Lead chuyển đổi");
   await dialog(page)
-    .getByLabel("Công ty", { exact: true })
+    .getByLabel(/Công ty|Tên doanh nghiệp/, { exact: true })
     .fill("E2E Công ty chuyển đổi");
   await dialog(page)
     .getByLabel("Email", { exact: true })
@@ -505,7 +505,7 @@ test("S4: Ant Design public embed submits actual sourced lead without authentica
   ).toBeVisible();
   await page.getByLabel("Họ và tên").fill("E2E Khách website");
   await page
-    .getByLabel("Công ty", { exact: true })
+    .getByLabel(/Công ty|Tên doanh nghiệp/, { exact: true })
     .fill("E2E Doanh nghiệp website");
   await page.getByLabel("Email", { exact: true }).fill("public@example.test");
   await page.getByLabel("Số điện thoại").fill("0912345678");
@@ -871,7 +871,7 @@ test("S4-05: configure lead score using real source names and see automatic hot 
   await page.getByRole("button", { name: "Thêm lead", exact: true }).click();
   await dialog(page).getByLabel("Họ và tên").fill("E2E Lead chấm điểm");
   await dialog(page)
-    .getByLabel("Công ty", { exact: true })
+    .getByLabel(/Công ty|Tên doanh nghiệp/, { exact: true })
     .fill("E2E Công ty điểm");
   await dialog(page)
     .getByLabel("Email", { exact: true })
@@ -1090,7 +1090,7 @@ test("Shared lookups: newly created source and campaign can be selected by Sales
     .getByLabel("Họ và tên", { exact: true })
     .fill("E2E Lead liên kết");
   await dialog(page)
-    .getByLabel("Công ty", { exact: true })
+    .getByLabel(/Công ty|Tên doanh nghiệp/, { exact: true })
     .fill("E2E Công ty liên kết");
   await dialog(page)
     .getByLabel("Email", { exact: true })

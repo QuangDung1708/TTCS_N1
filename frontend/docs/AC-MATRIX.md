@@ -164,7 +164,7 @@ Ma trận đọc từ API đang áp dụng trên server. UI không tự khai bá
 
 | Vai trò | Kiểm soát chính trên UI |
 | --- | --- |
-| Admin | Quản trị tài khoản, danh mục và cấu hình; không hiển thị giá vốn. |
+| Admin | Toàn quyền tất cả module, tài khoản, danh mục, cấu hình, giá vốn và nhật ký. |
 | Director | Toàn bộ dữ liệu kinh doanh, giá vốn, cấu hình, nhật ký; chỉ xem tài khoản, không tạo/sửa/khóa. |
 | Team Lead | Dữ liệu thuộc cây nhóm; phân bổ, override có lý do; danh mục chỉ xem. |
 | Sales Rep | Khách hàng/lead/cơ hội của mình; thao tác ghi theo bản ghi; danh mục chỉ xem. |
@@ -188,3 +188,11 @@ Chưa áp dụng migration vào MySQL thật trong ảnh của người dùng; c
 - S1-03/08: mail text/HTML, tài khoản/mật khẩu tạm/liên kết đặt mật khẩu; quên mật khẩu gửi token 30 phút một lần; kiểm thử SMTP cục bộ và reset qua API/UI.
 
 Các ca bổ sung nằm tại `backend/test/integration/usability.test.js`, kiểm thử SMTP tại `security-runtime.test.js`, kiểm thử pointer và dữ liệu lưu thật tại `frontend/e2e/crm.spec.js`. Kết quả thực chạy được ghi tại VALIDATION.md.
+
+## Dropdown, Excel và phản hồi thao tác — bổ sung
+
+S3-01/S4-02/S5-01: kiểm thử pointer mở từng bộ chọn, gõ tên không dấu, chọn ngành nghề/quy mô/khu vực/nguồn/chiến dịch/khách hàng/liên hệ/giai đoạn/người phụ trách rồi kiểm tra bản ghi qua API thật. `LinkedSelect` dùng chung cho các màn hình; không chặn mũi tên bằng handler click tùy biến.
+
+S2-01/S3-06 và báo giá: worksheet đơn giản thay structured table/comment, kiểm tra XML và đọc bằng openpyxl độc lập; byte tải bằng trình duyệt khớp payload API. Mẫu user sáu cột theo ảnh, hỗ trợ mật khẩu tạm tùy chọn và tên nhóm có sẵn, giữ mẫu cũ. Không xuất hash hoặc mật khẩu hiện tại.
+
+Danh mục tham chiếu được lưu DB một lần, giữ cấu hình sẵn có; khởi động lại không hoàn nguyên thao tác xóa. Form quy mô nêu rõ khoảng nhân sự và dẫn tới form tạo doanh nghiệp có tên. Loading/success được kiểm tra trên request lưu thật; chuyển thẻ có animation và reduced-motion. Các ca nằm trong `e2e/dropdowns-excel.spec.js` và `backend/test/integration/usability.test.js`.

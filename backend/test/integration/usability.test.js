@@ -10,7 +10,8 @@ test("Excel template is a styled table with frozen header, instructions and live
   const b = new ExcelJS.Workbook();
   await b.xlsx.load(r.body);
   const sheet = b.worksheets[0];
-  expect(sheet.getTable("CRMData")).toBeTruthy();
+  expect(sheet.autoFilter).toBeTruthy();
+  expect(sheet.getCell("A1").fill.fgColor.argb).toBe("FF173B63");
   expect(sheet.views[0].ySplit).toBe(1);
   expect(sheet.getColumn(1).width).toBeGreaterThanOrEqual(20);
   expect(b.getWorksheet("Hướng dẫn")).toBeTruthy();
@@ -164,4 +165,117 @@ test("Customer template includes configured fields and the formatted export can 
   expect(preview.status).toBe(200);
   expect(preview.body.valid).toBe(1);
   expect(preview.body.data[0].data.devices).toBe(42);
+});
+
+test("Reference catalogs persist once, preserve configured entries, and do not restore intentionally deleted values", async () => {
+  const {
+    initializeReferenceCatalogs,
+  } = require("../../src/core/referenceCatalogs");
+  const [[before]] = await h.db.query("SELECT COUNT(*) n FROM users");
+  const first = await initializeReferenceCatalogs();
+  expect(first.initialized).toBe(true);
+  const [sizes] = await h.db.query(
+    "SELECT * FROM sales_categories WHERE type='company_size'",
+  );
+  expect(sizes.some((r) => r.name === "51–200 nhân sự")).toBe(true);
+  const [regions] = await h.db.query("SELECT * FROM regions");
+  expect(regions.map((r) => r.name)).toContain("Miền Bắc");
+  const [[existing]] = await h.db.query(
+    "SELECT name FROM sales_categories WHERE id=1",
+  );
+  expect(existing.name).toBe("Website");
+  const [[after]] = await h.db.query("SELECT COUNT(*) n FROM users");
+  expect(after.n).toBe(before.n);
+  await h.db.query(
+    "UPDATE sales_categories SET name='Quy mô riêng' WHERE id=?",
+    [sizes[0].id],
+  );
+  await h.db.query("DELETE FROM sales_categories WHERE id=?", [sizes[1].id]);
+  const second = await initializeReferenceCatalogs();
+  expect(second.initialized).toBe(false);
+  const [[custom]] = await h.db.query(
+    "SELECT name FROM sales_categories WHERE id=?",
+    [sizes[0].id],
+  );
+  expect(custom.name).toBe("Quy mô riêng");
+  const [[deleted]] = await h.db.query(
+    "SELECT COUNT(*) n FROM sales_categories WHERE id=?",
+    [sizes[1].id],
+  );
+  expect(deleted.n).toBe(0);
+});
+
+test("The six-column user template accepts group names and an optional validated temporary password", async () => {
+  const template = await h.api("Admin", "get", "/api/users/import/template");
+  expect(template.status).toBe(200);
+  const book = XLSX.read(template.body, { type: "buffer" });
+  expect(
+    XLSX.utils.sheet_to_json(book.Sheets[book.SheetNames[0]], { header: 1 })[0],
+  ).toEqual([
+    "Tên",
+    "Email",
+    "Mật khẩu tạm thời",
+    "Vai trò (RBAC)",
+    "Nhóm kinh doanh",
+    "Số điện thoại",
+  ]);
+  const row = {
+    Tên: "Nhân sự Excel",
+    Email: "six-columns@example.test",
+    "Mật khẩu tạm thời": "Crm@123456",
+    "Vai trò (RBAC)": "Sales Rep",
+    "Nhóm kinh doanh": "Team A",
+    "Số điện thoại": "0937261844",
+  };
+  const preview = await h.api("Admin", "post", "/api/users/import/preview", {
+    rows: [row],
+  });
+  expect(preview.body.valid).toBe(1);
+  const executed = await h.api("Admin", "post", "/api/users/import/execute", {
+    rows: [row],
+  });
+  expect(executed.body.imported).toBe(1);
+  const [[saved]] = await h.db.query(
+    "SELECT password,group_id,must_change_password FROM users WHERE email=?",
+    [row.Email],
+  );
+  expect(saved.group_id).toBe(1);
+  expect(saved.must_change_password).toBe(1);
+  expect(
+    await require("../../src/core/auth").bcrypt.compare(
+      "Crm@123456",
+      saved.password,
+    ),
+  ).toBe(true);
+  const bad = await h.api("Admin", "post", "/api/users/import/preview", {
+    rows: [{ ...row, Email: "weak@example.test", "Mật khẩu tạm thời": "123" }],
+  });
+  expect(bad.body.invalid).toBe(1);
+});
+
+test("Excel exports have XML-safe cells, numeric totals and headers even with zero records", async () => {
+  const { workbook } = require("../../src/core/workbook");
+  const buffer = await workbook(
+    "quote",
+    ["title", "amount", "created_at"],
+    [
+      {
+        title: "Tên\u0001\u000b có dấu & < >",
+        amount: "1500000.00",
+        created_at: new Date("invalid"),
+      },
+    ],
+    false,
+  );
+  const b = new ExcelJS.Workbook();
+  await b.xlsx.load(buffer);
+  expect(b.worksheets[0].getCell("A2").value).toBe("Tên có dấu & < >");
+  expect(b.worksheets[0].getCell("B2").value).toBe(1500000);
+  const empty = await h.api("salesB", "get", "/api/quotes/export");
+  expect(empty.status).toBe(200);
+  const w = XLSX.read(empty.body, { type: "buffer" });
+  const rows = XLSX.utils.sheet_to_json(w.Sheets[w.SheetNames[0]], {
+    header: 1,
+  });
+  expect(rows[0]).toContain("Tên báo giá");
 });

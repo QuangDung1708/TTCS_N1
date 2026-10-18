@@ -28,20 +28,25 @@ r.get(
 r.get(
   "/export",
   route(async (req, res) => {
-    const XLSX = require("xlsx");
+    const { workbook } = require("../core/workbook");
     const data = (await list(req.user, req.query)).map((q) => ({
       ...q,
-      title: /^[=+@\-\t\r]/.test(q.title) ? "'" + q.title : q.title,
+      status: q.status === "DRAFT" ? "Bản nháp" : q.status,
     }));
-    const book = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(
-      book,
-      XLSX.utils.json_to_sheet(data),
-      "Quotes",
-    );
+    const keys = [
+      "title",
+      "deal_id",
+      "customer_id",
+      "owner_id",
+      "gross_amount",
+      "discount_percent",
+      "amount",
+      "status",
+      "created_at",
+    ];
     res
       .attachment("quotes.xlsx")
-      .send(XLSX.write(book, { type: "buffer", bookType: "xlsx" }));
+      .send(await workbook("quote", keys, data, false));
   }),
 );
 r.get(

@@ -1,3 +1,4 @@
+import { normalizeSearch } from "../lib/search";
 import { TreeSelect } from "antd";
 export function hierarchy(rows, label = "name") {
   const nodes = new Map(
@@ -31,6 +32,10 @@ export default function HierarchySelect({ rows, exclude, label, ...props }) {
       allowClear
       showSearch
       treeNodeFilterProp="title"
+      filterTreeNode={(input, node) =>
+        normalizeSearch(node.title).includes(normalizeSearch(input))
+      }
+      styles={{ popup: { root: { zIndex: 2100 } } }}
       treeDefaultExpandAll
       getPopupContainer={() => document.body}
       placeholder="Không có cấp cha (cấp cao nhất)"

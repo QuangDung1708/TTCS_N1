@@ -1,10 +1,10 @@
+import Select from "./LinkedSelect";
 import { useState } from "react";
 import {
   Alert,
   App,
   Button,
   Modal,
-  Select,
   Space,
   Steps,
   Table,

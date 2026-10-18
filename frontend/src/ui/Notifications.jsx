@@ -103,6 +103,7 @@ export default function Notifications() {
       {auth.can("USER_LOG") ? (
         <>
           <Tabs
+            animated={{ inkBar: true, tabPane: true }}
             activeKey={tab}
             onChange={setTab}
             items={[

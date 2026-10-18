@@ -7,9 +7,9 @@
 | Frontend `npm ci` trên thư mục Linux sạch | Thành công từ package-lock.json |
 | Frontend `npm run lint` | Thành công, gồm cả source và test |
 | Frontend `npm run build` | Thành công |
-| Playwright + Chromium + Express + MariaDB 10.4 thật | **34/34 ca**, gồm các phản hồi bổ sung ngày 18/10 |
+| Playwright + Chromium + Express + MariaDB 10.4 thật | **39/39 ca**, gồm dropdown, Excel và phản hồi thao tác |
 | Backend lint | Thành công |
-| Backend Jest/MySQL | **101/101 test**, 12/12 suite trên MySQL 8.4 và MariaDB 10.4 |
+| Backend Jest/MySQL | **104/104 test**, 12/12 suite trên MySQL 8.4 và MariaDB 10.4 |
 | Backend coverage của bản trước | 90.64% dòng; 76.50% nhánh; 91.2% hàm; 87.43% câu lệnh; chưa đo lại cho phần Excel/mail mới |
 | Server phát triển | Frontend HTTP 200, backend health HTTP 200; dùng crm_dev không nạp dữ liệu nghiệp vụ mẫu |
 
@@ -85,4 +85,14 @@ Email tạo tài khoản và quên mật khẩu được đưa vào hàng đợi
 
 Thêm ExcelJS là thay đổi dependency backend; hướng dẫn cập nhật yêu cầu npm ci, giữ .env/uploads/DB, không yêu cầu migration hay reset database.
 
-Lượt hồi quy phát hành cuối đạt **34/34 ca trình duyệt** trên Chromium + MariaDB 10.4. Hai engine backend đạt **101/101 ca, 12/12 suite**; sau tinh chỉnh tên nguồn/chiến dịch trong Excel, chạy lại 6/6 ca phần bổ sung trên mỗi engine. Frontend lint/build và backend lint đạt. Cảnh báo List bị đánh dấu deprecated và useForm khi đổi màn hình vẫn xuất hiện; không có ngoại lệ JavaScript làm hỏng luồng trong các ca đã kiểm tra.
+Lượt hồi quy của bản trước đạt **34/34 ca trình duyệt** trên Chromium + MariaDB 10.4. Hai engine backend đạt **101/101 ca, 12/12 suite**; sau tinh chỉnh tên nguồn/chiến dịch trong Excel, chạy lại 6/6 ca phần bổ sung trên mỗi engine. Frontend lint/build và backend lint đạt. Cảnh báo List bị đánh dấu deprecated và useForm khi đổi màn hình vẫn xuất hiện; không có ngoại lệ JavaScript làm hỏng luồng trong các ca đã kiểm tra.
+
+## Bổ sung dropdown và Excel
+
+Đã tái hiện input ngành nghề không cho gõ tìm kiếm. Bộ chọn dùng chung nay tìm theo tên không phân biệt dấu/hoa thường, mở phía trên modal và đóng sau khi chọn. Ca trình duyệt mới bấm chính mũi tên, tìm/chọn từng ngành nghề, quy mô, khu vực, nguồn, chiến dịch và các dữ liệu cơ hội, rồi đối chiếu bản ghi lưu bằng API thật. Có loading, retry khi tải lỗi, phản hồi hoàn tất và animation tôn trọng reduced-motion. Một ca giữ request lưu đang chờ rồi tiếp tục tới backend thật để kiểm tra loading → success; không trả response nghiệp vụ giả.
+
+Backend đầy đủ đạt 104/104 ca, 12/12 suite trên từng engine MySQL 8.4.11 và MariaDB 10.4.34. Bổ sung kiểm tra khởi tạo danh mục một lần, giữ cấu hình/xóa chủ động; mẫu user sáu cột và nhóm theo tên/mật khẩu tùy chọn; kiểu dữ liệu Excel, ký tự không hợp lệ trong XML và xuất rỗng có tiêu đề. Smoke test khởi động backend bình thường trên DB QA mới ở cả hai engine: 26 mục danh mục, 3 khu vực, 0 bản ghi user/khách hàng/lead/cơ hội; restart không nhân đôi.
+
+XLSX mới dùng worksheet đơn giản thay structured table/comment/VML. Kiểm tra byte file tải bằng Chromium trùng payload HTTP; XML trong ZIP được parse độc lập và workbook mở bằng openpyxl, giữ header/filter/frozen row và không có ô công thức. Đây là kiểm chứng độc lập ngoài thư viện xuất ExcelJS. Chưa tái hiện trực tiếp lỗi Repair trong Microsoft Excel/Cốc Cốc trên Windows của người dùng; cần tải file mới để xác nhận trên máy đó. Không truy cập DB hoặc SMTP của người dùng.
+
+Lượt hồi quy cuối bản dropdown/Excel: **39/39 ca Chromium + MariaDB 10.4**, gồm toàn bộ 34 ca cũ và 5 ca mới (4,5 phút). Frontend lint/build và backend lint đạt. Kiểm tra độc lập ba workbook tải thực: khách hàng 12 hàng/13 cột, lead 7 hàng/15 cột, báo giá 2 hàng/9 cột; tất cả XML hợp lệ và openpyxl đọc được. Số hàng là dữ liệu QA của lượt này, không phải dữ liệu người dùng.

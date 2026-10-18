@@ -5,6 +5,14 @@ const labels = {
   phone: "Số điện thoại",
   role_code: "Mã vai trò",
   group_id: "Mã nhóm kinh doanh",
+  group_name: "Nhóm kinh doanh",
+  temporary_password: "Mật khẩu tạm thời",
+  title: "Tên báo giá",
+  deal_id: "Mã cơ hội",
+  customer_id: "Mã khách hàng",
+  gross_amount: "Giá trị trước chiết khấu (VNĐ)",
+  discount_percent: "Chiết khấu (%)",
+  amount: "Tổng cộng (VNĐ)",
   company_name: "Tên doanh nghiệp",
   tax_code: "Mã số thuế",
   industry: "Ngành nghề",
@@ -28,9 +36,11 @@ const labels = {
 function normalize(row) {
   return Object.fromEntries(
     Object.entries(row).map(([key, value]) => [
-      Object.keys(labels).find(
-        (k) => labels[k] === key.trim().replace(/\s*\*$/, ""),
-      ) || key.trim(),
+      { Tên: "full_name", "Vai trò (RBAC)": "role_code" }[key.trim()] ||
+        Object.keys(labels).find(
+          (k) => labels[k] === key.trim().replace(/\s*\*$/, ""),
+        ) ||
+        key.trim(),
       value,
     ]),
   );
@@ -38,21 +48,62 @@ function normalize(row) {
 async function workbook(entity, keys, data, template, lookups = []) {
   const book = new ExcelJS.Workbook();
   book.creator = "Enterprise CRM";
+  book.calcProperties.fullCalcOnLoad = true;
   const sheet = book.addWorksheet("Dữ liệu", {
     views: [{ state: "frozen", ySplit: 1 }],
   });
-  const safe = (v) =>
-    v == null ? "" : typeof v === "object" ? JSON.stringify(v) : v;
-  sheet.addTable({
-    name: "CRMData",
-    ref: "A1",
-    headerRow: true,
-    style: { theme: "TableStyleMedium2", showRowStripes: true },
-    columns: keys.map((k) => ({ name: labels[k] || k, filterButton: true })),
-    rows: data.length
-      ? data.map((r) => keys.map((k) => safe(r[k])))
-      : [keys.map(() => "")],
-  });
+  const safe = (v) => {
+    if (v == null) return "";
+    if (v instanceof Date)
+      return Number.isFinite(v.getTime())
+        ? v.toISOString().replace("T", " ").slice(0, 19)
+        : "";
+    if (typeof v === "number") return Number.isFinite(v) ? v : "";
+    const str = typeof v === "object" ? JSON.stringify(v) : String(v);
+    return str
+      .toWellFormed()
+      .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\uFFFE\uFFFF]/g, "");
+  };
+  const header = (key) =>
+    entity === "user" && key === "full_name"
+      ? "Tên"
+      : entity === "user" && key === "role_code"
+        ? "Vai trò (RBAC)"
+        : labels[key] || key;
+  sheet.addRow(keys.map((k) => safe(header(k))));
+  for (const row of data)
+    sheet.addRow(
+      keys.map((k) => {
+        const value = row[k];
+        if (
+          [
+            "total_contract_value",
+            "gross_amount",
+            "amount",
+            "discount_percent",
+          ].includes(k) &&
+          value !== null &&
+          value !== undefined &&
+          value !== "" &&
+          Number.isFinite(Number(value))
+        )
+          return Number(value);
+        return safe(value);
+      }),
+    );
+  // A normal worksheet with a fixed header and filter avoids table/comment/VML
+  // relationships that older Office installations may repair or discard.
+  sheet.autoFilter = {
+    from: { row: 1, column: 1 },
+    to: { row: Math.max(data.length + 1, 1), column: keys.length },
+  };
+  sheet.properties.dyDescent = 0.25;
+  sheet.pageSetup = {
+    orientation: "landscape",
+    paperSize: 9,
+    horizontalDpi: 300,
+    verticalDpi: 300,
+  };
   sheet.getRow(1).height = 32;
   keys.forEach((k, i) => {
     const col = sheet.getColumn(i + 1);
@@ -60,16 +111,18 @@ async function workbook(entity, keys, data, template, lookups = []) {
       ? 36
       : 25;
     if (["phone", "tax_code"].includes(k)) col.numFmt = "@";
-    if (k === "total_contract_value") col.numFmt = '#,##0" ₫"';
-    sheet.getCell(1, i + 1).note =
-      `Trường dữ liệu: ${k}. ` +
-      (k.endsWith("_id")
-        ? "Tra mã trong trang Danh mục, không nhập tên vào cột mã."
-        : "Nhập giá trị vào các hàng bên dưới.");
+    if (["total_contract_value", "gross_amount", "amount"].includes(k))
+      col.numFmt = '#,##0" ₫"';
   });
   sheet.eachRow((row, n) => {
     row.height = n === 1 ? 32 : 27;
     row.eachCell({ includeEmpty: true }, (cell) => {
+      if (n > 1 && n % 2 === 0)
+        cell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FFF1F6FC" },
+        };
       cell.alignment = { vertical: "middle", wrapText: true };
       cell.border = {
         top: { style: "thin", color: { argb: "FFDCE5EF" } },
@@ -90,7 +143,7 @@ async function workbook(entity, keys, data, template, lookups = []) {
     [
       "Bắt buộc",
       entity === "user"
-        ? "Họ và tên, Email, Mã vai trò. Tài khoản mới nhận email kích hoạt nếu SMTP được cấu hình."
+        ? "Tên, Email, Vai trò (RBAC). Nhóm kinh doanh nhập đúng tên từ trang Danh mục. Mật khẩu tạm thời có thể để trống để tự sinh; tài khoản nhận email nếu SMTP được cấu hình."
         : entity === "lead"
           ? "Họ và tên, Tên doanh nghiệp, Email hoặc Số điện thoại, Mã nguồn lead."
           : "Tên doanh nghiệp. Mã số thuế phải duy nhất nếu nhập.",

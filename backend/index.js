@@ -116,21 +116,39 @@ if (require.main === module) {
     throw new Error(
       "JWT_SECRET must be configured with at least 32 characters.",
     );
-  const port = Number(process.env.PORT || 5001);
-  const stopWorker =
-    process.env.RUN_WORKER === "false"
-      ? async () => {}
-      : require("./src/jobs/worker").startWorker();
-  const server = app.listen(port, process.env.BIND_HOST || "127.0.0.1", () =>
-    console.log("CRM API listening on port " + port),
-  );
-  for (const signal of ["SIGTERM", "SIGINT"])
-    process.once(signal, () =>
-      server.close(async () => {
-        await stopWorker();
-        await db.end();
-        process.exit(0);
-      }),
+  async function start() {
+    if (
+      process.env.NODE_ENV !== "test" &&
+      process.env.INIT_REFERENCE_CATALOGS !== "false"
+    ) {
+      const result =
+        await require("./src/core/referenceCatalogs").initializeReferenceCatalogs();
+      if (result.initialized)
+        console.log(
+          `Reference catalogs initialized: ${result.inserted} entries.`,
+        );
+    }
+    const port = Number(process.env.PORT || 5001);
+    const stopWorker =
+      process.env.RUN_WORKER === "false"
+        ? async () => {}
+        : require("./src/jobs/worker").startWorker();
+    const server = app.listen(port, process.env.BIND_HOST || "127.0.0.1", () =>
+      console.log("CRM API listening on port " + port),
     );
+    for (const signal of ["SIGTERM", "SIGINT"])
+      process.once(signal, () =>
+        server.close(async () => {
+          await stopWorker();
+          await db.end();
+          process.exit(0);
+        }),
+      );
+  }
+  start().catch(async (e) => {
+    console.error("startup_failed", e.code || e.message);
+    await db.end();
+    process.exitCode = 1;
+  });
 }
 module.exports = app;

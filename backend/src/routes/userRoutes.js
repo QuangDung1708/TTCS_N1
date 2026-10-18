@@ -157,7 +157,9 @@ async function createUser(c, actor, b) {
   const mail = email(b.email);
   const name = text(b.full_name, "Họ tên", 100);
   const { roles, groupId } = await validateRoles(c, b);
-  const temp = crypto.randomBytes(18).toString("base64url") + "9a";
+  const temp = b.temporary_password
+    ? password(b.temporary_password)
+    : crypto.randomBytes(18).toString("base64url") + "9a";
   const uid = await insert(c, "users", {
     email: mail,
     full_name: name,

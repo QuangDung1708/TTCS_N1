@@ -59,6 +59,7 @@ import { useAction, useMedia, useResource } from "../lib/hooks";
 import {
   CustomFields,
   DataCard,
+  ExportButton,
   PageHeader,
   RefreshButton,
   ResourceError,
@@ -90,7 +91,6 @@ export default function Customers() {
     directory = useResource("/customers/users-list"),
     regions = useResource("/organization/regions"),
     a = useAction();
-  const { message } = App.useApp();
   const reload = () => {
     r.reload();
     care.reload();
@@ -240,16 +240,11 @@ export default function Customers() {
         actions={
           <>
             <RefreshButton resource={active} />
-            <Button
-              icon={<DownloadOutlined aria-hidden="true" />}
-              onClick={() =>
-                download("/customers/export", filters, "khach-hang.xlsx").catch(
-                  (e) => message.error(errorText(e)),
-                )
-              }
-            >
-              Xuất Excel
-            </Button>
+            <ExportButton
+              path="/customers/export"
+              params={filters}
+              filename="khach-hang.xlsx"
+            />
             {auth.can("CUSTOMER", "write") && (
               <>
                 <Button
@@ -282,6 +277,7 @@ export default function Customers() {
       <ResourceError resource={fields} />
       <DataCard>
         <Tabs
+          animated={{ inkBar: true, tabPane: true }}
           activeKey={tab}
           onChange={setTab}
           items={[
@@ -319,6 +315,7 @@ export default function Customers() {
             allowClear
             value={filters.industry}
             onChange={(v) => setFilter("industry", v)}
+            loading={catalog.loading}
             options={catalog.rows
               .filter((c) => c.type === "industry")
               .map((c) => ({ value: c.name, label: c.name }))}
@@ -329,6 +326,7 @@ export default function Customers() {
             allowClear
             value={filters.company_size}
             onChange={(v) => setFilter("company_size", v)}
+            loading={catalog.loading}
             options={catalog.rows
               .filter((c) => c.type === "company_size")
               .map((c) => ({ value: c.name, label: c.name }))}
@@ -339,6 +337,7 @@ export default function Customers() {
             allowClear
             value={filters.region}
             onChange={(v) => setFilter("region", v)}
+            loading={regions.loading}
             options={regions.rows.map((c) => ({
               value: c.name,
               label: c.name,
@@ -350,6 +349,7 @@ export default function Customers() {
             allowClear
             value={filters.owner_id}
             onChange={(v) => setFilter("owner_id", v)}
+            loading={directory.loading}
             options={userOptions(directory.rows)}
           />
           <Button onClick={() => setFilters({})}>Đặt lại</Button>
@@ -453,6 +453,9 @@ export default function Customers() {
           )
         }
       >
+        <ResourceError resource={catalog} />
+        <ResourceError resource={regions} />
+        <ResourceError resource={directory} />
         <div className="form-grid">
           <Form.Item
             className="full-span"
@@ -480,6 +483,7 @@ export default function Customers() {
           <Form.Item name="industry" label="Ngành nghề">
             <Select
               allowClear
+              loading={catalog.loading}
               options={catalog.rows
                 .filter((c) => c.type === "industry")
                 .map((c) => ({ value: c.name, label: c.name }))}
@@ -488,6 +492,7 @@ export default function Customers() {
           <Form.Item name="company_size" label="Quy mô doanh nghiệp">
             <Select
               allowClear
+              loading={catalog.loading}
               options={catalog.rows
                 .filter((c) => c.type === "company_size")
                 .map((c) => ({ value: c.name, label: c.name }))}
@@ -509,6 +514,7 @@ export default function Customers() {
           <Form.Item name="region" label="Khu vực">
             <Select
               allowClear
+              loading={regions.loading}
               options={regions.rows.map((c) => ({
                 value: c.name,
                 label: c.name,
@@ -517,6 +523,7 @@ export default function Customers() {
           </Form.Item>
           <Form.Item name="created_by" label="Người phụ trách" rules={required}>
             <Select
+              loading={directory.loading}
               options={userOptions(directory.rows)}
               showSearch
               optionFilterProp="label"
@@ -1309,7 +1316,10 @@ export function CustomerDrawer({ id, onClose, onEdit, onChanged }) {
             />
           </Form.Item>
           <Form.Item name="assigned_to" label="Người xử lý" rules={required}>
-            <Select options={userOptions(directory.rows)} />
+            <Select
+              loading={directory.loading}
+              options={userOptions(directory.rows)}
+            />
           </Form.Item>
         </div>
       </EntityModal>

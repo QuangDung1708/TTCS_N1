@@ -1113,3 +1113,22 @@ a {
     width: 210px;
   }
 }
+
+.tab-content-enter {
+  animation: tab-panel-enter 0.2s ease-out;
+}
+@keyframes tab-panel-enter {
+  from {
+    opacity: 0.3;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tab-content-enter {
+    animation: none;
+  }
+}

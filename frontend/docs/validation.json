@@ -1,5 +1,5 @@
 {
-  "verified_at_utc": "2026-10-18T04:40:16.745173+00:00",
+  "verified_at_utc": "2026-10-18T07:57:57.419890+00:00",
   "runtime": {
     "node": "24.19.0",
     "mysql": "8.4.11",
@@ -8,16 +8,16 @@
     "mariadb": "10.4.34"
   },
   "frontend": {
-    "browser_tests_passed": 34,
-    "browser_tests_total": 34,
+    "browser_tests_passed": 39,
+    "browser_tests_total": 39,
     "mock_api": false,
     "lint": "passed",
     "build": "passed",
     "clean_npm_ci": "passed"
   },
   "backend": {
-    "tests_passed": 101,
-    "tests_total": 101,
+    "tests_passed": 104,
+    "tests_total": 104,
     "suites_passed": 12,
     "coverage_percent": {
       "lines": 90.64,
@@ -30,7 +30,10 @@
   },
   "test_databases": [
     "crm_test",
-    "crm_test_ui"
+    "crm_test_compat",
+    "crm_test_uimaria",
+    "crm_test_refbootmysql",
+    "crm_test_refbootmaria"
   ],
   "application_db_business_rows": {
     "users": 0,
@@ -166,5 +169,63 @@
       "backend lint",
       "zip CRC and source hashes"
     ]
+  },
+  "dropdown_excel_fix": {
+    "mysql_backend": {
+      "passed": 104,
+      "total": 104,
+      "suites": 12
+    },
+    "mariadb_backend": {
+      "passed": 104,
+      "total": 104,
+      "suites": 12
+    },
+    "mariadb_chromium_browser": {
+      "passed": 39,
+      "total": 39
+    },
+    "new_browser_cases": 5,
+    "frontend_lint": "passed",
+    "frontend_build": "passed",
+    "backend_lint": "passed",
+    "mock_business_response": false,
+    "independent_xlsx_reader": "openpyxl",
+    "xml_parser": "Python ElementTree",
+    "download_bytes_equal_http_response": true,
+    "workbooks": [
+      {
+        "file": "customers-office-checked.xlsx",
+        "rows": 12,
+        "columns": 13,
+        "valid_xml": true,
+        "openpyxl": true
+      },
+      {
+        "file": "leads-office-checked.xlsx",
+        "rows": 7,
+        "columns": 15,
+        "valid_xml": true,
+        "openpyxl": true
+      },
+      {
+        "file": "quotes-office-checked.xlsx",
+        "rows": 2,
+        "columns": 9,
+        "valid_xml": true,
+        "openpyxl": true
+      }
+    ],
+    "normal_startup_both_engines": {
+      "passed": true,
+      "standard_categories": 26,
+      "regions": 3,
+      "business_rows": 0,
+      "restart_idempotent": true
+    },
+    "schema_change_required": false,
+    "user_database_accessed": false,
+    "microsoft_excel_windows_verified": false,
+    "coc_coc_windows_verified": false
   }
 }

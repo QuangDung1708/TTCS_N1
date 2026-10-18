@@ -1,6 +1,6 @@
 # Backend CRM — Sprint 1–5
 
-Node.js/Express, MySQL **8.0+** (kiểm thử bằng MySQL 8.4), mysql2, JWT, bcrypt, Nodemailer, Sharp và SheetJS. Cần Node.js >=22.13; môi trường hiện tại dùng Node.js 24. Không có bước nạp dữ liệu kinh doanh mẫu. Database mới bắt đầu rỗng; dữ liệu được nhập qua API/Excel.
+Node.js/Express, MySQL **8.0+** (kiểm thử bằng MySQL 8.4), mysql2, JWT, bcrypt, Nodemailer, Sharp, SheetJS và ExcelJS. Cần Node.js >=22.13; môi trường hiện tại dùng Node.js 24. Không có bước nạp dữ liệu kinh doanh mẫu. Database mới không có tài khoản/khách hàng/lead/cơ hội; dữ liệu nghiệp vụ được nhập qua API/Excel. Backend bổ sung danh mục tham chiếu chuẩn một lần khi khởi động (ngoài NODE_ENV=test).
 
 ## Cài đặt và khởi động
 
@@ -66,3 +66,9 @@ Kiểm thử dùng MySQL thật, HTTP thực qua Supertest, đọc/ghi tệp th�
 `jest.config.cjs` tính coverage trên các module phục vụ API đang chạy. Các controller cũ được giữ để tham khảo, không phải entry point của ứng dụng. CI MySQL được khai báo trong `.github/workflows/backend.yml`; kết quả CI từ GitHub chưa được xác minh ở phiên này.
 
 Xem [API](docs/API.md) và [đối chiếu AC](docs/AC-MATRIX.md). Giao diện và nghiệm thu staging thuộc bước tiếp theo; không coi toàn bộ 151 AC đã đạt chỉ từ test backend.
+
+## Danh mục chuẩn và Excel
+
+Backend tự bổ sung một lần ngành nghề, khoảng nhân sự, nguồn lead, loại hoạt động và khu vực vào DB, giữ mục có sẵn. Checkpoint `reference_catalogs_v1` trong `crm_settings` ngăn ghi đè hoặc phục hồi mục đã xóa khi chạy lại. Không tạo dữ liệu nghiệp vụ. Chạy riêng bằng `npm run data:catalogs`; đặt `INIT_REFERENCE_CATALOGS=false` nếu muốn tự quản lý toàn bộ khởi tạo. Database cần đã chạy migration như hướng dẫn cài mới; bản cập nhật trên DB hiện đang chạy không cần schema mới.
+
+XLSX dùng worksheet đơn giản, bộ lọc/cố định tiêu đề và kiểu dữ liệu rõ ràng. Mẫu user sáu cột: Tên, Email, Mật khẩu tạm thời, Vai trò (RBAC), Nhóm kinh doanh, Số điện thoại. Nhóm phải tồn tại và xác định duy nhất; mật khẩu tạm hợp lệ được dùng nếu nhập, nếu trống tự sinh ngẫu nhiên. Chỉ lưu hash, gửi email qua SMTP và buộc đổi mật khẩu lần đầu. Tiếp tục nhận `full_name`, `role_code`, `group_id` của mẫu cũ.

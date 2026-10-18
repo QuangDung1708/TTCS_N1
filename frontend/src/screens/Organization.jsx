@@ -86,6 +86,7 @@ export default function Organization() {
       <ResourceError resource={r} />
       <DataCard>
         <Tabs
+          animated={{ inkBar: true, tabPane: true }}
           activeKey={tab}
           onChange={setTab}
           items={[

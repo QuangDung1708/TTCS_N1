@@ -2,7 +2,7 @@
 
 Dừng hai terminal backend/frontend bằng Ctrl+C. Giải nén ZIP bản vá, chép hai thư mục `backend` và `frontend` vào folder `TTCS_N1` đang dùng, đồng ý thay tệp trùng. Giữ file `backend/.env`, uploads và database đang đăng nhập được. ZIP không chứa thông tin riêng tư đó.
 
-Bản này thêm ExcelJS để tạo bảng Excel có định dạng. Chạy trong terminal backend:
+Bản ZIP mới sửa dropdown và Excel, đồng thời gồm các bản sửa UI trước đó. Chạy `npm ci` để bảo đảm dependency ExcelJS đã có. Chạy trong terminal backend:
 
 ```powershell
 npm ci
@@ -16,6 +16,16 @@ npm run dev
 ```
 
 Tải lại bằng Ctrl+F5. Không cần tạo lại DB hay chạy migration cho bản này. Không chạy lại SQL tạo database cũ. Giữ nguyên cấu hình DB/JWT/SMTP của bạn.
+
+## Dropdown, dữ liệu chọn và Excel — bản bổ sung
+
+- Mọi bộ chọn có mũi tên mở danh sách bằng chuột/bàn phím và tìm theo tên, không phân biệt hoa/thường hay dấu tiếng Việt. Ngành nghề, quy mô, khu vực, nguồn, chiến dịch, khách hàng, liên hệ và người phụ trách lấy từ DB theo quyền đang đăng nhập. Form hiển thị trạng thái tải và cho thử lại nếu API lỗi.
+- Lần chạy backend đầu tiên sau cập nhật sẽ bổ sung danh mục chuẩn: ngành nghề, khoảng nhân sự, nguồn lead, loại hoạt động và ba miền. Đây là các bản ghi danh mục lưu trong DB; không tạo user/khách hàng/lead/cơ hội. Giữ các mục có sẵn, chỉ khởi tạo một lần; khởi động lại không phục hồi mục bạn chủ động xóa. Có thể chạy riêng `npm run data:catalogs` trong backend. `INIT_REFERENCE_CATALOGS=false` tắt khởi tạo tự động.
+- Khách hàng, lead và cơ hội chọn được các dữ liệu liên kết rồi lưu thật. Khu vực trong lead là danh sách lấy từ DB. Khi danh mục được thêm mới, mở lại form để tải danh sách cập nhật.
+- “Thêm mức quy mô doanh nghiệp” là thêm khoảng nhân sự dùng chung, ví dụ “51–200 nhân sự”. Trong form có liên kết mở **Thêm khách hàng/doanh nghiệp**, nơi nhập tên doanh nghiệp thực tế.
+- Xuất Excel khách hàng, lead và báo giá nháp dùng worksheet đơn giản: tiêu đề tiếng Việt, cột có độ rộng rõ, đường viền, bộ lọc, cố định hàng đầu; không còn bảng XML/comment/VML phức tạp. File rỗng vẫn có tiêu đề. Số tiền là số; điện thoại/MST là văn bản để giữ số 0 đầu.
+- **Tải lại file Excel mới sau khi cập nhật**, không dùng lại file cũ đã bị Excel sửa. Mẫu người dùng có đúng sáu cột: Tên, Email, Mật khẩu tạm thời, Vai trò (RBAC), Nhóm kinh doanh, Số điện thoại. Nhập nhóm đúng tên đã tồn tại; mật khẩu để trống sẽ tự sinh, nếu nhập phải đạt quy tắc mật khẩu. Không xuất mật khẩu/hash của tài khoản có sẵn.
+- Thao tác lưu/xuất có icon loading và thông báo hoàn tất/lỗi; chuyển thẻ và mở/đóng form có animation, tôn trọng cài đặt giảm chuyển động.
 
 ## Các điểm cần test
 
@@ -32,7 +42,7 @@ Tải lại bằng Ctrl+F5. Không cần tạo lại DB hay chạy migration cho
 
 ## Email tạo tài khoản và quên mật khẩu
 
-Tạo người dùng bằng màn hình Admin hoặc Nhập Excel: hệ thống tạo mật khẩu tạm ngẫu nhiên, lưu hash và đưa email đăng nhập/mật khẩu tạm/liên kết đặt mật khẩu vào hàng đợi SMTP. Tài khoản phải đổi mật khẩu lần đầu. Không dùng mật khẩu chung mặc định.
+Tạo người dùng bằng màn hình Admin hoặc Nhập Excel: hệ thống dùng mật khẩu tạm hợp lệ đã nhập hoặc tự sinh ngẫu nhiên nếu để trống, lưu hash và đưa email đăng nhập/mật khẩu tạm/liên kết đặt mật khẩu vào hàng đợi SMTP. Tài khoản phải đổi mật khẩu lần đầu. Không dùng mật khẩu chung mặc định.
 
 Quên mật khẩu tại màn hình đăng nhập: nhập email của tài khoản đang hoạt động. Email chứa liên kết đặt mật khẩu có hiệu lực 30 phút, chỉ dùng một lần. Phản hồi UI giống nhau dù email có tồn tại hay không.
 

@@ -84,13 +84,35 @@ export const options = (rows) =>
     label: r.name || r.full_name || r.company_name || r.title,
   }));
 export async function download(path, params, filename) {
-  const response = await api.get(path, { params, responseType: "blob" });
-  const url = URL.createObjectURL(response.data);
+  const response = await api.get(path, { params, responseType: "arraybuffer" });
+  const excel = /\.xlsx$/i.test(filename);
+  if (excel) {
+    const bytes = new Uint8Array(response.data);
+    if (
+      bytes.length < 4 ||
+      bytes[0] !== 0x50 ||
+      bytes[1] !== 0x4b ||
+      bytes[2] !== 3 ||
+      bytes[3] !== 4
+    )
+      throw new Error(
+        "Máy chủ chưa trả về tệp Excel hợp lệ. Vui lòng thử lại hoặc kiểm tra lỗi backend.",
+      );
+  }
+  const blob = new Blob([response.data], {
+    type: excel
+      ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      : response.headers["content-type"] || "application/octet-stream",
+  });
+  const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
   link.download = filename;
+  document.body.appendChild(link);
   link.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 30000);
+  return filename;
 }
 export async function upload(path, file, field = "file") {
   const body = new FormData();

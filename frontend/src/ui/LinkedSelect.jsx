@@ -1,9 +1,14 @@
 import { useState } from "react";
-import { Select } from "antd";
+import { Empty, Select, Spin } from "antd";
+import { normalizeSearch as text } from "../lib/search";
 export default function LinkedSelect({
-  onChange,
+  loading,
+  notFoundContent,
+  showSearch = true,
+  filterOption,
+  styles,
+  onSelect,
   onOpenChange,
-  disabled,
   mode,
   ...props
 }) {
@@ -11,30 +16,44 @@ export default function LinkedSelect({
   return (
     <Select
       {...props}
-      disabled={disabled}
+      showSearch={showSearch}
       mode={mode}
-      open={!disabled && open}
-      getPopupContainer={() => document.body}
-      onOpenChange={(v) => {
-        setOpen(v);
-        onOpenChange?.(v);
+      open={props.open ?? open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        onOpenChange?.(next);
       }}
-      onClick={(event) => {
-        if (
-          !disabled &&
-          !event.target.closest(".ant-select-dropdown") &&
-          !event.target.closest(".ant-select-clear")
-        )
-          setOpen(true);
-      }}
-      onChange={(...args) => {
+      onSelect={(value, option) => {
         if (!mode) setOpen(false);
-        onChange?.(...args);
+        onSelect?.(value, option);
+      }}
+      optionFilterProp="label"
+      filterOption={
+        filterOption ??
+        ((input, option) =>
+          text(option?.label ?? option?.value).includes(text(input)))
+      }
+      virtual={false}
+      loading={loading}
+      getPopupContainer={() => document.body}
+      styles={{
+        ...styles,
+        popup: {
+          ...styles?.popup,
+          root: { ...styles?.popup?.root, zIndex: 2100 },
+        },
       }}
       notFoundContent={
-        props.loading
-          ? "Đang tải dữ liệu…"
-          : "Chưa có dữ liệu phù hợp. Kiểm tra danh mục và quyền truy cập."
+        loading ? (
+          <Spin size="small" tip="Đang tải danh sách…" />
+        ) : (
+          (notFoundContent ?? (
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description="Chưa có mục phù hợp. Kiểm tra tên tìm kiếm hoặc thêm trong Danh mục bán hàng."
+            />
+          ))
+        )
       }
     />
   );
