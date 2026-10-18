@@ -6,11 +6,21 @@ Nếu trình duyệt mở trang tệp, chọn **Download raw file**. Gói khoả
 
 Giải nén vào thư mục mới và làm theo [hướng dẫn chạy](../frontend/README.md). Cần Node.js 24 LTS và MySQL 8. Cấu hình database hiện có của bạn trong `backend/.env`; giữ bản sao cấu hình và dữ liệu đang có. Dùng **backend trong cùng gói fullstack** với frontend này để khớp các API phân quyền, thông báo và cơ cấu tổ chức mới.
 
-Source ứng dụng: `1844b8adeaf78ffd721dfe23de4cce6948759785`. `DELIVERY.json` bên trong ZIP liệt kê commit nguồn và SHA-256 của từng tệp. Gói đã kiểm tra CRC, đối chiếu byte từng tệp với source, và lint/build thành công từ mã giải nén.
+Source ứng dụng: `6c99a260a2b917d467e9a0e32ccf3184b5f5ce3a`. `DELIVERY.json` bên trong ZIP liệt kê commit nguồn và SHA-256 của từng tệp. Gói đã kiểm tra CRC, đối chiếu byte từng tệp với source, và lint/build thành công từ mã giải nén.
 
-Kiểm chứng cục bộ: **48/48 kiểm thử trình duyệt** qua API/MariaDB thật, **109/109 kiểm thử backend trên từng engine MySQL 8.4 và MariaDB 10.4**, lint/build thành công. Xem [kết quả và giới hạn xác minh](../frontend/docs/VALIDATION.md), [đối chiếu 151 AC](../frontend/docs/AC-MATRIX.md), [ảnh desktop](../frontend/docs/images/customers-desktop.png) và [ảnh 360px](../frontend/docs/images/customers-mobile-360.png).
+Kiểm chứng cục bộ: bản trước **48/48 kiểm thử trình duyệt**; bản vá mail chạy lại **3/3 luồng liên quan**, **112/112 kiểm thử backend trên từng engine MySQL 8.4 và MariaDB 10.4**, lint/build thành công. Xem [kết quả và giới hạn xác minh](../frontend/docs/VALIDATION.md), [đối chiếu 151 AC](../frontend/docs/AC-MATRIX.md), [ảnh desktop](../frontend/docs/images/customers-desktop.png) và [ảnh 360px](../frontend/docs/images/customers-mobile-360.png).
 
-## Bản mới nhất: gộp khách hàng, animation toàn ứng dụng và đăng ký email
+## Bản mới nhất: mail API khi CMD gửi được — sửa hàng đợi UTC+7
+
+[Tải ZIP cập nhật mail](https://github.com/QuangDung1708/TTCS_N1/raw/refs/heads/codex/frontend-sprint-1-5/delivery/TTCS_N1-mail-queue-fix.zip) · [SHA-256](TTCS_N1-mail-queue-fix.zip.sha256). Source `6c99a260a2b917d467e9a0e32ccf3184b5f5ce3a`. Gói gồm các bản sửa trước.
+
+**Dừng backend/frontend, chép đè thư mục backend/frontend từ ZIP, giữ nguyên .env đã cấu hình thành công và DB. Khởi động lại cả hai, Ctrl+F5. Không cần nhập lại App Password, không cần nạp lại dữ liệu hoặc chạy migration.** Backend phải mở lại để đọc .env vừa được CMD lưu.
+
+Tái hiện lỗi 503 khi DB dùng UTC+7: DEFAULT CURRENT_TIMESTAMP làm thư bị coi là chưa đến giờ. Bản vá ghi giờ gửi UTC và lấy ngay thư cũ chưa thử gửi, giữ lịch retry sau lỗi. Worker bận trả 202 đang chờ, không báo nhầm SMTP lỗi. EAUTH thật trả mã lỗi và hướng dẫn restart khi CMD đã đổi cấu hình.
+
+Kiểm tra 112/112 backend trên mỗi engine, gồm gửi OTP/reset/invitation với DB UTC+7 qua SMTP TCP, legacy queue, retry, worker bận và lỗi xác thực; 3/3 browser quên mật khẩu/đăng ký/login role, lint/build và build source giải nén. Người dùng xác nhận mail CMD đã về; chưa trực tiếp xác minh hộp thư của họ qua API. Xem [hướng dẫn](../UPDATE-UI-AND-DATA.md).
+
+## Bản trước: gộp khách hàng, animation toàn ứng dụng và đăng ký email
 
 [Tải ZIP cập nhật](https://github.com/QuangDung1708/TTCS_N1/raw/refs/heads/codex/frontend-sprint-1-5/delivery/TTCS_N1-auth-merge-motion-fix.zip) · [SHA-256](TTCS_N1-auth-merge-motion-fix.zip.sha256). Gói khoảng 1,2 MiB, 89 tệp, gồm các bản sửa trước. Commit source: `1844b8adeaf78ffd721dfe23de4cce6948759785`.
 
