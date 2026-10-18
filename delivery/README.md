@@ -2,15 +2,27 @@
 
 [Tải gói source đầy đủ](https://github.com/QuangDung1708/TTCS_N1/raw/refs/heads/codex/frontend-sprint-1-5/delivery/TTCS_N1-fullstack.zip) · [Mở trang tệp trên GitHub](https://github.com/QuangDung1708/TTCS_N1/blob/codex/frontend-sprint-1-5/delivery/TTCS_N1-fullstack.zip) · [SHA-256](TTCS_N1-fullstack.zip.sha256)
 
-Nếu trình duyệt mở trang tệp, chọn **Download raw file**. Gói khoảng 895 KiB, chứa hai thư mục `frontend`/`backend`, lockfile, migration, test và tài liệu. Không kèm `.env`, node_modules, coverage, báo cáo trình duyệt hoặc tệp người dùng tải lên. Ứng dụng không seed dữ liệu nghiệp vụ mẫu; fixture QA chỉ chạy trong database kiểm thử có cờ reset rõ ràng.
+Nếu trình duyệt mở trang tệp, chọn **Download raw file**. Gói khoảng 1,8 MiB, chứa hai thư mục `frontend`/`backend`, lockfile, migration, test và tài liệu. Không kèm `.env`, node_modules, coverage, báo cáo trình duyệt hoặc tệp người dùng tải lên. Ứng dụng không seed dữ liệu nghiệp vụ mẫu; fixture QA chỉ chạy trong database kiểm thử có cờ reset rõ ràng.
 
 Giải nén vào thư mục mới và làm theo [hướng dẫn chạy](../frontend/README.md). Cần Node.js 24 LTS và MySQL 8. Cấu hình database hiện có của bạn trong `backend/.env`; giữ bản sao cấu hình và dữ liệu đang có. Dùng **backend trong cùng gói fullstack** với frontend này để khớp các API phân quyền, thông báo và cơ cấu tổ chức mới.
 
-Source ứng dụng: `454c5acc9ee9ba38f4cd998a45da4e68f25a053c`. `DELIVERY.json` bên trong ZIP liệt kê commit nguồn và SHA-256 của từng tệp. Gói đã kiểm tra CRC, đối chiếu byte từng tệp với source, và lint/build thành công từ mã giải nén.
+Source ứng dụng: `1844b8adeaf78ffd721dfe23de4cce6948759785`. `DELIVERY.json` bên trong ZIP liệt kê commit nguồn và SHA-256 của từng tệp. Gói đã kiểm tra CRC, đối chiếu byte từng tệp với source, và lint/build thành công từ mã giải nén.
 
-Kiểm chứng cục bộ: **44/44 kiểm thử trình duyệt** qua API/MariaDB thật, **106/106 kiểm thử backend trên từng engine MySQL 8.4 và MariaDB 10.4**, lint/build thành công. Xem [kết quả và giới hạn xác minh](../frontend/docs/VALIDATION.md), [đối chiếu 151 AC](../frontend/docs/AC-MATRIX.md), [ảnh desktop](../frontend/docs/images/customers-desktop.png) và [ảnh 360px](../frontend/docs/images/customers-mobile-360.png).
+Kiểm chứng cục bộ: **48/48 kiểm thử trình duyệt** qua API/MariaDB thật, **109/109 kiểm thử backend trên từng engine MySQL 8.4 và MariaDB 10.4**, lint/build thành công. Xem [kết quả và giới hạn xác minh](../frontend/docs/VALIDATION.md), [đối chiếu 151 AC](../frontend/docs/AC-MATRIX.md), [ảnh desktop](../frontend/docs/images/customers-desktop.png) và [ảnh 360px](../frontend/docs/images/customers-mobile-360.png).
 
-## Bản mới nhất: một cây tổ chức và kéo chốt Won/Lost
+## Bản mới nhất: gộp khách hàng, animation toàn ứng dụng và đăng ký email
+
+[Tải ZIP cập nhật](https://github.com/QuangDung1708/TTCS_N1/raw/refs/heads/codex/frontend-sprint-1-5/delivery/TTCS_N1-auth-merge-motion-fix.zip) · [SHA-256](TTCS_N1-auth-merge-motion-fix.zip.sha256). Gói khoảng 1,2 MiB, 89 tệp, gồm các bản sửa trước. Commit source: `1844b8adeaf78ffd721dfe23de4cce6948759785`.
+
+Dừng server, chép đè các thư mục/tệp trong ZIP vào dự án hiện tại. Giữ `.env`, uploads và DB. Chạy `CAP-NHAT-VA-NAP-DU-LIEU.cmd` để cài dependency, bật đăng ký cục bộ và nạp tài khoản test; chạy `CAU-HINH-MAIL.cmd` để cấu hình SMTP, thử xác thực và gửi thư kiểm tra đến email của bạn. Khởi động lại backend/frontend, Ctrl+F5. Không reset DB, không cần migration mới.
+
+Đã sửa xác nhận gộp và kiểm tra liên hệ/cơ hội/công ty con sau reload. Motion dùng chung toàn ứng dụng: route, tab, modal, drawer, menu và loading/success; form chờ đóng xong mới gỡ, giữ state khi nền tự làm mới. Login đổi nền slogan và có bộ chọn đủ 7 User Roles từ tài khoản KT lưu thật; vẫn xác thực mật khẩu qua API, luôn tắt bộ chọn trong production. Đăng ký mã email 6 số, resend 60 giây phía server, mật khẩu xác nhận và role Sales Rep cố định.
+
+Đăng ký/quên mật khẩu/cấp user gửi SMTP ngay, báo lỗi hoặc cảnh báo nếu gửi chưa được. Kiểm tra hiện tại còn thiếu SMTP_HOST; chưa xác minh hộp thư thật của người dùng. Công cụ cấu hình giữ bí mật tại máy, không cần gửi mật khẩu qua chat. Xem [hướng dẫn cập nhật và mail](../UPDATE-UI-AND-DATA.md) và [ảnh login mới](../frontend/docs/images/login-roles-desktop.png).
+
+Đã kiểm tra 48/48 browser, 109/109 backend trên từng engine, 6/6 browser ảnh hưởng ở mã cuối, lint/build và build lại source giải nén. Không chứa `.env`, checkpoint mật khẩu, node_modules hoặc uploads.
+
+## Bản trước: một cây tổ chức và kéo chốt Won/Lost
 
 [Tải ZIP cập nhật](https://github.com/QuangDung1708/TTCS_N1/raw/refs/heads/codex/frontend-sprint-1-5/delivery/TTCS_N1-organization-pipeline-fix.zip) · [SHA-256](TTCS_N1-organization-pipeline-fix.zip.sha256). Gói khoảng 312 KiB, gồm các bản sửa trước.
 
