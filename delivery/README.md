@@ -2,15 +2,27 @@
 
 [Tải gói source đầy đủ](https://github.com/QuangDung1708/TTCS_N1/raw/refs/heads/codex/frontend-sprint-1-5/delivery/TTCS_N1-fullstack.zip) · [Mở trang tệp trên GitHub](https://github.com/QuangDung1708/TTCS_N1/blob/codex/frontend-sprint-1-5/delivery/TTCS_N1-fullstack.zip) · [SHA-256](TTCS_N1-fullstack.zip.sha256)
 
-Nếu trình duyệt mở trang tệp, chọn **Download raw file**. Gói khoảng 889 KiB, chứa hai thư mục `frontend`/`backend`, lockfile, migration, test và tài liệu. Không kèm `.env`, node_modules, coverage, báo cáo trình duyệt hoặc tệp người dùng tải lên. Ứng dụng không seed dữ liệu nghiệp vụ mẫu; fixture QA chỉ chạy trong database kiểm thử có cờ reset rõ ràng.
+Nếu trình duyệt mở trang tệp, chọn **Download raw file**. Gói khoảng 895 KiB, chứa hai thư mục `frontend`/`backend`, lockfile, migration, test và tài liệu. Không kèm `.env`, node_modules, coverage, báo cáo trình duyệt hoặc tệp người dùng tải lên. Ứng dụng không seed dữ liệu nghiệp vụ mẫu; fixture QA chỉ chạy trong database kiểm thử có cờ reset rõ ràng.
 
 Giải nén vào thư mục mới và làm theo [hướng dẫn chạy](../frontend/README.md). Cần Node.js 24 LTS và MySQL 8. Cấu hình database hiện có của bạn trong `backend/.env`; giữ bản sao cấu hình và dữ liệu đang có. Dùng **backend trong cùng gói fullstack** với frontend này để khớp các API phân quyền, thông báo và cơ cấu tổ chức mới.
 
-Source ứng dụng: `7ca974c1864d158af82e6e4c367f83ddb5f680dc`. `DELIVERY.json` bên trong ZIP liệt kê commit nguồn và SHA-256 của từng tệp. Gói đã kiểm tra CRC, đối chiếu byte từng tệp với source, và lint/build thành công từ mã giải nén.
+Source ứng dụng: `454c5acc9ee9ba38f4cd998a45da4e68f25a053c`. `DELIVERY.json` bên trong ZIP liệt kê commit nguồn và SHA-256 của từng tệp. Gói đã kiểm tra CRC, đối chiếu byte từng tệp với source, và lint/build thành công từ mã giải nén.
 
-Kiểm chứng cục bộ: **41/41 kiểm thử trình duyệt** qua API/MariaDB thật, **105/105 kiểm thử backend trên từng engine MySQL 8.4 và MariaDB 10.4**, lint/build thành công. Xem [kết quả và giới hạn xác minh](../frontend/docs/VALIDATION.md), [đối chiếu 151 AC](../frontend/docs/AC-MATRIX.md), [ảnh desktop](../frontend/docs/images/customers-desktop.png) và [ảnh 360px](../frontend/docs/images/customers-mobile-360.png).
+Kiểm chứng cục bộ: **44/44 kiểm thử trình duyệt** qua API/MariaDB thật, **106/106 kiểm thử backend trên từng engine MySQL 8.4 và MariaDB 10.4**, lint/build thành công. Xem [kết quả và giới hạn xác minh](../frontend/docs/VALIDATION.md), [đối chiếu 151 AC](../frontend/docs/AC-MATRIX.md), [ảnh desktop](../frontend/docs/images/customers-desktop.png) và [ảnh 360px](../frontend/docs/images/customers-mobile-360.png).
 
-## Bản mới nhất: dropdown, nạp dữ liệu và gửi mail
+## Bản mới nhất: một cây tổ chức và kéo chốt Won/Lost
+
+[Tải ZIP cập nhật](https://github.com/QuangDung1708/TTCS_N1/raw/refs/heads/codex/frontend-sprint-1-5/delivery/TTCS_N1-organization-pipeline-fix.zip) · [SHA-256](TTCS_N1-organization-pipeline-fix.zip.sha256). Gói khoảng 312 KiB, gồm các bản sửa trước.
+
+Dừng server, chép đè backend/frontend và CMD vào folder dự án, giữ `.env`/uploads/DB. Chạy `CAP-NHAT-VA-NAP-DU-LIEU.cmd` để bổ sung cây KT bốn cấp (hoặc `npm run data:examples` tại backend). Sau đó chạy lại backend/frontend và Ctrl+F5. Không reset DB/migration.
+
+Cơ cấu tổ chức chỉ một cây nhóm/phòng ban: mở/thu gọn, trưởng nhóm/email/ảnh, khu vực, tổng nhân sự và xem toàn nhánh. Bộ KT có năm đơn vị bốn cấp; ba tài khoản trưởng đơn vị mới, giữ role/mật khẩu tám tài khoản cũ. Quan hệ cha đã tùy chỉnh được giữ. Công ty mẹ/con vẫn sửa trong form khách hàng.
+
+Cột Won/Lost đã nhận drag: thả mở form chốt; hủy giữ OPEN, thiếu dữ liệu/điều kiện không đổi trạng thái. Đủ thông tin mới lưu vào API close và khóa kéo tiếp. Quyền/điều kiện/override có lý do giữ nguyên.
+
+Kiểm chứng: **44/44 Chromium + MariaDB**, **106/106 backend mỗi MySQL/MariaDB**, lint/build đạt; nâng cấp/nạp lại cây bốn cấp và tổng nhân sự khớp API trên cả hai engine; mã giải nén build đạt. Không truy cập DB trên máy người dùng. Chi tiết trong UPDATE-UI-AND-DATA.md và [VALIDATION.md](../frontend/docs/VALIDATION.md).
+
+## Bản trước: dropdown, nạp dữ liệu và gửi mail
 
 [Tải ZIP cập nhật](https://github.com/QuangDung1708/TTCS_N1/raw/refs/heads/codex/frontend-sprint-1-5/delivery/TTCS_N1-dropdown-data-mail-fix.zip) · [SHA-256](TTCS_N1-dropdown-data-mail-fix.zip.sha256). Gói khoảng 299 KiB, gồm các bản sửa trước và tệp `CAP-NHAT-VA-NAP-DU-LIEU.cmd`.
 
