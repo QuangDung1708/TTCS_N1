@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 test("Five incorrect logins enforce a 15-second server lock, show countdown and recover after refresh", async ({
   page,
 }) => {

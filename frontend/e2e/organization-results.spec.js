@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 async function login(page) {
   const r = await page.request.post("/api/auth/login", {
     data: { email: "test1@example.test", password: "IntegrationOnly9!" },

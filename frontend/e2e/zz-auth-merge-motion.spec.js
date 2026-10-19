@@ -1,5 +1,5 @@
 import backendTools from "./backend.cjs";
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 import { promisify } from "node:util";
 import { execFile } from "node:child_process";
 const { backendDir: backend, backendRequire } = backendTools;

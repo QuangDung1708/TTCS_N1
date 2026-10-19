@@ -1,5 +1,5 @@
 import backendTools from "./backend.cjs";
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 const { backendRequire: require } = backendTools;
 const XLSX = require("xlsx");
 test("Customer and lead Excel previews reject existing and same-file identical rows, then import only the new row", async ({

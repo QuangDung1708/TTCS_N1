@@ -94,3 +94,5 @@ Bộ chọn dùng nút mở danh sách, ô tìm ở trong popup. Giá trị khô
 Nạp dữ liệu bằng `CAP-NHAT-VA-NAP-DU-LIEU.cmd` tại gốc để có đủ tài khoản kiểm thử theo 7 User Roles dưới form login. Bấm vai trò điền tài khoản thật, vẫn xác thực qua API; production luôn ẩn bộ chọn. Link Tạo tài khoản mở form mã 6 số, xác nhận mật khẩu, giới hạn gửi lại 60 giây; mặc định Sales Rep. Gửi mail thật cần SMTP riêng, dùng `CAU-HINH-MAIL.cmd`.
 
 Motion dùng chung cho route, tab, modal, drawer, menu tài khoản/thông báo và feedback lưu, tôn trọng Giảm chuyển động. Ảnh giao diện thật: [login desktop](docs/images/login-roles-desktop.png), [đăng ký email](docs/images/register-email-desktop.png), [login 360px](docs/images/login-roles-mobile.png).
+
+Bộ browser test chạy tuần tự trên DB dùng một lần. Fixture chỉ xóa ngân sách chống thử đăng nhập theo IP loopback giữa các ca để các ca độc lập không cộng dồn vào giới hạn 60 yêu cầu/15 phút. Không xóa số lần sai theo tài khoản; mọi request và giới hạn trong từng ca vẫn chạy thật, gồm khóa 5 lần sai/15 giây. Fixture từ chối chạy nếu DB không có tên crm_test_... và cờ ALLOW_DB_TEST_RESET=1. Không đổi giới hạn của ứng dụng cho môi trường thật.

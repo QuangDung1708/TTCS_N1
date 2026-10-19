@@ -1,5 +1,5 @@
 import backendTools from "./backend.cjs";
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 import fs from "node:fs";
 import path from "node:path";
 const { backendRequire } = backendTools;
