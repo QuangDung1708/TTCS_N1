@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="referrer" content="no-referrer" />
+    <title>Quên mật khẩu</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <main><button id="open-forgot" type="button">Quên mật khẩu?</button></main>
+    <dialog id="recovery" aria-labelledby="title" aria-describedby="subtitle">
+      <button id="close" type="button" aria-label="Đóng">×</button>
+      <h1 id="title">Quên mật khẩu</h1>
+      <p id="subtitle">Nhập email để nhận liên kết đặt lại mật khẩu.</p>
+      <div id="notice" role="status" aria-live="polite" hidden></div>
+      <form id="forgot-form">
+        <label for="email">Email</label>
+        <input
+          id="email"
+          type="email"
+          autocomplete="email"
+          placeholder="ban@congty.vn"
+          maxlength="254"
+          required
+        />
+        <button id="send" class="primary" type="submit">
+          Gửi liên kết đặt lại
+        </button>
+        <p class="hint">Liên kết có hiệu lực 30 phút và chỉ dùng một lần.</p>
+      </form>
+      <form id="reset-form" hidden>
+        <label for="password">Mật khẩu mới</label>
+        <div class="password-field">
+          <input
+            id="password"
+            type="password"
+            autocomplete="new-password"
+            minlength="8"
+            maxlength="128"
+            required
+          />
+          <button
+            id="reveal"
+            type="button"
+            aria-label="Hiện mật khẩu"
+            aria-pressed="false"
+          >
+            Hiện
+          </button>
+        </div>
+        <p class="hint">8–128 ký tự, gồm chữ và số hoặc ký tự đặc biệt.</p>
+        <label for="confirm">Xác nhận mật khẩu</label>
+        <input
+          id="confirm"
+          type="password"
+          autocomplete="new-password"
+          minlength="8"
+          maxlength="128"
+          required
+        />
+        <button id="reset" class="primary" type="submit">
+          Đặt lại mật khẩu
+        </button>
+      </form>
+      <button id="request-again" type="button" hidden>
+        Yêu cầu liên kết mới
+      </button>
+    </dialog>
+  </body>
+</html>
