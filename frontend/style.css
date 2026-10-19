@@ -1,0 +1,171 @@
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  color: #1f2937;
+  background: #fff;
+  font:
+    15px/1.6 system-ui,
+    sans-serif;
+}
+main {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+}
+button,
+input {
+  font: inherit;
+}
+button {
+  cursor: pointer;
+}
+#open-forgot,
+#request-again {
+  padding: 8px;
+  border: 0;
+  background: transparent;
+  color: #1677ff;
+}
+#open-forgot:hover,
+#request-again:hover {
+  text-decoration: underline;
+}
+button:focus-visible,
+input:focus-visible {
+  outline: 3px solid #91caff;
+  outline-offset: 3px;
+}
+dialog {
+  width: min(440px, calc(100% - 32px));
+  padding: 28px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 16px 60px #0002;
+}
+dialog[open] {
+  animation: appear 0.18s ease-out;
+}
+dialog::backdrop {
+  background: #0006;
+}
+h1 {
+  font-size: 21px;
+  margin: 0 30px 8px 0;
+}
+#subtitle {
+  margin: 0 0 22px;
+  color: #6b7280;
+}
+#close {
+  position: absolute;
+  right: 12px;
+  top: 10px;
+  padding: 0 8px;
+  border: 0;
+  background: transparent;
+  color: #6b7280;
+  font-size: 25px;
+}
+label {
+  display: block;
+  margin: 16px 0 6px;
+}
+input {
+  height: 42px;
+  width: 100%;
+  padding: 0 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 7px;
+}
+.primary {
+  width: 100%;
+  min-height: 42px;
+  margin-top: 22px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 7px;
+  background: #1677ff;
+  color: white;
+}
+.primary:hover {
+  background: #4096ff;
+}
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+.hint {
+  color: #6b7280;
+  font-size: 12px;
+}
+.password-field {
+  position: relative;
+}
+.password-field input {
+  padding-right: 60px;
+}
+#reveal {
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  height: 30px;
+  border: 0;
+  background: transparent;
+  color: #1677ff;
+}
+#notice {
+  margin: 16px 0;
+  padding: 10px 12px;
+  border: 1px solid #91caff;
+  border-radius: 7px;
+  background: #e6f4ff;
+  font-size: 14px;
+}
+#notice.error {
+  border-color: #ffccc7;
+  background: #fff2f0;
+  color: #a8071a;
+}
+#notice.success {
+  border-color: #b7eb8f;
+  background: #f6ffed;
+  color: #237804;
+}
+.busy::before {
+  content: "";
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  margin-right: 8px;
+  vertical-align: -2px;
+  border: 2px solid #ffffff70;
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+[hidden] {
+  display: none !important;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes appear {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before {
+    animation: none !important;
+  }
+}
