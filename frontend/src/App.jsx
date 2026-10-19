@@ -17,6 +17,7 @@ import {
 } from '@ant-design/icons';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import axios from 'axios';
+import AccountManagement from './components/AccountManagement';
 
 axios.interceptors.request.use(
   (config) => {
