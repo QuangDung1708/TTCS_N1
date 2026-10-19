@@ -1,3 +1,4 @@
+import backendTools from "./backend.cjs";
 import { test, expect } from "@playwright/test";
 async function login(page) {
   const r = await page.request.post("/api/auth/login", {
@@ -190,11 +191,7 @@ test("Downloaded customer, lead and quote workbooks preserve exact HTTP bytes an
 }) => {
   const token = await login(page);
   const fs = await import("node:fs");
-  const { createRequire } = await import("node:module");
-  const path = await import("node:path");
-  const require = createRequire(
-    path.join(process.env.CRM_BACKEND_DIR, "package.json"),
-  );
+  const { backendRequire: require } = backendTools;
   const XLSX = require("xlsx");
   for (const [route, apiPath, expected] of [
     ["/customers", "/api/customers/export", "Tên doanh nghiệp"],

@@ -1,9 +1,6 @@
+import backendTools from "./backend.cjs";
 import { test, expect } from "@playwright/test";
-import { createRequire } from "node:module";
-import path from "node:path";
-const require = createRequire(
-  path.join(process.env.CRM_BACKEND_DIR, "package.json"),
-);
+const { backendRequire: require } = backendTools;
 const XLSX = require("xlsx");
 test("Customer and lead Excel previews reject existing and same-file identical rows, then import only the new row", async ({
   page,
@@ -42,14 +39,12 @@ test("Customer and lead Excel previews reject existing and same-file identical r
     await page.goto("/" + entity);
     await page.getByRole("button", { name: "Nhập Excel", exact: true }).click();
     const modal = page.getByRole("dialog").last();
-    await modal
-      .locator("input[type=file]")
-      .setInputFiles({
-        name: "duplicates.xlsx",
-        mimeType:
-          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        buffer,
-      });
+    await modal.locator("input[type=file]").setInputFiles({
+      name: "duplicates.xlsx",
+      mimeType:
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      buffer,
+    });
     await expect(modal.getByText("Không hợp lệ", { exact: true })).toHaveCount(
       3,
     );

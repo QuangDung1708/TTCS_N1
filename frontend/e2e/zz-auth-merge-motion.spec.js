@@ -1,9 +1,8 @@
+import backendTools from "./backend.cjs";
 import { test, expect } from "@playwright/test";
-import { createRequire } from "node:module";
 import { promisify } from "node:util";
 import { execFile } from "node:child_process";
-const require = createRequire(import.meta.url);
-const backend = process.env.CRM_BACKEND_DIR;
+const { backendDir: backend, backendRequire } = backendTools;
 async function login(page) {
   const r = await page.request.post("/api/auth/login", {
     data: { email: "test1@example.test", password: "IntegrationOnly9!" },
@@ -171,7 +170,7 @@ test("Registration confirms passwords, enforces resend countdown and creates onl
   await expect(
     page.getByRole("button", { name: /Gửi lại sau \d+s/ }),
   ).toBeDisabled();
-  const mysql = require(backend + "/node_modules/mysql2/promise");
+  const mysql = backendRequire("mysql2/promise");
   const c = await mysql.createConnection({
     host: process.env.DB_HOST,
     port: Number(process.env.DB_PORT),

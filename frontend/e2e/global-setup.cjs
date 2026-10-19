@@ -10,8 +10,7 @@ module.exports = async () => {
     throw Error(
       "E2E requires disposable DB_NAME=crm_test_ui and ALLOW_DB_TEST_RESET=1.",
     );
-  const backend =
-    process.env.CRM_BACKEND_DIR || path.resolve(__dirname, "../../backend");
+  const { backendDir: backend } = require("./backend.cjs");
   Object.assign(process.env, {
     JWT_SECRET: crypto.randomBytes(48).toString("hex"),
     RUN_WORKER: "false",

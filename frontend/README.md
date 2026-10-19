@@ -77,6 +77,8 @@ $env:ALLOW_DB_TEST_RESET='1'
 npm run test:e2e
 ```
 
+Các test dùng chung bộ tìm backend ở `e2e/backend.cjs`: mặc định tự tìm thư mục `backend` nằm cạnh `frontend`, không cần khai báo `CRM_BACKEND_DIR` khi clone repo hoặc chạy GitHub Actions. Biến này chỉ là tùy chọn nếu bạn tách backend sang vị trí khác. Có thể chạy `npm run test:e2e -- --list` để kiểm tra việc nạp đủ test trước khi chạy toàn bộ.
+
 Test tự chạy backend cổng 5002 và Vite cổng 5174, tắt worker/SMTP ngoài, tạo dữ liệu QA rồi đóng server. Cần hai cổng này còn trống. Có thể đặt `CHROMIUM_PATH` tới Chromium cài sẵn. Không có kết nối tới MySQL sản xuất được mặc định sử dụng cho E2E.
 
 Đối chiếu yêu cầu trong [docs/AC-MATRIX.md](docs/AC-MATRIX.md) và kết quả thực chạy trong [docs/VALIDATION.md](docs/VALIDATION.md). Nghiệp vụ lịch Sprint 6, duyệt hợp đồng Sprint 7 và các sprint sau không được tuyên bố đã hoàn thành bởi màn hình báo giá nháp.

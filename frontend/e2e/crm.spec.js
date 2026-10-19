@@ -1,13 +1,8 @@
-import { createRequire } from "node:module";
+import backendTools from "./backend.cjs";
 import { test, expect } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
-const backendRequire = createRequire(
-  path.join(
-    process.env.CRM_BACKEND_DIR || path.resolve("../backend"),
-    "package.json",
-  ),
-);
+const { backendRequire } = backendTools;
 const password = "IntegrationOnly9!";
 const roleIndex = {
   Admin: 1,
