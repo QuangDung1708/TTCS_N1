@@ -28,7 +28,7 @@ app.use((req, res, next) => {
 });
 
 // Cổng lắng nghe
-const PORT = process.env.PORT || 8000;
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   // Giữ Event Loop luôn hoạt động, ngăn Node.js tự clean exit
 setInterval(() => {}, 1 << 30);
