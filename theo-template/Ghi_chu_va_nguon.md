@@ -1,11 +1,11 @@
 # Ghi chú và nguồn
 
-Bản dự thảo theo đúng template do người dùng cung cấp. Giữ logo, font, màu và cấu trúc A/B/C. Phần B tạm chuẩn bị cho 10 thành viên; cần xác nhận phạm vi, thông tin và số liệu.
+Bản dự thảo theo đúng template do người dùng cung cấp. Giữ logo, font, màu và cấu trúc A/B/C. Phần B đã được xác nhận cho cả 10 thành viên. Thông tin bìa, kỳ thực tập, lịch Sprint 1–4 và URL Jira đã được người dùng cung cấp; các số liệu/minh chứng còn thiếu vẫn chờ.
 
 ## Slide 1
 
 BẢN DỰ THẢO — Phạm vi Sprint 1–4.
-Giữ nguyên logo ICTU, CodeGym và layout bìa của template. Tên nhóm N1, trường và đơn vị dựa vào ngữ cảnh/template, chưa thay thông tin chính thức. Cần tên nhóm, kỳ thực tập, mentor, đơn vị/phòng ban, trường/ngành/lớp và ngày báo cáo. Ngày soạn slide không tự thay ngày báo cáo.
+Thông tin người dùng xác nhận: nhóm TTCS_N1; mentor Triệu Quang Dũng; Đại học CNTT & Truyền thông Thái Nguyên, ngành CNTT, lớp CNTT K23G; đơn vị CodeGym; thực tập 23/09–26/10/2026; báo cáo 21/10/2026. Giữ logo và layout mẫu. Báo cáo này chỉ bao quát Sprint 1–4, không khẳng định toàn bộ kỳ thực tập đã kết thúc.
 
 ## Slide 2
 
@@ -20,12 +20,12 @@ Phạm vi theo kế hoạch gốc: S1 10 story/42 point, S2 10/43, S3 9/42, S4 9
 ## Slide 4
 
 BẢN DỰ THẢO — Phạm vi Sprint 1–4.
-Không suy diễn ngày bắt đầu/kết thúc sprint từ Created hoặc Updated trong Jira. Timeline còn thiếu cả Sprint 0. Quy tắc Gitflow từng được hướng dẫn, nhưng không có bằng chứng mọi commit đều qua PR/review; cần xác nhận thực tế nhóm đã làm. Nhánh demo độc lập dùng git init không cùng lịch sử develop và không là ví dụ Gitflow tích hợp.
+Lịch do người dùng xác nhận: mỗi sprint 7 ngày, bắt đầu 23/09/2026. S1:23–29/09; S2:30/09–06/10; S3:07–13/10; S4:14–20/10. Kỳ thực tập tiếp tục tới 26/10, ngoài phạm vi bốn sprint này. Slide chỉ hiển thị bốn sprint đã xác nhận; lịch các cuộc họp còn thiếu. Không lấy Created/Updated làm lịch sprint. Quy tắc Gitflow từng được hướng dẫn, nhưng không có bằng chứng mọi commit đều qua PR/review; cần xác nhận thực tế nhóm đã làm. Nhánh demo độc lập dùng git init không cùng lịch sử develop và không là ví dụ Gitflow tích hợp.
 
 ## Slide 5
 
 BẢN DỰ THẢO — Phạm vi Sprint 1–4.
-199 issue, 135 Done, 64 chưa Done = 9 In Progress + 55 To Do, tỷ lệ 135/199=67,8%. Đây là toàn bộ tập issue trong export, gồm nhiều loại issue, không phải 38 story chính hay số liệu live. Cần ảnh Backlog/Issues và URL board; giữ nguyên chỗ ảnh của template, không dựng ảnh giả.
+199 issue, 135 Done, 64 chưa Done = 9 In Progress + 55 To Do, tỷ lệ 135/199=67,8%. Đây là toàn bộ tập issue trong export, gồm nhiều loại issue, không phải 38 story chính hay số liệu live. URL board do người dùng cung cấp đã gắn vào footer. Vẫn cần ảnh Backlog/Issues thật; chưa truy cập board hoặc cập nhật export từ URL. Giữ chỗ ảnh của template, không dựng ảnh giả.
 
 ## Slide 6
 
@@ -35,12 +35,12 @@ Cần Velocity Chart thể hiện committed/completed SP cho Sprint 1–4 và Bu
 ## Slide 7
 
 BẢN DỰ THẢO — Phạm vi Sprint 1–4.
-Các cột Git đang để trống vì chưa có khoảng thời gian, nhánh và mapping tài khoản GitHub từng người được xác nhận. Không dùng git author/commit count một mình để đánh giá đóng góp. Cần commit (loại merge), PR merged, PR review và +/- dòng trong kỳ, loại tệp sinh tự động/node_modules/ZIP. Tài khoản author Dũng trong các thao tác trợ lý không chứng minh những thành viên khác viết code. Cần ảnh Insights Contributors/Commit graph thật.
+Các cột Git chờ thống kê. Kỳ thực tập 23/09–26/10, báo cáo 21/10/2026; khi tính số liệu chỉ lấy đến thời điểm báo cáo, không lấy các ngày sau 21/10. Vẫn cần nhánh/phạm vi và mapping tài khoản GitHub từng người. Không dùng git author/commit count một mình để đánh giá đóng góp. Cần commit (loại merge), PR merged, PR review và +/- dòng trong kỳ, loại tệp sinh tự động/node_modules/ZIP. Tài khoản author Dũng trong các thao tác trợ lý không chứng minh những thành viên khác viết code. Cần ảnh Insights Contributors/Commit graph thật.
 
 ## Slide 8
 
 BẢN DỰ THẢO — Phạm vi Sprint 1–4.
-Các cột Git đang để trống vì chưa có khoảng thời gian, nhánh và mapping tài khoản GitHub từng người được xác nhận. Không dùng git author/commit count một mình để đánh giá đóng góp. Cần commit (loại merge), PR merged, PR review và +/- dòng trong kỳ, loại tệp sinh tự động/node_modules/ZIP. Tài khoản author Dũng trong các thao tác trợ lý không chứng minh những thành viên khác viết code. Cần ảnh Insights Contributors/Commit graph thật.
+Các cột Git chờ thống kê. Kỳ thực tập 23/09–26/10, báo cáo 21/10/2026; khi tính số liệu chỉ lấy đến thời điểm báo cáo, không lấy các ngày sau 21/10. Vẫn cần nhánh/phạm vi và mapping tài khoản GitHub từng người. Không dùng git author/commit count một mình để đánh giá đóng góp. Cần commit (loại merge), PR merged, PR review và +/- dòng trong kỳ, loại tệp sinh tự động/node_modules/ZIP. Tài khoản author Dũng trong các thao tác trợ lý không chứng minh những thành viên khác viết code. Cần ảnh Insights Contributors/Commit graph thật.
 
 ## Slide 9
 
@@ -80,7 +80,7 @@ Giữ đúng công thức của template. Với từng tiêu chí, chuẩn hóa 
 ## Slide 16
 
 BẢN DỰ THẢO — Phạm vi Sprint 1–4.
-Template yêu cầu 3 slide cho mỗi thành viên. Phần cá nhân dự thảo dựa trên assignee Jira, không tự nhận công việc đã trực tiếp làm. Từng người cần xác nhận nội dung, cung cấp trước/sau, PR và tự đánh giá; mentor cần xác nhận tỷ lệ đóng góp.
+Người dùng đã xác nhận làm cho cả 10 thành viên, 3 slide/người theo template. Phần cá nhân dự thảo dựa trên assignee Jira, không tự nhận công việc đã trực tiếp làm. Từng người cần xác nhận nội dung, cung cấp trước/sau, PR và tự đánh giá; mentor cần xác nhận tỷ lệ đóng góp.
 
 ## Slide 17
 
@@ -263,4 +263,6 @@ Chuẩn bị tài khoản theo vai trò, DB test, dữ liệu mẫu và video d�
 - Jira_N1_cap_nhat_18-10-2026.xlsx: 199 issue, 135 Done, 9 IP, 55 To Do.
 - HỆ THỐNG QUẢN LÝ KHÁCH HÀNG.xlsx: phạm vi, AC và SP kế hoạch.
 - Repository TTCS_N1 và reports, ảnh UI, log kiểm thử đã ghi nhận.
-- Không có story point thực tế, bảng đánh giá chéo, điểm mentor, Git PR metrics hoặc lịch thực tập xác nhận.
+- Thông tin nhóm/mentor/trường/lịch và URL board: người dùng xác nhận trong trao đổi ngày 21/10/2026.
+- Jira board: https://ictu-team-k8abz7ih.atlassian.net/jira/software/projects/N1/boards/3/backlog (URL đã có; chưa thay thế ảnh hoặc export mới).
+- Không có story point thực tế, bảng đánh giá chéo, điểm mentor, Git PR metrics. Lịch thực tập và Sprint 1–4 đã được người dùng xác nhận; không suy ra từ file Jira.

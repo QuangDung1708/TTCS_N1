@@ -4,11 +4,20 @@ Bản slide giữ template ICTU/CodeGym; không dựng ảnh Jira/Git hoặc t�
 
 ## Gửi trước 5 nhóm dữ liệu sau
 
-1. Thông tin bìa và lịch: tên nhóm, mentor, đơn vị, trường/ngành/lớp, kỳ thực tập, ngày báo cáo, ngày Sprint 0–4.
-2. Jira: URL board, ảnh Backlog, Velocity, Burndown; SP cam kết/hoàn thành thực tế từng sprint. Export mới nếu muốn thay snapshot 18/10.
-3. Git: ảnh Contributors/Commit graph; link + ảnh PR có trao đổi review; thống kê từng người và mapping account theo kỳ.
-4. Sản phẩm/chất lượng: URL deploy, video 2–3 phút; số bug, coverage, hiệu năng và người test nếu đã đo.
-5. Cá nhân/đóng góp: trước–sau, ticket/PR, tự đánh giá và nhận xét thật, nghề nghiệp; dữ liệu theo công thức 40/30/20/10 và xác nhận mentor.
+1. Jira: ảnh Backlog, Velocity, Burndown; SP cam kết/hoàn thành thực tế từng sprint. URL board đã có; chỉ cần export mới nếu cập nhật snapshot.
+2. Git: ảnh Contributors/Commit graph; link + ảnh PR có trao đổi review; thống kê và account từng người. Kỳ từ 23/09 tới thời điểm báo cáo 21/10.
+3. Sản phẩm/chất lượng: link deploy, video demo 2–3 phút; bug, coverage, hiệu năng và số người test nếu đã đo.
+4. Cá nhân: trước–sau, ticket/PR, xác nhận việc trực tiếp làm, tự đánh giá, nhận xét thật và định hướng nghề nghiệp cho cả 10 người.
+5. Đóng góp: SP Done/PR/đánh giá chéo/điểm mentor theo công thức 40/30/20/10 và xác nhận tỷ lệ cuối; tên mentor đã có nhưng chưa có đánh giá.
+
+## Đã được người dùng xác nhận
+
+- Nhóm TTCS_N1; mentor Triệu Quang Dũng; CodeGym.
+- Đại học CNTT & Truyền thông Thái Nguyên / CNTT / CNTT K23G.
+- Thực tập 23/09–26/10/2026; báo cáo ngày 21/10/2026.
+- Sprint 1: 23–29/09; Sprint 2: 30/09–06/10; Sprint 3: 07–13/10; Sprint 4: 14–20/10. Mỗi sprint 7 ngày.
+- Phần B cho cả 10 thành viên; ba slide/người.
+- URL Jira: https://ictu-team-k8abz7ih.atlassian.net/jira/software/projects/N1/boards/3/backlog
 
 ## Đã có, không bắt buộc gửi lại
 
@@ -24,12 +33,12 @@ Bản slide giữ template ICTU/CodeGym; không dựng ảnh Jira/Git hoặc t�
 ### INF-01 — Slide 1, 3: Thông tin chung
 - Cần: Tên nhóm chính thức, mentor, đơn vị/phòng ban, trường, ngành, lớp
 - Cách lấy: Ghi chính xác tên; logo ICTU/CodeGym không thay xác nhận thông tin.
-- Hiện trạng: Cần xác nhận
+- Hiện trạng: Đã cung cấp
 
 ### INF-02 — Slide 1, 4: Ngày và lịch
-- Cần: Ngày bắt đầu/kết thúc thực tập; ngày báo cáo; lịch Sprint 0–4
+- Cần: Ngày bắt đầu/kết thúc thực tập; ngày báo cáo; lịch Sprint 1–4
 - Cách lấy: Dùng lịch đã được nhóm/mentor thống nhất. Không suy ra từ Created/Updated.
-- Hiện trạng: Chưa có
+- Hiện trạng: Đã cung cấp
 
 ### INF-03 — Slide 4, 9, 16, 47: Quy trình thực tế
 - Cần: Độ dài sprint, lịch Daily/review/retro/mentor; kênh chat/thiết kế; quy tắc review/commit; người trình bày
@@ -39,12 +48,12 @@ Bản slide giữ template ICTU/CodeGym; không dựng ảnh Jira/Git hoặc t�
 ### JIRA-01 — Slide 5: Screenshot
 - Cần: Ảnh Product Backlog hoặc Issues filter của toàn dự án
 - Cách lấy: Jira → Backlog/Issues; rõ epic, story, trạng thái, bộ lọc/phạm vi; kèm link board và ngày chụp.
-- Hiện trạng: Chưa có
+- Hiện trạng: Đã có URL board; vẫn cần screenshot
 
 ### JIRA-02 — Slide 5, 12: Dữ liệu
 - Cần: Export Jira mới nhất + URL board
 - Cách lấy: Nếu chỉ có snapshot 18/10 thì giữ số liệu 199/135/64; không giả trạng thái live.
-- Hiện trạng: Đã có bản 18/10; cần bản mới nếu cập nhật
+- Hiện trạng: Có URL và export 18/10; cần export mới nếu cập nhật
 
 ### JIRA-03 — Slide 6: Screenshot + dữ liệu
 - Cần: Velocity Chart; SP cam kết và SP hoàn thành của Sprint 1–4
@@ -63,7 +72,7 @@ Bản slide giữ template ICTU/CodeGym; không dựng ảnh Jira/Git hoặc t�
 
 ### GIT-02 — Slide 7–8, 17–46: Dữ liệu
 - Cần: Mapping thành viên ↔ tài khoản Git; commit non-merge, PR merged, PR reviewed, +/- dòng theo kỳ
-- Cách lấy: Cần khoảng thời gian/nhánh/phạm vi. Loại node_modules, tệp sinh tự động, ZIP khi tính dòng code.
+- Cách lấy: Cần khoảng thời gian/nhánh/phạm vi. Loại node_modules, tệp sinh tự động, ZIP khi tính dòng code. Kỳ đã xác nhận: từ 23/09 đến thời điểm báo cáo 21/10/2026; không thống kê ngày sau đó.
 - Hiện trạng: Chưa chốt
 
 ### GIT-03 — Slide 9: Screenshot + link
@@ -98,7 +107,7 @@ Bản slide giữ template ICTU/CodeGym; không dựng ảnh Jira/Git hoặc t�
 
 ### CON-02 — Slide 14–15: Xác nhận mentor
 - Cần: Tỉ lệ đóng góp cuối cùng + người/ngày xác nhận
-- Cách lấy: Tổng cả nhóm phải 100%. Mentor xác nhận đúng số liệu cuối.
+- Cách lấy: Tổng cả nhóm phải 100%. Mentor xác nhận đúng số liệu cuối. Mentor đã có tên Triệu Quang Dũng; chưa có xác nhận tỷ lệ.
 - Hiện trạng: Chưa có
 
 ### PER-01 — Slide 17–46: Xác nhận cá nhân
@@ -122,9 +131,9 @@ Bản slide giữ template ICTU/CodeGym; không dựng ảnh Jira/Git hoặc t�
 - Hiện trạng: Chưa có
 
 ### SCOPE-01 — Slide Phần B: Phạm vi
-- Cần: Xác nhận làm Phần B cho 10 thành viên hay chỉ Triệu Quang Dũng
-- Cách lấy: Bản hiện tại chuẩn bị đủ khung cho 10 người, ba slide/người; có thể rút lại khi bạn xác nhận.
-- Hiện trạng: Đang chờ trả lời
+- Cần: Phần B cho cả 10 thành viên
+- Cách lấy: Đã được người dùng xác nhận, giữ ba slide/người theo template.
+- Hiện trạng: Đã xác nhận
 
 ## Cách gửi ảnh
 
