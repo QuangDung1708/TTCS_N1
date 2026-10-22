@@ -1,0 +1,1599 @@
+{
+  "source": "Jira_N1_cap_nhat_18-10-2026.xlsx",
+  "sha256": "6b85166a90d4d1d4d82cbb7aea4add680886b6f2559c3ac3c35f27c314df28b9",
+  "snapshot": "18/10/2026",
+  "issues": [
+    {
+      "Issue key": "N1-113",
+      "Summary": "S1-05] Setup DB Migration & Seeder with Knex.js",
+      "Assignee": "DO TUAN DUNG",
+      "Status": "Done",
+      "Created": "2026-09-27 17:11:00",
+      "Updated": "2026-09-29 17:24:00"
+    },
+    {
+      "Issue key": "N1-3",
+      "Summary": "[S1-01]Là người dùng của hệ thống, tôi muốn đăng nhập bằng email công ty và mật khẩu, để truy cập được danh mục khách hàng của mình một cách an toàn. ",
+      "Assignee": "TRIEU QUANG DUNG",
+      "Status": "In Progress",
+      "Created": "2026-09-21 11:31:00",
+      "Updated": "2026-10-07 09:45:00"
+    },
+    {
+      "Issue key": "N1-6",
+      "Summary": "[S1-02]Là người dùng của hệ thống, tôi muốn duy trì phiên đăng nhập và đăng xuất an toàn, để không mất ghi chú cuộc gặp đang nhập dở khi đang ngồi ở quán cà phê. ",
+      "Assignee": "TRIEU QUANG DUNG",
+      "Status": "Done",
+      "Created": "2026-09-21 11:35:00",
+      "Updated": "2026-10-05 10:46:00"
+    },
+    {
+      "Issue key": "N1-4",
+      "Summary": "[S1-03]Là người dùng của hệ thống, tôi muốn đặt lại mật khẩu khi quên thông qua email, để tự lấy lại quyền truy cập khi đang đi gặp khách.",
+      "Assignee": "TRIEU QUANG DUNG",
+      "Status": "In Progress",
+      "Created": "2026-09-21 11:33:00",
+      "Updated": "2026-10-07 09:45:00"
+    },
+    {
+      "Issue key": "N1-5",
+      "Summary": "[S1-04]Là người dùng của hệ thống, tôi muốn đổi mật khẩu khi đang đăng nhập, để chủ động bảo vệ danh mục khách hàng của mình.",
+      "Assignee": "TRIEU QUANG DUNG",
+      "Status": "Done",
+      "Created": "2026-09-21 11:34:00",
+      "Updated": "2026-10-05 10:46:00"
+    },
+    {
+      "Issue key": "N1-8",
+      "Summary": "[S1-05]Là Giám đốc kinh doanh, tôi muốn có phân quyền vừa theo vai trò vừa theo dữ liệu sở hữu, để nhân viên chỉ thấy khách của mình, trưởng nhóm thấy toàn nhóm, còn tôi thấy tất cả.",
+      "Assignee": "TRIEU QUANG DUNG",
+      "Status": "Done",
+      "Created": "2026-09-21 11:40:00",
+      "Updated": "2026-10-05 10:46:00"
+    },
+    {
+      "Issue key": "N1-47",
+      "Summary": "[S1-06] Là Quản trị hệ thống, tôi muốn tạo, sửa và tìm kiếm tài khoản người dùng, để cấp quyền cho nhân viên kinh doanh mới ngay ngày đầu nhận việc.",
+      "Assignee": "TRIEU QUANG DUNG",
+      "Status": "Done",
+      "Created": "2026-09-21 11:46:00",
+      "Updated": "2026-10-05 10:46:00"
+    },
+    {
+      "Issue key": "N1-48",
+      "Summary": "[S1-07]Là Quản trị hệ thống, tôi muốn gán vai trò và gắn người dùng vào nhóm kinh doanh, để cây tổ chức quyết định đúng phạm vi dữ liệu mỗi người nhìn thấy.",
+      "Assignee": "TRIEU QUANG DUNG",
+      "Status": "Done",
+      "Created": "2026-09-21 11:46:00",
+      "Updated": "2026-10-05 10:46:00"
+    },
+    {
+      "Issue key": "N1-37",
+      "Summary": "[S1-08] Là người dùng của hệ thống, tôi muốn thấy menu điều hướng đúng theo quyền của mình, để không bị rối bởi những chức năng mình không được dùng.",
+      "Assignee": "TRIEU QUANG DUNG",
+      "Status": "Done",
+      "Created": "2026-09-21 11:45:00",
+      "Updated": "2026-10-05 10:46:00"
+    },
+    {
+      "Issue key": "N1-115",
+      "Summary": "[S2-01] Là Quản trị hệ thống, tôi muốn nhập danh sách người dùng hàng loạt từ tệp Excel, để tạo tài khoản cho cả khối kinh doanh trong vài phút. ",
+      "Assignee": "TRIEU QUANG DUNG",
+      "Status": "Done",
+      "Created": "2026-09-29 17:04:00",
+      "Updated": "2026-10-12 08:10:00"
+    },
+    {
+      "Issue key": "N1-121",
+      "Summary": "[S2-08] Là Quản trị hệ thống, tôi muốn khai báo trường tuỳ chỉnh cho khách hàng và cơ hội, để đưa được những cột mà nhân viên đang tự thêm trong Excel vào hệ thống.",
+      "Assignee": "TRIEU QUANG DUNG",
+      "Status": "Done",
+      "Created": "2026-09-29 17:49:00",
+      "Updated": "2026-10-12 08:10:00"
+    },
+    {
+      "Issue key": "N1-116",
+      "Summary": "EPIC_02",
+      "Assignee": "TRIEU QUANG DUNG",
+      "Status": "In Progress",
+      "Created": "2026-09-29 17:18:00",
+      "Updated": "2026-10-05 11:01:00"
+    },
+    {
+      "Issue key": "N1-117",
+      "Summary": "EPIC_01",
+      "Assignee": "TRIEU QUANG DUNG",
+      "Status": "Done",
+      "Created": "2026-09-29 17:22:00",
+      "Updated": "2026-09-30 22:33:00"
+    },
+    {
+      "Issue key": "N1-187",
+      "Summary": "[S3-01] Là Nhân viên kinh doanh, tôi muốn quản lý hồ sơ khách hàng doanh nghiệp, để có một danh sách khách chuẩn thay vì file Excel riêng của từng người.",
+      "Assignee": null,
+      "Status": "In Progress",
+      "Created": "2026-10-07 15:14:00",
+      "Updated": "2026-10-10 05:38:00"
+    },
+    {
+      "Issue key": "N1-188",
+      "Summary": "[S3-02] Là Nhân viên kinh doanh, tôi muốn quản lý người liên hệ và vai trò của họ trong quyết định mua, để biết phải thuyết phục ai và ai là người có thể cản thương vụ.",
+      "Assignee": null,
+      "Status": "Done",
+      "Created": "2026-10-07 15:23:00",
+      "Updated": "2026-10-12 08:36:00"
+    },
+    {
+      "Issue key": "N1-189",
+      "Summary": "[S3-03] Là Nhân viên kinh doanh, tôi muốn xem trang 360 của một khách hàng, để nắm toàn bộ bối cảnh trước cuộc gặp mà không phải mở năm chỗ khác nhau.",
+      "Assignee": null,
+      "Status": "Done",
+      "Created": "2026-10-07 15:23:00",
+      "Updated": "2026-10-12 08:37:00"
+    },
+    {
+      "Issue key": "N1-190",
+      "Summary": "[S3-04] Là Trưởng nhóm kinh doanh, tôi muốn được cảnh báo và gộp khách hàng trùng, để hai nhân viên không cùng chào một công ty mà không biết nhau.",
+      "Assignee": null,
+      "Status": "In Progress",
+      "Created": "2026-10-07 15:24:00",
+      "Updated": "2026-10-10 05:38:00"
+    },
+    {
+      "Issue key": "N1-191",
+      "Summary": "[S3-05] Là Nhân viên kinh doanh, tôi muốn khai báo quan hệ công ty mẹ và công ty con, để nhìn được tổng giá trị của cả tập đoàn chứ không chỉ từng pháp nhân.",
+      "Assignee": null,
+      "Status": "In Progress",
+      "Created": "2026-10-07 15:25:00",
+      "Updated": "2026-10-12 08:02:00"
+    },
+    {
+      "Issue key": "N1-192",
+      "Summary": "[S3-06] Là Nhân viên kinh doanh, tôi muốn nhập danh sách khách hàng hàng loạt từ Excel, để đưa danh mục khách đang có vào hệ thống mà không gõ lại.",
+      "Assignee": null,
+      "Status": "In Progress",
+      "Created": "2026-10-07 15:25:00",
+      "Updated": "2026-10-10 05:38:00"
+    },
+    {
+      "Issue key": "N1-193",
+      "Summary": "[S3-07] Là Nhân viên kinh doanh, tôi muốn tìm kiếm và lọc khách hàng theo nhiều điều kiện, để dựng nhanh danh sách khách cần gọi trong tuần.",
+      "Assignee": null,
+      "Status": "Done",
+      "Created": "2026-10-07 15:50:00",
+      "Updated": "2026-10-14 03:54:00"
+    },
+    {
+      "Issue key": "N1-194",
+      "Summary": "[S3-08] Là Chăm sóc khách hàng, tôi muốn ghi nhận yêu cầu hỗ trợ sau bán và gắn cờ khách có rủi ro rời bỏ, để giữ được khách hiện có thay vì chỉ chạy theo khách mới.",
+      "Assignee": null,
+      "Status": "In Progress",
+      "Created": "2026-10-07 15:50:00",
+      "Updated": "2026-10-10 05:38:00"
+    },
+    {
+      "Issue key": "N1-195",
+      "Summary": "[S3-09] Là Chăm sóc khách hàng, tôi muốn xem danh sách khách hàng cần chăm sóc định kỳ, để không để khách đã ký hợp đồng bị bỏ quên tới lúc gia hạn.",
+      "Assignee": null,
+      "Status": "In Progress",
+      "Created": "2026-10-07 15:50:00",
+      "Updated": "2026-10-10 05:38:00"
+    },
+    {
+      "Issue key": "N1-222",
+      "Summary": "Là Quản trị hệ thống, tôi muốn nhập danh sách người dùng hàng loạt từ tệp Excel, để tạo tài khoản cho cả khối kinh doanh trong vài phút.",
+      "Assignee": null,
+      "Status": "To Do",
+      "Created": "2026-10-14 08:31:00",
+      "Updated": "2026-10-14 08:31:00"
+    },
+    {
+      "Issue key": "N1-186",
+      "Summary": "EPIC-03",
+      "Assignee": null,
+      "Status": "To Do",
+      "Created": "2026-10-07 15:14:00",
+      "Updated": "2026-10-07 15:14:00"
+    },
+    {
+      "Issue key": "N1-125",
+      "Summary": "[S2-02] Là Nhân viên kinh doanh, tôi muốn quản lý người liên hệ và vai trò của họ trong quyết định mua, để biết phải thuyết phục ai và ai là người có thể cản thương vụ.",
+      "Assignee": "TRIEU QUANG DUNG",
+      "Status": "Done",
+      "Created": "2026-09-29 18:00:00",
+      "Updated": "2026-10-05 10:58:00"
+    },
+    {
+      "Issue key": "N1-126",
+      "Summary": "[S2-03] Là người dùng của hệ thống, tôi muốn tải lên ảnh đại diện, để đồng nghiệp nhận ra ai đang phụ trách khách hàng khi xem hồ sơ. ",
+      "Assignee": "TRIEU QUANG DUNG",
+      "Status": "Done",
+      "Created": "2026-09-30 22:07:00",
+      "Updated": "2026-10-05 10:58:00"
+    },
+    {
+      "Issue key": "N1-127",
+      "Summary": "[S2-04] Là Quản trị hệ thống, tôi muốn xem nhật ký thay đổi trên dữ liệu nhạy cảm, để truy được ai đã sửa chiết khấu hoặc chỉ tiêu khi cuối quý số liệu không khớp. ",
+      "Assignee": "TRIEU QUANG DUNG",
+      "Status": "Done",
+      "Created": "2026-09-30 22:07:00",
+      "Updated": "2026-10-12 08:10:00"
+    },
+    {
+      "Issue key": "N1-118",
+      "Summary": "[S2-05] Là Giám đốc kinh doanh, tôi muốn quản lý danh mục sản phẩm dịch vụ và bảng giá niêm yết, để mọi báo giá đều xuất phát từ một bảng giá chuẩn thay vì giá tự nghĩ.",
+      "Assignee": "TRIEU QUANG DUNG",
+      "Status": "Done",
+      "Created": "2026-09-29 17:38:00",
+      "Updated": "2026-10-05 10:43:00"
+    },
+    {
+      "Issue key": "N1-119",
+      "Summary": "[S2-06] Là Giám đốc kinh doanh, tôi muốn khai báo cơ cấu tổ chức kinh doanh, để phạm vi dữ liệu của trưởng nhóm bám đúng cây tổ chức thật.",
+      "Assignee": "TRIEU QUANG DUNG",
+      "Status": "Done",
+      "Created": "2026-09-29 17:44:00",
+      "Updated": "2026-10-07 14:49:00"
+    },
+    {
+      "Issue key": "N1-49",
+      "Summary": "[S1-09]Là người dùng của hệ thống, tôi muốn nhận thông báo rõ ràng khi truy cập nhầm chỗ hoặc không đủ quyền, để biết mình nên làm gì tiếp thay vì gặp một trang trắng.",
+      "Assignee": "TRIEU QUANG DUNG",
+      "Status": "Done",
+      "Created": "2026-09-21 11:47:00",
+      "Updated": "2026-10-05 10:46:00"
+    },
+    {
+      "Issue key": "N1-72",
+      "Summary": "[S1-10]Là Quản trị hệ thống, tôi muốn khoá tài khoản và bàn giao dữ liệu khi nhân viên nghỉ, để khách hàng và cơ hội không bị mất chủ khi người phụ trách rời công ty.",
+      "Assignee": "TRIEU QUANG DUNG",
+      "Status": "Done",
+      "Created": "2026-09-21 11:50:00",
+      "Updated": "2026-10-05 10:46:00"
+    },
+    {
+      "Issue key": "N1-83",
+      "Summary": "[BE] Thiết kế bảng Users trong CSDL.",
+      "Assignee": "DO TUAN DUNG",
+      "Status": "Done",
+      "Created": "2026-09-23 10:14:00",
+      "Updated": "2026-09-24 17:49:00"
+    },
+    {
+      "Issue key": "N1-84",
+      "Summary": "[BE] Viết API POST /login: Kiểm tra email/mật khẩu và tạo token JWT.",
+      "Assignee": "DO TUAN DUNG",
+      "Status": "Done",
+      "Created": "2026-09-23 10:14:00",
+      "Updated": "2026-09-29 21:09:00"
+    },
+    {
+      "Issue key": "N1-85",
+      "Summary": "[BE] Xử lý logic: Khóa tài khoản 15 phút nếu nhập sai mật khẩu 5 lần liên tiếp.",
+      "Assignee": "DO TUAN DUNG",
+      "Status": "Done",
+      "Created": "2026-09-23 10:14:00",
+      "Updated": "2026-09-29 21:09:00"
+    },
+    {
+      "Issue key": "N1-86",
+      "Summary": "[FE] Dựng màn hình Đăng nhập (UI)",
+      "Assignee": "HUA HUE AN",
+      "Status": "Done",
+      "Created": "2026-09-23 10:15:00",
+      "Updated": "2026-09-29 21:09:00"
+    },
+    {
+      "Issue key": "N1-87",
+      "Summary": "[FE] Gọi API /login: Lưu token, xử lý chuyển trang và hiển thị thông báo lỗi chung chung (không lộ email).",
+      "Assignee": "HUA HUE AN",
+      "Status": "Done",
+      "Created": "2026-09-23 10:15:00",
+      "Updated": "2026-09-29 21:16:00"
+    },
+    {
+      "Issue key": "N1-88",
+      "Summary": "[BE] Viết API POST /logout: Xóa hiệu lực token/phiên phía server.",
+      "Assignee": "LE MINH DANH",
+      "Status": "Done",
+      "Created": "2026-09-23 10:15:00",
+      "Updated": "2026-09-29 21:53:00"
+    },
+    {
+      "Issue key": "N1-89",
+      "Summary": "[FE] Dựng nút Đăng xuất trên thanh Header và ghép API /logout.",
+      "Assignee": "HUA HUE AN",
+      "Status": "Done",
+      "Created": "2026-09-23 10:15:00",
+      "Updated": "2026-09-29 21:53:00"
+    },
+    {
+      "Issue key": "N1-90",
+      "Summary": "[FE] Xử lý logic tự động gia hạn phiên và điều hướng về trang Đăng nhập khi hết hạn token.",
+      "Assignee": "HUA HUE AN",
+      "Status": "Done",
+      "Created": "2026-09-23 10:15:00",
+      "Updated": "2026-09-29 21:53:00"
+    },
+    {
+      "Issue key": "N1-91",
+      "Summary": "[BE] Viết API POST /forgot-password: Sinh link khôi phục (hiệu lực 30 phút) và gửi qua Email.",
+      "Assignee": "NGUYEN TRAN VIET ANH",
+      "Status": "Done",
+      "Created": "2026-09-23 10:16:00",
+      "Updated": "2026-09-29 22:12:00"
+    },
+    {
+      "Issue key": "N1-92",
+      "Summary": "[FE] Dựng Form nhập Email để nhận link khôi phục.",
+      "Assignee": "HOANG LAN ANH",
+      "Status": "Done",
+      "Created": "2026-09-23 10:16:00",
+      "Updated": "2026-09-29 22:12:00"
+    },
+    {
+      "Issue key": "N1-93",
+      "Summary": "[FE] Dựng màn hình Đặt lại mật khẩu mới (truy cập từ link Email) và gọi API lưu mật khẩu.",
+      "Assignee": "HOANG LAN ANH",
+      "Status": "Done",
+      "Created": "2026-09-23 10:16:00",
+      "Updated": "2026-09-29 22:12:00"
+    },
+    {
+      "Issue key": "N1-95",
+      "Summary": "[BE] Viết API PUT /change-password: Bắt buộc nhập MK cũ, MK mới tối thiểu 8 ký tự (chữ + số), đổi xong thu hồi các phiên đăng nhập khác.",
+      "Assignee": "NGUYEN TRAN VIET ANH",
+      "Status": "Done",
+      "Created": "2026-09-23 10:16:00",
+      "Updated": "2026-09-28 08:44:00"
+    },
+    {
+      "Issue key": "N1-96",
+      "Summary": "[FE] Dựng Form Đổi mật khẩu trong màn hình Cài đặt cá nhân và gọi API.",
+      "Assignee": "HOANG LAN ANH",
+      "Status": "Done",
+      "Created": "2026-09-23 10:17:00",
+      "Updated": "2026-09-27 20:49:00"
+    },
+    {
+      "Issue key": "N1-97",
+      "Summary": "[BE] Thiết kế bảng Roles (Vai trò) và Groups (Nhóm kinh doanh).",
+      "Assignee": "NGUYEN TRAN VIET ANH",
+      "Status": "Done",
+      "Created": "2026-09-23 10:17:00",
+      "Updated": "2026-09-27 16:21:00"
+    },
+    {
+      "Issue key": "N1-98",
+      "Summary": "[BE] Viết Middleware (Bộ lọc): Lấy Role và Group ID từ token để tự động lọc câu truy vấn cơ sở dữ liệu (của tôi / của nhóm / tất cả).",
+      "Assignee": "LE MINH DANH",
+      "Status": "Done",
+      "Created": "2026-09-23 10:17:00",
+      "Updated": "2026-09-24 17:17:00"
+    },
+    {
+      "Issue key": "N1-99",
+      "Summary": "[BE] Viết Unit test tự động: Chứng minh code đã chặn thành công việc nhân viên A truy cập dữ liệu của nhân viên B.",
+      "Assignee": "LE MINH DANH",
+      "Status": "Done",
+      "Created": "2026-09-23 10:17:00",
+      "Updated": "2026-09-29 23:17:00"
+    },
+    {
+      "Issue key": "N1-100",
+      "Summary": "[FE] Đọc thông tin Role và Group từ token lúc đăng nhập.",
+      "Assignee": "CHAU THUY DUNG",
+      "Status": "Done",
+      "Created": "2026-09-23 10:17:00",
+      "Updated": "2026-09-25 10:52:00"
+    },
+    {
+      "Issue key": "N1-101",
+      "Summary": "[FE] Viết logic ẩn/hiện thanh Menu: Nút nào không thuộc quyền thì ẩn đi, hiển thị tên và vai trò đang đăng nhập.",
+      "Assignee": "CHAU THUY DUNG",
+      "Status": "Done",
+      "Created": "2026-09-23 10:17:00",
+      "Updated": "2026-09-29 23:48:00"
+    },
+    {
+      "Issue key": "N1-102",
+      "Summary": "[FE] Chỉnh sửa CSS đảm bảo Menu dùng mượt trên màn hình nhỏ (360px).",
+      "Assignee": "CHAU THUY DUNG",
+      "Status": "Done",
+      "Created": "2026-09-23 10:17:00",
+      "Updated": "2026-09-29 23:48:00"
+    },
+    {
+      "Issue key": "N1-103",
+      "Summary": "[FE] Dựng giao diện trang lỗi chung (403 Không đủ quyền, 404 Không tìm thấy).",
+      "Assignee": "CHAU THUY DUNG",
+      "Status": "Done",
+      "Created": "2026-09-23 10:18:00",
+      "Updated": "2026-09-26 14:31:00"
+    },
+    {
+      "Issue key": "N1-104",
+      "Summary": "[FE] Thêm nút hành động gợi ý để quay lại trang chủ.",
+      "Assignee": "HOANG LAN ANH",
+      "Status": "Done",
+      "Created": "2026-09-23 10:18:00",
+      "Updated": "2026-09-27 21:07:00"
+    },
+    {
+      "Issue key": "N1-105",
+      "Summary": "[BE] Viết API GET /users: Trả về danh sách nhân viên (có phân trang 20 dòng/trang, tìm theo tên, email, lọc theo vai trò).",
+      "Assignee": "NGUYEN THUY CHANG",
+      "Status": "Done",
+      "Created": "2026-09-23 10:18:00",
+      "Updated": "2026-09-30 00:05:00"
+    },
+    {
+      "Issue key": "N1-106",
+      "Summary": "[BE] Viết API POST /users (Tạo mới): Check trùng email, tự động gửi email kích hoạt và mật khẩu tạm.",
+      "Assignee": "NGUYEN THUY CHANG",
+      "Status": "Done",
+      "Created": "2026-09-23 10:18:00",
+      "Updated": "2026-09-30 00:05:00"
+    },
+    {
+      "Issue key": "N1-107",
+      "Summary": "[FE] Dựng màn hình Danh sách nhân viên (UI dạng Bảng, có thanh tìm kiếm).",
+      "Assignee": "Ngoc Anh",
+      "Status": "Done",
+      "Created": "2026-09-23 10:18:00",
+      "Updated": "2026-09-30 00:05:00"
+    },
+    {
+      "Issue key": "N1-108",
+      "Summary": "[FE] Dựng Form Thêm mới / Sửa thông tin nhân viên và ghép API.",
+      "Assignee": "Ngoc Anh",
+      "Status": "Done",
+      "Created": "2026-09-23 10:18:00",
+      "Updated": "2026-09-30 00:05:00"
+    },
+    {
+      "Issue key": "N1-109",
+      "Summary": "[BE] Viết API PUT /users/{id}/roles: Bổ sung logic (Trưởng nhóm phải bắt buộc có Group ID, không cho phép Admin tự thu hồi quyền của chính mình).",
+      "Assignee": "PHAM XUAN BINH",
+      "Status": "Done",
+      "Created": "2026-09-23 10:19:00",
+      "Updated": "2026-09-30 00:45:00"
+    },
+    {
+      "Issue key": "N1-110",
+      "Summary": "[FE] Dựng Dropdown chọn Vai trò (chọn được nhiều) và Dropdown chọn Nhóm kinh doanh trong Form sửa nhân viên.",
+      "Assignee": "Ngoc Anh",
+      "Status": "Done",
+      "Created": "2026-09-23 10:19:00",
+      "Updated": "2026-09-30 00:45:00"
+    },
+    {
+      "Issue key": "N1-111",
+      "Summary": "[BE] Viết API PUT /users/{id}/lock: Thu hồi phiên hoạt động, bắt buộc nhận tham số \"người tiếp nhận\" để chuyển đổi chủ sở hữu dữ liệu, ghi nhật ký.",
+      "Assignee": "PHAM XUAN BINH",
+      "Status": "Done",
+      "Created": "2026-09-23 10:19:00",
+      "Updated": "2026-09-27 20:36:00"
+    },
+    {
+      "Issue key": "N1-112",
+      "Summary": "[FE] Dựng Modal (Hộp thoại) xác nhận Khóa tài khoản: Yêu cầu Admin chọn người tiếp nhận khách hàng từ danh sách thả xuống trước khi bấm Khóa.",
+      "Assignee": "Ngoc Anh",
+      "Status": "Done",
+      "Created": "2026-09-23 10:19:00",
+      "Updated": "2026-09-27 23:11:00"
+    },
+    {
+      "Issue key": "N1-120",
+      "Summary": "[S2-07] Là Giám đốc kinh doanh, tôi muốn khai báo các danh mục dùng chung của bán hàng, để cả khối gọi tên nguồn lead và ngành nghề giống nhau để báo cáo gộp được.",
+      "Assignee": "TRIEU QUANG DUNG",
+      "Status": "Done",
+      "Created": "2026-09-29 17:47:00",
+      "Updated": "2026-10-05 10:44:00"
+    },
+    {
+      "Issue key": "N1-122",
+      "Summary": "[S2-09] Là Giám đốc kinh doanh, tôi muốn cấu hình các giai đoạn pipeline và xác suất thắng, để con số dự báo doanh số có cơ sở thay vì dựa vào cảm nhận.",
+      "Assignee": "TRIEU QUANG DUNG",
+      "Status": "Done",
+      "Created": "2026-09-29 17:51:00",
+      "Updated": "2026-10-05 10:44:00"
+    },
+    {
+      "Issue key": "N1-123",
+      "Summary": "[S2-10] Là Giám đốc kinh doanh, tôi muốn khai báo danh mục lý do thắng thua và đối thủ, để năm sau không thua lại đúng chỗ đã thua năm nay.",
+      "Assignee": "TRIEU QUANG DUNG",
+      "Status": "Done",
+      "Created": "2026-09-29 17:54:00",
+      "Updated": "2026-10-05 10:44:00"
+    },
+    {
+      "Issue key": "N1-128",
+      "Summary": "[BE] Xây dựng API tải file Excel mẫu chuẩn",
+      "Assignee": "LE MINH DANH",
+      "Status": "Done",
+      "Created": "2026-09-30 22:09:00",
+      "Updated": "2026-10-01 22:56:00"
+    },
+    {
+      "Issue key": "N1-129",
+      "Summary": "[BE] Xây dựng API đọc và kiểm tra trước (Preview) file Excel: validate từng dòng, phân loại danh sách dòng hợp lệ và dòng lỗi chi tiết",
+      "Assignee": "LE MINH DANH",
+      "Status": "Done",
+      "Created": "2026-09-30 22:10:00",
+      "Updated": "2026-10-01 22:56:00"
+    },
+    {
+      "Issue key": "N1-130",
+      "Summary": "[BE] Xây dựng API thực thi import: sử dụng Database Transaction để lưu các dòng hợp lệ, tự động bỏ qua dòng lỗi và trả về báo cáo kết quả tổng kết",
+      "Assignee": "DO TUAN DUNG",
+      "Status": "Done",
+      "Created": "2026-09-30 22:10:00",
+      "Updated": "2026-10-01 22:56:00"
+    },
+    {
+      "Issue key": "N1-131",
+      "Summary": "[FE] Dựng giao diện Modal Import Excel: khu vực kéo thả file, nút tải file mẫu, hiển thị bảng preview kết quả phân loại lỗi theo dòng",
+      "Assignee": "Ngoc Anh",
+      "Status": "Done",
+      "Created": "2026-09-30 22:10:00",
+      "Updated": "2026-10-01 22:56:00"
+    },
+    {
+      "Issue key": "N1-132",
+      "Summary": "[FE] Ghép API import và hiển thị màn hình báo cáo tổng kết (số dòng thành công, số dòng thất bại kèm lý do)",
+      "Assignee": "HOANG LAN ANH",
+      "Status": "Done",
+      "Created": "2026-09-30 22:10:00",
+      "Updated": "2026-10-01 22:56:00"
+    },
+    {
+      "Issue key": "N1-133",
+      "Summary": "[Test] Viết kịch bản kiểm thử: file rỗng, sai định dạng cột, trùng email có sẵn, dòng thiếu trường bắt buộc",
+      "Assignee": "TRIEU QUANG DUNG",
+      "Status": "Done",
+      "Created": "2026-09-30 22:10:00",
+      "Updated": "2026-10-01 22:56:00"
+    },
+    {
+      "Issue key": "N1-134",
+      "Summary": "[BE] Thiết kế bảng customer_contacts: các trường id, customer_id, name, title (chức danh), email, phone, buying_role (DECISION_MAKER, INFLUENCER, END_USER, BLOCKER), is_primary (boolean), history_notes",
+      "Assignee": "NGUYEN THUY CHANG",
+      "Status": "Done",
+      "Created": "2026-09-30 22:10:00",
+      "Updated": "2026-10-01 21:05:00"
+    },
+    {
+      "Issue key": "N1-135",
+      "Summary": "[BE] Xây dựng API CRUD người liên hệ theo khách hàng: Lấy danh sách contact theo customer_id, thêm mới, sửa, xóa",
+      "Assignee": "NGUYEN THUY CHANG",
+      "Status": "Done",
+      "Created": "2026-09-30 22:11:00",
+      "Updated": "2026-10-01 23:02:00"
+    },
+    {
+      "Issue key": "N1-136",
+      "Summary": "[BE] Xây dựng API chuyển công ty cho người liên hệ: Cập nhật customer_id mới và lưu vết lịch sử công ty cũ",
+      "Assignee": "NGUYEN THUY CHANG",
+      "Status": "Done",
+      "Created": "2026-09-30 22:11:00",
+      "Updated": "2026-10-01 22:57:00"
+    },
+    {
+      "Issue key": "N1-137",
+      "Summary": "[FE] Dựng giao diện danh sách Người liên hệ: Nằm trong màn hình chi tiết Khách hàng, có badge hiển thị vai trò quyết định mua và ngôi sao đánh dấu Đầu mối chính",
+      "Assignee": "CHAU THUY DUNG",
+      "Status": "Done",
+      "Created": "2026-09-30 22:11:00",
+      "Updated": "2026-10-01 22:57:00"
+    },
+    {
+      "Issue key": "N1-138",
+      "Summary": "[FE] Dựng Modal thêm/sửa người liên hệ & chuyển đổi khách hàng: Form chọn vai trò mua hàng, nút gạt đầu mối chính, nút chuyển sang khách hàng khác",
+      "Assignee": "CHAU THUY DUNG",
+      "Status": "Done",
+      "Created": "2026-09-30 22:11:00",
+      "Updated": "2026-10-01 21:06:00"
+    },
+    {
+      "Issue key": "N1-139",
+      "Summary": "[Test] Kiểm thử nghiệp vụ: Kiểm tra mỗi khách hàng chỉ có tối đa 1 đầu mối chính, kiểm tra gắn vai trò mua hàng và chuyển đổi công ty giữ nguyên lịch sử.",
+      "Assignee": "TRIEU QUANG DUNG",
+      "Status": "Done",
+      "Created": "2026-09-30 22:11:00",
+      "Updated": "2026-10-05 08:11:00"
+    },
+    {
+      "Issue key": "N1-140",
+      "Summary": "[BE] Cấu hình middleware Multer tiếp nhận upload file: kiểm tra định dạng JPG/PNG và giới hạn dung lượng tối đa 2MB",
+      "Assignee": "PHAM XUAN BINH",
+      "Status": "Done",
+      "Created": "2026-09-30 22:12:00",
+      "Updated": "2026-10-03 22:28:00"
+    },
+    {
+      "Issue key": "N1-141",
+      "Summary": "[BE] Tích hợp thư viện xử lý ảnh (Sharp): tự động cắt ảnh vuông (crop square) và sinh bản thu nhỏ (thumbnail) lưu đường dẫn vào CSDL",
+      "Assignee": "PHAM XUAN BINH",
+      "Status": "Done",
+      "Created": "2026-09-30 22:12:00",
+      "Updated": "2026-10-03 22:28:00"
+    },
+    {
+      "Issue key": "N1-142",
+      "Summary": "[FE] Dựng component tải ảnh đại diện: cho phép chọn file, xem trước (preview), công cụ căn chỉnh/cắt ảnh vuông",
+      "Assignee": "HUA HUE AN",
+      "Status": "Done",
+      "Created": "2026-09-30 22:12:00",
+      "Updated": "2026-10-05 07:56:00"
+    },
+    {
+      "Issue key": "N1-143",
+      "Summary": "[FE] Cập nhật hiển thị ảnh đại diện mới lên thanh điều hướng (Header/Navbar) sau khi upload thành công",
+      "Assignee": "HUA HUE AN",
+      "Status": "Done",
+      "Created": "2026-09-30 22:12:00",
+      "Updated": "2026-10-05 00:39:00"
+    },
+    {
+      "Issue key": "N1-144",
+      "Summary": "[Test] Kiểm thử upload file vượt quá 2MB, upload file sai định dạng (.pdf, .exe) và kiểm tra kích thước ảnh thumbnail",
+      "Assignee": "TRIEU QUANG DUNG",
+      "Status": "Done",
+      "Created": "2026-09-30 22:12:00",
+      "Updated": "2026-10-17 09:11:00"
+    },
+    {
+      "Issue key": "N1-145",
+      "Summary": "[BE] Thiết kế bảng audit_logs lưu thông tin: người thực hiện, thời điểm, loại đối tượng, ID đối tượng, giá trị trước (old_value) và giá trị sau (new_value)",
+      "Assignee": "NGUYEN TRAN VIET ANH",
+      "Status": "Done",
+      "Created": "2026-09-30 22:12:00",
+      "Updated": "2026-10-04 00:24:00"
+    },
+    {
+      "Issue key": "N1-146",
+      "Summary": "[BE] Xây dựng middleware/service tự động ghi log khi có thay đổi trên chiết khấu, chỉ tiêu, quyền sở hữu dữ liệu và vai trò người dùng",
+      "Assignee": "NGUYEN TRAN VIET ANH",
+      "Status": "Done",
+      "Created": "2026-09-30 22:12:00",
+      "Updated": "2026-10-01 14:53:00"
+    },
+    {
+      "Issue key": "N1-147",
+      "Summary": "[BE] Xây dựng API truy vấn nhật ký thay đổi có bộ lọc theo người dùng, loại đối tượng, khoảng thời gian và phân trang",
+      "Assignee": "NGUYEN TRAN VIET ANH",
+      "Status": "Done",
+      "Created": "2026-09-30 22:12:00",
+      "Updated": "2026-10-01 17:07:00"
+    },
+    {
+      "Issue key": "N1-148",
+      "Summary": "[FE] Dựng màn hình Bảng nhật ký thay đổi: bộ lọc đa tiêu chí, danh sách hiển thị và modal xem chi tiết khác biệt (diff) dữ liệu",
+      "Assignee": "Ngoc Anh",
+      "Status": "Done",
+      "Created": "2026-09-30 22:13:00",
+      "Updated": "2026-10-03 22:55:00"
+    },
+    {
+      "Issue key": "N1-149",
+      "Summary": "[Test] Kiểm thử tự động kích hoạt ghi log khi cập nhật chiết khấu hoặc chuyển đổi quyền sở hữu tài khoản",
+      "Assignee": "TRIEU QUANG DUNG",
+      "Status": "Done",
+      "Created": "2026-09-30 22:13:00",
+      "Updated": "2026-10-05 07:56:00"
+    },
+    {
+      "Issue key": "N1-150",
+      "Summary": "[BE] Thiết kế bảng products (mã SP, tên, loại: một lần / thuê bao, đơn vị tính, giá niêm yết, giá sàn, trạng thái)",
+      "Assignee": "LE MINH DANH",
+      "Status": "Done",
+      "Created": "2026-09-30 22:13:00",
+      "Updated": "2026-10-02 01:36:00"
+    },
+    {
+      "Issue key": "N1-151",
+      "Summary": "[BE] Xây dựng bộ API CRUD sản phẩm: danh sách (có tìm kiếm, lọc theo loại, phân trang), thêm mới, cập nhật thông tin và cập nhật trạng thái",
+      "Assignee": "LE MINH DANH",
+      "Status": "Done",
+      "Created": "2026-09-30 22:13:00",
+      "Updated": "2026-10-02 02:00:00"
+    },
+    {
+      "Issue key": "N1-152",
+      "Summary": "[BE] Viết logic kiểm tra nghiệp vụ: ràng buộc giá sàn luôn nhỏ hơn hoặc bằng giá niêm yết; đánh dấu cờ cảnh báo duyệt chiết khấu nếu giá bán dưới giá sàn",
+      "Assignee": "DO TUAN DUNG",
+      "Status": "Done",
+      "Created": "2026-09-30 22:13:00",
+      "Updated": "2026-10-05 07:56:00"
+    },
+    {
+      "Issue key": "N1-153",
+      "Summary": "[FE] Dựng màn hình Quản trị Danh mục sản phẩm & Bảng giá: bảng dữ liệu, thanh tìm kiếm, bộ lọc loại sản phẩm",
+      "Assignee": "HOANG LAN ANH",
+      "Status": "Done",
+      "Created": "2026-09-30 22:13:00",
+      "Updated": "2026-10-05 01:34:00"
+    },
+    {
+      "Issue key": "N1-154",
+      "Summary": "[FE] Dựng Form Modal thêm mới/chỉnh sửa sản phẩm có đầy đủ các trường mã, tên, loại, ĐVT, giá niêm yết, giá sàn",
+      "Assignee": "CHAU THUY DUNG",
+      "Status": "Done",
+      "Created": "2026-09-30 22:13:00",
+      "Updated": "2026-10-02 13:37:00"
+    },
+    {
+      "Issue key": "N1-155",
+      "Summary": "[Test] Kiểm thử tính toán ngưỡng giá sàn và xác thực dữ liệu đầu vào của sản phẩm",
+      "Assignee": "TRIEU QUANG DUNG",
+      "Status": "Done",
+      "Created": "2026-09-30 22:13:00",
+      "Updated": "2026-10-05 07:56:00"
+    },
+    {
+      "Issue key": "N1-156",
+      "Summary": "[BE] Cập nhật bảng groups bổ sung quan hệ phân cấp cây (parent_id, leader_id) và ràng buộc mỗi nhân viên chỉ thuộc đúng một nhóm tại một thời điểm",
+      "Assignee": "PHAM XUAN BINH",
+      "Status": "Done",
+      "Created": "2026-09-30 22:14:00",
+      "Updated": "2026-10-03 22:29:00"
+    },
+    {
+      "Issue key": "N1-157",
+      "Summary": "[BE] Xây dựng API lấy dữ liệu cây sơ đồ tổ chức dạng phân cấp lồng nhau đệ quy",
+      "Assignee": "PHAM XUAN BINH",
+      "Status": "Done",
+      "Created": "2026-09-30 22:14:00",
+      "Updated": "2026-10-03 22:29:00"
+    },
+    {
+      "Issue key": "N1-158",
+      "Summary": "[BE] Xây dựng API thêm mới nhóm con, gán trưởng nhóm và điều chuyển nhân sự giữa các nhóm",
+      "Assignee": "NGUYEN THUY CHANG",
+      "Status": "Done",
+      "Created": "2026-09-30 22:14:00",
+      "Updated": "2026-10-05 07:57:00"
+    },
+    {
+      "Issue key": "N1-159",
+      "Summary": "[BE] Cập nhật middleware RBAC Data Scoping: Trưởng nhóm cấp trên được phép xem dữ liệu của toàn bộ các nhóm con trực thuộc trong nhánh cây",
+      "Assignee": "PHAM XUAN BINH",
+      "Status": "Done",
+      "Created": "2026-09-30 22:14:00",
+      "Updated": "2026-10-03 22:29:00"
+    },
+    {
+      "Issue key": "N1-160",
+      "Summary": "[FE] Dựng giao diện Sơ đồ cây cơ cấu tổ chức kinh doanh trực quan (Tree View): hiển thị nhóm cha, nhóm con, trưởng nhóm và số lượng nhân sự",
+      "Assignee": "HUA HUE AN",
+      "Status": "Done",
+      "Created": "2026-09-30 22:14:00",
+      "Updated": "2026-10-05 00:39:00"
+    },
+    {
+      "Issue key": "N1-161",
+      "Summary": "[FE] Dựng Modal tạo nhóm con, chỉ định trưởng nhóm và phân bổ nhân sự vào nhóm",
+      "Assignee": "Ngoc Anh",
+      "Status": "Done",
+      "Created": "2026-09-30 22:14:00",
+      "Updated": "2026-10-03 22:55:00"
+    },
+    {
+      "Issue key": "N1-162",
+      "Summary": "[Test] Kiểm thử quyền truy cập dữ liệu của Trưởng nhóm đối với nhóm trực thuộc và các nhóm con cấp dưới",
+      "Assignee": "TRIEU QUANG DUNG",
+      "Status": "Done",
+      "Created": "2026-09-30 22:14:00",
+      "Updated": "2026-10-05 07:57:00"
+    },
+    {
+      "Issue key": "N1-163",
+      "Summary": "[BE] Thiết kế các bảng master data: ngành nghề khách hàng, quy mô doanh nghiệp, nguồn lead, loại hoạt động (có trường sort_order, is_active)",
+      "Assignee": "NGUYEN TRAN VIET ANH",
+      "Status": "Done",
+      "Created": "2026-09-30 22:15:00",
+      "Updated": "2026-10-04 00:25:00"
+    },
+    {
+      "Issue key": "N1-164",
+      "Summary": "[BE] Xây dựng bộ API CRUD cho từng danh mục dùng chung và API cập nhật thứ tự sắp xếp hiển thị",
+      "Assignee": "LE MINH DANH",
+      "Status": "Done",
+      "Created": "2026-09-30 22:15:00",
+      "Updated": "2026-10-02 02:29:00"
+    },
+    {
+      "Issue key": "N1-165",
+      "Summary": "[BE] Xây dựng logic ràng buộc toàn vẹn: Chặn xóa vĩnh viễn các giá trị danh mục đang được dữ liệu khác (Lead/Customer/Deal) tham chiếu",
+      "Assignee": "NGUYEN TRAN VIET ANH",
+      "Status": "Done",
+      "Created": "2026-09-30 22:15:00",
+      "Updated": "2026-10-04 00:25:00"
+    },
+    {
+      "Issue key": "N1-166",
+      "Summary": "[FE] Dựng giao diện Quản lý Danh mục dùng chung: chuyển đổi linh hoạt giữa các danh mục (tabs), bảng danh sách giá trị và tính năng thay đổi thứ tự hiển thị",
+      "Assignee": "CHAU THUY DUNG",
+      "Status": "Done",
+      "Created": "2026-09-30 22:15:00",
+      "Updated": "2026-10-02 17:27:00"
+    },
+    {
+      "Issue key": "N1-167",
+      "Summary": "[FE] Dựng Modal thêm mới/sửa giá trị danh mục kèm thông báo lỗi rõ ràng khi không thể xóa giá trị đang được sử dụng",
+      "Assignee": "HOANG LAN ANH",
+      "Status": "Done",
+      "Created": "2026-09-30 22:15:00",
+      "Updated": "2026-10-05 07:57:00"
+    },
+    {
+      "Issue key": "N1-168",
+      "Summary": "[Test] Kiểm thử chặn xóa danh mục đang có ràng buộc dữ liệu thực tế",
+      "Assignee": "TRIEU QUANG DUNG",
+      "Status": "Done",
+      "Created": "2026-09-30 22:15:00",
+      "Updated": "2026-10-05 07:57:00"
+    },
+    {
+      "Issue key": "N1-169",
+      "Summary": "[BE] Thiết kế bảng lưu cấu hình trường tùy biến custom_fields (tên trường, module áp dụng: Customer/Deal, kiểu dữ liệu: text/number/date/select, bắt buộc: true/false)",
+      "Assignee": "DO TUAN DUNG",
+      "Status": "Done",
+      "Created": "2026-09-30 22:15:00",
+      "Updated": "2026-10-05 07:57:00"
+    },
+    {
+      "Issue key": "N1-170",
+      "Summary": "[BE] Xây dựng API cấu hình trường tùy biến: danh sách, thêm mới, sửa cấu hình trường",
+      "Assignee": "DO TUAN DUNG",
+      "Status": "Done",
+      "Created": "2026-09-30 22:15:00",
+      "Updated": "2026-10-05 07:57:00"
+    },
+    {
+      "Issue key": "N1-171",
+      "Summary": "[BE] Xây dựng logic lưu trữ và truy vấn giá trị động của các trường tùy biến kèm theo khi truy vấn Khách hàng/Cơ hội và xuất file Excel",
+      "Assignee": "DO TUAN DUNG",
+      "Status": "Done",
+      "Created": "2026-09-30 22:15:00",
+      "Updated": "2026-10-05 07:57:00"
+    },
+    {
+      "Issue key": "N1-172",
+      "Summary": "[FE] Dựng giao diện Thiết lập trường tùy biến: chọn kiểu dữ liệu (văn bản, số, ngày, dropdown), bật/tắt thuộc tính bắt buộc",
+      "Assignee": "HUA HUE AN",
+      "Status": "Done",
+      "Created": "2026-09-30 22:16:00",
+      "Updated": "2026-10-05 00:40:00"
+    },
+    {
+      "Issue key": "N1-173",
+      "Summary": "[FE] Render động các trường tùy biến lên Form nhập liệu và bộ lọc tìm kiếm của Khách hàng & Cơ hội",
+      "Assignee": "HUA HUE AN",
+      "Status": "Done",
+      "Created": "2026-09-30 22:16:00",
+      "Updated": "2026-10-05 00:38:00"
+    },
+    {
+      "Issue key": "N1-174",
+      "Summary": "[Test] Kiểm thử nhập liệu trường tùy biến dạng bắt buộc và kiểm tra dữ liệu khi xuất Excel",
+      "Assignee": "TRIEU QUANG DUNG",
+      "Status": "Done",
+      "Created": "2026-09-30 22:16:00",
+      "Updated": "2026-10-17 09:10:00"
+    },
+    {
+      "Issue key": "N1-175",
+      "Summary": "[BE] Thiết kế bảng pipeline_stages (tên giai đoạn, thứ tự bước, xác suất thắng mặc định %, điều kiện bắt buộc để rời giai đoạn)",
+      "Assignee": "PHAM XUAN BINH",
+      "Status": "Done",
+      "Created": "2026-09-30 22:16:00",
+      "Updated": "2026-10-03 22:29:00"
+    },
+    {
+      "Issue key": "N1-176",
+      "Summary": "[BE] Xây dựng API quản lý chuỗi giai đoạn pipeline: tạo giai đoạn, cập nhật thứ tự luồng phễu bán hàng, cài đặt xác suất thắng mặc định (0 - 100%)",
+      "Assignee": "PHAM XUAN BINH",
+      "Status": "Done",
+      "Created": "2026-09-30 22:16:00",
+      "Updated": "2026-10-03 22:30:00"
+    },
+    {
+      "Issue key": "N1-177",
+      "Summary": "[BE] Xây dựng API kiểm tra điều kiện chuyển giai đoạn (ví dụ: bắt buộc phải có ít nhất một lịch hẹn cuộc gặp mới cho phép chuyển bước)",
+      "Assignee": "NGUYEN THUY CHANG",
+      "Status": "Done",
+      "Created": "2026-09-30 22:16:00",
+      "Updated": "2026-10-05 07:58:00"
+    },
+    {
+      "Issue key": "N1-178",
+      "Summary": "[FE] Dựng giao diện Cấu hình Pipeline bán hàng: hiển thị chuỗi các bước luồng phễu trực quan, cho phép kéo thả sắp xếp thứ tự các giai đoạn",
+      "Assignee": "Ngoc Anh",
+      "Status": "Done",
+      "Created": "2026-09-30 22:16:00",
+      "Updated": "2026-10-04 18:52:00"
+    },
+    {
+      "Issue key": "N1-179",
+      "Summary": "[FE] Dựng Form cấu hình chi tiết từng giai đoạn: nhập tỷ lệ % xác suất thắng dự báo và tích chọn điều kiện bắt buộc rời giai đoạn",
+      "Assignee": "HOANG LAN ANH",
+      "Status": "Done",
+      "Created": "2026-09-30 22:16:00",
+      "Updated": "2026-10-05 07:58:00"
+    },
+    {
+      "Issue key": "N1-180",
+      "Summary": "[Test] Kiểm thử validation tỷ lệ xác suất 0-100% và cơ chế chặn chuyển giai đoạn khi chưa thỏa mãn điều kiện",
+      "Assignee": "TRIEU QUANG DUNG",
+      "Status": "Done",
+      "Created": "2026-09-30 22:16:00",
+      "Updated": "2026-10-05 07:58:00"
+    },
+    {
+      "Issue key": "N1-181",
+      "Summary": "[BE] Thiết kế bảng deal_reasons (tên lý do, loại: WIN/LOSS) và bảng competitors (tên đối thủ cạnh tranh, điểm mạnh, điểm yếu, ghi chú)",
+      "Assignee": "NGUYEN TRAN VIET ANH",
+      "Status": "Done",
+      "Created": "2026-09-30 22:17:00",
+      "Updated": "2026-10-04 00:25:00"
+    },
+    {
+      "Issue key": "N1-182",
+      "Summary": "[BE] Xây dựng bộ API CRUD riêng biệt cho danh mục Lý do thắng, Lý do thua và Danh sách đối thủ cạnh tranh",
+      "Assignee": "NGUYEN TRAN VIET ANH",
+      "Status": "Done",
+      "Created": "2026-09-30 22:17:00",
+      "Updated": "2026-10-04 00:24:00"
+    },
+    {
+      "Issue key": "N1-183",
+      "Summary": "[FE] Dựng giao diện Quản lý Lý do Thắng/Thua và Đối thủ cạnh tranh (chia 2 tab quản trị riêng biệt)",
+      "Assignee": "CHAU THUY DUNG",
+      "Status": "Done",
+      "Created": "2026-09-30 22:17:00",
+      "Updated": "2026-10-03 21:19:00"
+    },
+    {
+      "Issue key": "N1-184",
+      "Summary": "[FE] Dựng Form Modal thêm mới/chỉnh sửa lý do và thông tin đối thủ cạnh tranh",
+      "Assignee": "HOANG LAN ANH",
+      "Status": "Done",
+      "Created": "2026-09-30 22:17:00",
+      "Updated": "2026-10-05 07:58:00"
+    },
+    {
+      "Issue key": "N1-185",
+      "Summary": "[Test] Kiểm thử API và xác nhận dữ liệu sẵn sàng để bắt buộc chọn khi đóng Cơ hội (Won/Lost) ở Sprint sau",
+      "Assignee": "TRIEU QUANG DUNG",
+      "Status": "Done",
+      "Created": "2026-09-30 22:17:00",
+      "Updated": "2026-10-05 07:58:00"
+    },
+    {
+      "Issue key": "N1-196",
+      "Summary": "Tạo migration bảng customers, validate MST duy nhất và viết API CRUD",
+      "Assignee": "LE MINH DANH",
+      "Status": "Done",
+      "Created": "2026-10-10 05:23:00",
+      "Updated": "2026-10-10 05:37:00"
+    },
+    {
+      "Issue key": "N1-197",
+      "Summary": "Phân quyền RBAC xem khách hàng theo Owner ID và Team Lead",
+      "Assignee": "LE MINH DANH",
+      "Status": "Done",
+      "Created": "2026-10-10 05:23:00",
+      "Updated": "2026-10-10 05:37:00"
+    },
+    {
+      "Issue key": "N1-198",
+      "Summary": "Dựng màn hình danh sách khách hàng, Form thêm/sửa modal và bộ Tag trạng thái",
+      "Assignee": "HUA HUE AN",
+      "Status": "Done",
+      "Created": "2026-10-10 05:23:00",
+      "Updated": "2026-10-10 05:37:00"
+    },
+    {
+      "Issue key": "N1-199",
+      "Summary": "Thiết kế bảng contacts, API CRUD và logic đổi đầu mối chính",
+      "Assignee": "DO TUAN DUNG",
+      "Status": "Done",
+      "Created": "2026-10-10 05:24:00",
+      "Updated": "2026-10-10 05:37:00"
+    },
+    {
+      "Issue key": "N1-200",
+      "Summary": "API luân chuyển liên hệ sang công ty mới và lưu bảng contact_histories",
+      "Assignee": "DO TUAN DUNG",
+      "Status": "Done",
+      "Created": "2026-10-10 05:24:00",
+      "Updated": "2026-10-10 05:37:00"
+    },
+    {
+      "Issue key": "N1-201",
+      "Summary": "Dựng bảng người liên hệ, chọn 4 vai trò mua hàng và nút đổi đầu mối",
+      "Assignee": "HOANG LAN ANH",
+      "Status": "Done",
+      "Created": "2026-10-10 05:24:00",
+      "Updated": "2026-10-10 05:37:00"
+    },
+    {
+      "Issue key": "N1-202",
+      "Summary": "Modal xác nhận luân chuyển nhân sự sang khách hàng khác",
+      "Assignee": "HOANG LAN ANH",
+      "Status": "Done",
+      "Created": "2026-10-10 05:24:00",
+      "Updated": "2026-10-10 05:37:00"
+    },
+    {
+      "Issue key": "N1-203",
+      "Summary": "Viết API tổng hợp Hồ sơ 360°, tính KPI tổng Won và Deal mở",
+      "Assignee": "NGUYEN TRAN VIET ANH",
+      "Status": "Done",
+      "Created": "2026-10-10 05:25:00",
+      "Updated": "2026-10-10 05:37:00"
+    },
+    {
+      "Issue key": "N1-204",
+      "Summary": "Tối ưu index bảng deals & customer_activities, đảm bảo query dưới 1.5s",
+      "Assignee": "NGUYEN TRAN VIET ANH",
+      "Status": "Done",
+      "Created": "2026-10-10 05:25:00",
+      "Updated": "2026-10-10 05:37:00"
+    },
+    {
+      "Issue key": "N1-205",
+      "Summary": "Dựng Drawer 360°, hiển thị các thẻ KPI và danh sách Deals, Contacts",
+      "Assignee": "CHAU THUY DUNG",
+      "Status": "Done",
+      "Created": "2026-10-10 05:25:00",
+      "Updated": "2026-10-10 05:37:00"
+    },
+    {
+      "Issue key": "N1-206",
+      "Summary": "Viết thuật toán chuẩn hóa tên tiếng Việt, quét trùng theo MST, tên và website",
+      "Assignee": "LE MINH DANH",
+      "Status": "Done",
+      "Created": "2026-10-10 05:27:00",
+      "Updated": "2026-10-10 05:37:00"
+    },
+    {
+      "Issue key": "N1-207",
+      "Summary": "API gộp khách hàng (Merge), chuyển toàn bộ Deals, Contacts sang bản ghi giữ lại",
+      "Assignee": "LE MINH DANH",
+      "Status": "Done",
+      "Created": "2026-10-10 05:27:00",
+      "Updated": "2026-10-10 05:37:00"
+    },
+    {
+      "Issue key": "N1-208",
+      "Summary": "Dựng giao diện đối chiếu 2 cột dữ liệu trước khi gộp và modal xác nhận",
+      "Assignee": "HUA HUE AN",
+      "Status": "Done",
+      "Created": "2026-10-10 05:27:00",
+      "Updated": "2026-10-10 05:37:00"
+    },
+    {
+      "Issue key": "N1-209",
+      "Summary": "Truy vấn đệ quy/phân cấp Mẹ - Con, tính tổng doanh số toàn tập đoàn",
+      "Assignee": "NGUYEN TRAN VIET ANH",
+      "Status": "Done",
+      "Created": "2026-10-10 05:28:00",
+      "Updated": "2026-10-10 05:37:00"
+    },
+    {
+      "Issue key": "N1-210",
+      "Summary": "Thêm tab Công ty con trong Drawer 360° và hiển thị thẻ Doanh thu Tập đoàn",
+      "Assignee": "TRIEU QUANG DUNG",
+      "Status": "Done",
+      "Created": "2026-10-10 05:28:00",
+      "Updated": "2026-10-10 05:37:00"
+    },
+    {
+      "Issue key": "N1-211",
+      "Summary": "Tạo API tải file Excel mẫu và đọc parse file Excel tải lên",
+      "Assignee": "NGUYEN THUY CHANG",
+      "Status": "Done",
+      "Created": "2026-10-10 05:29:00",
+      "Updated": "2026-10-10 05:37:00"
+    },
+    {
+      "Issue key": "N1-212",
+      "Summary": "Logic đối soát dữ liệu từng dòng, bắt trùng MST và gắn cờ bỏ qua/ghi đè",
+      "Assignee": "Ngoc Anh",
+      "Status": "Done",
+      "Created": "2026-10-10 05:29:00",
+      "Updated": "2026-10-10 05:37:00"
+    },
+    {
+      "Issue key": "N1-213",
+      "Summary": "Dựng modal import, nút tải template và bảng Preview dữ liệu có đánh dấu lỗi",
+      "Assignee": "NGUYEN THUY CHANG",
+      "Status": "Done",
+      "Created": "2026-10-10 05:29:00",
+      "Updated": "2026-10-10 05:37:00"
+    },
+    {
+      "Issue key": "N1-214",
+      "Summary": "Viết dynamic query cho bộ lọc đa tiêu chí (ngành, quy mô, owner, MST, SĐT)",
+      "Assignee": "NGUYEN THUY CHANG",
+      "Status": "Done",
+      "Created": "2026-10-10 05:30:00",
+      "Updated": "2026-10-10 05:37:00"
+    },
+    {
+      "Issue key": "N1-215",
+      "Summary": "Dựng thanh Filter đa điều kiện và lưu bộ lọc cá nhân vào LocalStorage",
+      "Assignee": "Ngoc Anh",
+      "Status": "Done",
+      "Created": "2026-10-10 05:30:00",
+      "Updated": "2026-10-10 05:37:00"
+    },
+    {
+      "Issue key": "N1-216",
+      "Summary": "Tạo bảng support_tickets, API ghi nhận yêu cầu và logic đếm ticket để gắn cờ rủi ro",
+      "Assignee": null,
+      "Status": "Done",
+      "Created": "2026-10-10 05:30:00",
+      "Updated": "2026-10-10 05:37:00"
+    },
+    {
+      "Issue key": "N1-217",
+      "Summary": "Dựng tab CSKH trong hồ sơ 360°, hiển thị Tag cảnh báo rủi ro rời bỏ",
+      "Assignee": null,
+      "Status": "Done",
+      "Created": "2026-10-10 05:30:00",
+      "Updated": "2026-10-10 05:37:00"
+    },
+    {
+      "Issue key": "N1-219",
+      "Summary": "API lọc khách hàng chưa tương tác sau N ngày, sort theo tổng giá trị Won",
+      "Assignee": "PHAM XUAN BINH",
+      "Status": "Done",
+      "Created": "2026-10-10 05:31:00",
+      "Updated": "2026-10-10 05:37:00"
+    },
+    {
+      "Issue key": "N1-220",
+      "Summary": "API cập nhật nhanh last_interaction_at = NOW() khi bấm chăm sóc",
+      "Assignee": "PHAM XUAN BINH",
+      "Status": "Done",
+      "Created": "2026-10-10 05:31:00",
+      "Updated": "2026-10-10 05:37:00"
+    },
+    {
+      "Issue key": "N1-221",
+      "Summary": "Dựng Tab Chăm sóc định kỳ, ô cấu hình số ngày N và nút xác nhận đã liên hệ",
+      "Assignee": "HOANG LAN ANH",
+      "Status": "Done",
+      "Created": "2026-10-10 05:31:00",
+      "Updated": "2026-10-10 05:37:00"
+    },
+    {
+      "Issue key": "N1-223",
+      "Summary": "[System] Thống nhất API Contract cho luồng Import và Báo cáo lỗi",
+      "Assignee": "TRIEU QUANG DUNG",
+      "Status": "To Do",
+      "Created": "2026-10-14 08:32:00",
+      "Updated": "2026-10-14 08:33:00"
+    },
+    {
+      "Issue key": "N1-224",
+      "Summary": "[FE-UI] Xây dựng Component Modal/Bảng báo cáo kết quả",
+      "Assignee": "CHAU THUY DUNG",
+      "Status": "To Do",
+      "Created": "2026-10-14 08:33:00",
+      "Updated": "2026-10-14 08:44:00"
+    },
+    {
+      "Issue key": "N1-225",
+      "Summary": "[FE-Logic] Gọi API Axios, Quản lý State & Nút \"Tải file lỗi\"",
+      "Assignee": "HOANG LAN ANH",
+      "Status": "To Do",
+      "Created": "2026-10-14 08:33:00",
+      "Updated": "2026-10-14 08:45:00"
+    },
+    {
+      "Issue key": "N1-226",
+      "Summary": "[BE-Logic] Parse Excel, Validate cơ bản & Kiểm tra trùng lặp DB",
+      "Assignee": "NGUYEN TRAN VIET ANH",
+      "Status": "To Do",
+      "Created": "2026-10-14 08:33:00",
+      "Updated": "2026-10-14 08:45:00"
+    },
+    {
+      "Issue key": "N1-228",
+      "Summary": "[BE-Route] Setup API, Multer & Bulk Insert Database",
+      "Assignee": "NGUYEN THUY CHANG",
+      "Status": "To Do",
+      "Created": "2026-10-14 08:33:00",
+      "Updated": "2026-10-14 08:46:00"
+    },
+    {
+      "Issue key": "N1-229",
+      "Summary": "[QA] Chuẩn bị bộ Data Test Edge-cases và Thực thi kiểm thử",
+      "Assignee": "Ngoc Anh",
+      "Status": "To Do",
+      "Created": "2026-10-14 08:33:00",
+      "Updated": "2026-10-18 19:35:00"
+    },
+    {
+      "Issue key": "N1-231",
+      "Summary": "[S4-01] Là Nhân viên Marketing, tôi muốn thu thập lead từ biểu mẫu nhúng trên website, để mọi lead vào thẳng hệ thống thay vì nằm trong hộp thư chung.",
+      "Assignee": null,
+      "Status": "To Do",
+      "Created": "2026-10-18 19:18:00",
+      "Updated": "2026-10-18 19:30:00"
+    },
+    {
+      "Issue key": "N1-232",
+      "Summary": "[S4-02] Là Nhân viên Marketing, tôi muốn tạo lead thủ công và nhập lead hàng loạt từ Excel, để đưa danh sách thu được từ hội thảo vào hệ thống ngay hôm sau.",
+      "Assignee": null,
+      "Status": "To Do",
+      "Created": "2026-10-18 19:18:00",
+      "Updated": "2026-10-18 19:31:00"
+    },
+    {
+      "Issue key": "N1-233",
+      "Summary": "[S4-03] Là Nhân viên Marketing, tôi muốn theo dõi lead theo từng chiến dịch, để đo được chiến dịch nào thực sự ra doanh thu chứ không chỉ ra nhiều lead.",
+      "Assignee": null,
+      "Status": "To Do",
+      "Created": "2026-10-18 19:18:00",
+      "Updated": "2026-10-18 19:32:00"
+    },
+    {
+      "Issue key": "N1-234",
+      "Summary": "[S4-04] Là Nhân viên Marketing, tôi muốn được cảnh báo và gộp lead trùng, để không để hai nhân viên cùng gọi một người trong một buổi sáng.",
+      "Assignee": null,
+      "Status": "To Do",
+      "Created": "2026-10-18 19:19:00",
+      "Updated": "2026-10-18 19:33:00"
+    },
+    {
+      "Issue key": "N1-235",
+      "Summary": "[S4-05] Là Giám đốc kinh doanh, tôi muốn cấu hình chấm điểm lead theo tiêu chí khai báo được, để nhân viên gọi những lead có khả năng nhất trước.",
+      "Assignee": null,
+      "Status": "To Do",
+      "Created": "2026-10-18 19:19:00",
+      "Updated": "2026-10-18 19:36:00"
+    },
+    {
+      "Issue key": "N1-236",
+      "Summary": "[S4-06] Là Giám đốc kinh doanh, tôi muốn cấu hình quy tắc phân bổ lead tự động, để lead tới tay người phụ trách trong vài phút thay vì chờ họp giao ban.",
+      "Assignee": null,
+      "Status": "To Do",
+      "Created": "2026-10-18 19:19:00",
+      "Updated": "2026-10-18 19:36:00"
+    },
+    {
+      "Issue key": "N1-237",
+      "Summary": "[S4-07] Là Nhân viên kinh doanh, tôi muốn nhận hoặc từ chối lead được phân, có ràng buộc SLA phản hồi, để lead không nằm im ba ngày rồi nguội hẳn.",
+      "Assignee": null,
+      "Status": "To Do",
+      "Created": "2026-10-18 19:19:00",
+      "Updated": "2026-10-18 19:38:00"
+    },
+    {
+      "Issue key": "N1-238",
+      "Summary": "[S4-08] Là Nhân viên kinh doanh, tôi muốn chuyển một lead đủ điều kiện thành khách hàng và cơ hội, để không phải nhập lại thông tin đã hỏi khách ba lần.",
+      "Assignee": null,
+      "Status": "To Do",
+      "Created": "2026-10-18 19:19:00",
+      "Updated": "2026-10-18 19:39:00"
+    },
+    {
+      "Issue key": "N1-239",
+      "Summary": "[S4-09] Là Nhân viên kinh doanh, tôi muốn xem danh sách lead với bộ lọc và bộ lọc lưu sẵn, để mở máy buổi sáng là biết ngay hôm nay cần gọi ai.",
+      "Assignee": null,
+      "Status": "To Do",
+      "Created": "2026-10-18 19:20:00",
+      "Updated": "2026-10-18 19:40:00"
+    },
+    {
+      "Issue key": "N1-230",
+      "Summary": "[FE-UI] Xây dựng Khu vực Kéo thả Upload & File Validation",
+      "Assignee": "HUA HUE AN",
+      "Status": "To Do",
+      "Created": "2026-10-14 08:41:00",
+      "Updated": "2026-10-14 08:44:00"
+    },
+    {
+      "Issue key": "N1-240",
+      "Summary": "[BE] Xây dựng API nhận webhook từ form nhúng và check spam/giới hạn tần suất IP",
+      "Assignee": "LE MINH DANH",
+      "Status": "To Do",
+      "Created": "2026-10-18 19:30:00",
+      "Updated": "2026-10-18 19:30:00"
+    },
+    {
+      "Issue key": "N1-241",
+      "Summary": "[BE] Xây dựng logic tự động gán nguồn và trạng thái 'Mới' cho lead",
+      "Assignee": "LE MINH DANH",
+      "Status": "To Do",
+      "Created": "2026-10-18 19:30:00",
+      "Updated": "2026-10-18 19:30:00"
+    },
+    {
+      "Issue key": "N1-242",
+      "Summary": "[FE] Dựng component mã nhúng HTML/JS biểu mẫu thu thập lead (Họ tên, SĐT, Email...)",
+      "Assignee": "HUA HUE AN",
+      "Status": "To Do",
+      "Created": "2026-10-18 19:30:00",
+      "Updated": "2026-10-18 19:30:00"
+    },
+    {
+      "Issue key": "N1-243",
+      "Summary": "[Test] Viết kịch bản kiểm thử: test chặn spam IP, submit form hợp lệ/không hợp lệ",
+      "Assignee": "TRIEU QUANG DUNG",
+      "Status": "To Do",
+      "Created": "2026-10-18 19:30:00",
+      "Updated": "2026-10-18 19:30:00"
+    },
+    {
+      "Issue key": "N1-244",
+      "Summary": "[BE] Xây dựng API thêm mới lead thủ công (bắt buộc truyền nguồn)",
+      "Assignee": "NGUYEN THUY CHANG",
+      "Status": "To Do",
+      "Created": "2026-10-18 19:31:00",
+      "Updated": "2026-10-18 19:31:00"
+    },
+    {
+      "Issue key": "N1-245",
+      "Summary": "[BE] Xây dựng API đọc, kiểm tra và thực thi import lead từ file Excel mẫu",
+      "Assignee": "DO TUAN DUNG",
+      "Status": "To Do",
+      "Created": "2026-10-18 19:31:00",
+      "Updated": "2026-10-18 19:31:00"
+    },
+    {
+      "Issue key": "N1-246",
+      "Summary": "[FE] Dựng giao diện Modal thêm mới thủ công và Modal Import Excel",
+      "Assignee": "HOANG LAN ANH",
+      "Status": "To Do",
+      "Created": "2026-10-18 19:31:00",
+      "Updated": "2026-10-18 19:32:00"
+    },
+    {
+      "Issue key": "N1-247",
+      "Summary": "[FE] Ghép API import và hiển thị màn hình xem trước báo lỗi từng dòng",
+      "Assignee": "CHAU THUY DUNG",
+      "Status": "To Do",
+      "Created": "2026-10-18 19:31:00",
+      "Updated": "2026-10-18 19:32:00"
+    },
+    {
+      "Issue key": "N1-248",
+      "Summary": "[Test] Viết kịch bản kiểm thử: file Excel rỗng, sai định dạng, thiếu trường nguồn",
+      "Assignee": "NGUYEN TRAN VIET ANH",
+      "Status": "To Do",
+      "Created": "2026-10-18 19:31:00",
+      "Updated": "2026-10-18 19:32:00"
+    },
+    {
+      "Issue key": "N1-249",
+      "Summary": "[BE] Thiết kế bảng campaigns và xây dựng API CRUD chiến dịch",
+      "Assignee": "PHAM XUAN BINH",
+      "Status": "To Do",
+      "Created": "2026-10-18 19:32:00",
+      "Updated": "2026-10-18 19:32:00"
+    },
+    {
+      "Issue key": "N1-250",
+      "Summary": "[BE] Xây dựng logic thống kê số lead, số cơ hội và doanh thu chốt theo ID chiến dịch",
+      "Assignee": "PHAM XUAN BINH",
+      "Status": "To Do",
+      "Created": "2026-10-18 19:32:00",
+      "Updated": "2026-10-18 19:33:00"
+    },
+    {
+      "Issue key": "N1-251",
+      "Summary": "[FE] Dựng giao diện Quản lý chiến dịch và hiển thị thẻ thống kê ngân sách/doanh thu",
+      "Assignee": "Ngoc Anh",
+      "Status": "To Do",
+      "Created": "2026-10-18 19:32:00",
+      "Updated": "2026-10-18 19:33:00"
+    },
+    {
+      "Issue key": "N1-252",
+      "Summary": "[Test] Viết kịch bản kiểm thử: tạo chiến dịch, luồng link lead vào chiến dịch",
+      "Assignee": "TRIEU QUANG DUNG",
+      "Status": "To Do",
+      "Created": "2026-10-18 19:32:00",
+      "Updated": "2026-10-18 19:33:00"
+    },
+    {
+      "Issue key": "N1-253",
+      "Summary": "[BE] Xây dựng API detect lead trùng theo email, sđt, tên công ty",
+      "Assignee": "LE MINH DANH",
+      "Status": "To Do",
+      "Created": "2026-10-18 19:33:00",
+      "Updated": "2026-10-18 19:33:00"
+    },
+    {
+      "Issue key": "N1-254",
+      "Summary": "[BE] Xây dựng logic thực thi gộp 2 lead và giữ nguyên lịch sử hoạt động",
+      "Assignee": "DO TUAN DUNG",
+      "Status": "To Do",
+      "Created": "2026-10-18 19:33:00",
+      "Updated": "2026-10-18 19:34:00"
+    },
+    {
+      "Issue key": "N1-255",
+      "Summary": "[FE] Dựng giao diện popup gợi ý gắn lead trùng và Modal so sánh gộp lead",
+      "Assignee": "HUA HUE AN",
+      "Status": "To Do",
+      "Created": "2026-10-18 19:33:00",
+      "Updated": "2026-10-18 19:34:00"
+    },
+    {
+      "Issue key": "N1-256",
+      "Summary": "[Test] Viết kịch bản kiểm thử: gộp 2 lead, gộp lead vào khách hàng có sẵn",
+      "Assignee": "NGUYEN TRAN VIET ANH",
+      "Status": "To Do",
+      "Created": "2026-10-18 19:33:00",
+      "Updated": "2026-10-18 19:34:00"
+    },
+    {
+      "Issue key": "N1-257",
+      "Summary": "[BE] Thiết kế bảng lưu cấu hình tiêu chí chấm điểm và mức điểm tương ứng",
+      "Assignee": "PHAM XUAN BINH",
+      "Status": "To Do",
+      "Created": "2026-10-18 19:35:00",
+      "Updated": "2026-10-18 19:35:00"
+    },
+    {
+      "Issue key": "N1-258",
+      "Summary": "[BE] Xây dựng logic Trigger tự động tính lại điểm và phân loại Nóng/Ấm/Lạnh khi data thay đổi",
+      "Assignee": "NGUYEN THUY CHANG",
+      "Status": "To Do",
+      "Created": "2026-10-18 19:35:00",
+      "Updated": "2026-10-18 19:35:00"
+    },
+    {
+      "Issue key": "N1-259",
+      "Summary": "[FE] Dựng giao diện cấu hình thêm/sửa tiêu chí chấm điểm và ngưỡng điểm phân loại",
+      "Assignee": "HOANG LAN ANH",
+      "Status": "To Do",
+      "Created": "2026-10-18 19:35:00",
+      "Updated": "2026-10-18 19:35:00"
+    },
+    {
+      "Issue key": "N1-260",
+      "Summary": "[Test] Viết kịch bản kiểm thử: đổi thông tin lead, check điểm nhảy đúng rules cài đặt",
+      "Assignee": "TRIEU QUANG DUNG",
+      "Status": "To Do",
+      "Created": "2026-10-18 19:35:00",
+      "Updated": "2026-10-18 19:35:00"
+    },
+    {
+      "Issue key": "N1-261",
+      "Summary": "[BE] Thiết kế bảng cấu hình rules phân bổ (theo khu vực, ngành nghề, xoay vòng)",
+      "Assignee": "NGUYEN THUY CHANG",
+      "Status": "To Do",
+      "Created": "2026-10-18 19:36:00",
+      "Updated": "2026-10-18 19:37:00"
+    },
+    {
+      "Issue key": "N1-262",
+      "Summary": "[BE] Xây dựng logic chạy ngầm phân bổ trong vòng 5 phút và thả vào hàng chờ nếu rớt rule",
+      "Assignee": "LE MINH DANH",
+      "Status": "To Do",
+      "Created": "2026-10-18 19:36:00",
+      "Updated": "2026-10-18 19:37:00"
+    },
+    {
+      "Issue key": "N1-263",
+      "Summary": "[FE] Dựng giao diện cài đặt thứ tự ưu tiên các quy tắc phân bổ cho Giám đốc",
+      "Assignee": "CHAU THUY DUNG",
+      "Status": "To Do",
+      "Created": "2026-10-18 19:36:00",
+      "Updated": "2026-10-18 19:37:00"
+    },
+    {
+      "Issue key": "N1-264",
+      "Summary": "[Test] Viết kịch bản kiểm thử: đẩy 20 lead, test thuật toán tự chia đều vòng lặp",
+      "Assignee": "NGUYEN TRAN VIET ANH",
+      "Status": "To Do",
+      "Created": "2026-10-18 19:36:00",
+      "Updated": "2026-10-18 19:37:00"
+    },
+    {
+      "Issue key": "N1-265",
+      "Summary": "[BE] Xây dựng API thao tác Nhận/Từ chối lead (yêu cầu lý do) và đẩy lại hàng chờ",
+      "Assignee": "DO TUAN DUNG",
+      "Status": "To Do",
+      "Created": "2026-10-18 19:38:00",
+      "Updated": "2026-10-18 19:38:00"
+    },
+    {
+      "Issue key": "N1-266",
+      "Summary": "[BE] Xây dựng cronjob check SLA: bắt lead nằm im 3 ngày không liên hệ để cảnh báo",
+      "Assignee": "NGUYEN THUY CHANG",
+      "Status": "To Do",
+      "Created": "2026-10-18 19:38:00",
+      "Updated": "2026-10-18 19:38:00"
+    },
+    {
+      "Issue key": "N1-267",
+      "Summary": "[FE] Thêm button Nhận/Từ chối trên UI chi tiết lead và Modal Form nhập lý do",
+      "Assignee": "Ngoc Anh",
+      "Status": "To Do",
+      "Created": "2026-10-18 19:38:00",
+      "Updated": "2026-10-18 19:38:00"
+    },
+    {
+      "Issue key": "N1-268",
+      "Summary": "[Test] Viết kịch bản kiểm thử: thao tác từ chối ko nhập lý do, test cờ cảnh báo SLA 3 ngày",
+      "Assignee": "TRIEU QUANG DUNG",
+      "Status": "To Do",
+      "Created": "2026-10-18 19:38:00",
+      "Updated": "2026-10-18 19:38:00"
+    },
+    {
+      "Issue key": "N1-269",
+      "Summary": "[BE] Xây dựng API Convert sử dụng SQL Transaction (tạo Customer, Contact, Deal đồng thời)",
+      "Assignee": "DO TUAN DUNG",
+      "Status": "To Do",
+      "Created": "2026-10-18 19:39:00",
+      "Updated": "2026-10-18 19:39:00"
+    },
+    {
+      "Issue key": "N1-270",
+      "Summary": "[BE] Viết script chuyển toàn bộ lịch sử hoạt động (activities) sang khách hàng mới",
+      "Assignee": "LE MINH DANH",
+      "Status": "To Do",
+      "Created": "2026-10-18 19:39:00",
+      "Updated": "2026-10-18 19:39:00"
+    },
+    {
+      "Issue key": "N1-271",
+      "Summary": "[FE] Dựng giao diện Modal xác nhận thao tác chuyển đổi và form điền thông tin cơ hội",
+      "Assignee": "HOANG LAN ANH",
+      "Status": "To Do",
+      "Created": "2026-10-18 19:39:00",
+      "Updated": "2026-10-18 19:40:00"
+    },
+    {
+      "Issue key": "N1-272",
+      "Summary": "[Test] Viết kịch bản kiểm thử: rollback data khi API lỗi giữa chừng, check mất data liên hệ",
+      "Assignee": "NGUYEN TRAN VIET ANH",
+      "Status": "To Do",
+      "Created": "2026-10-18 19:39:00",
+      "Updated": "2026-10-18 19:40:00"
+    },
+    {
+      "Issue key": "N1-273",
+      "Summary": "[BE] Nâng cấp API get danh sách lead: hỗ trợ lọc động Nóng/Ấm/Lạnh, SLA, Nguồn",
+      "Assignee": "PHAM XUAN BINH",
+      "Status": "To Do",
+      "Created": "2026-10-18 19:40:00",
+      "Updated": "2026-10-18 19:40:00"
+    },
+    {
+      "Issue key": "N1-274",
+      "Summary": "[FE] Dựng UI thanh filter đa điều kiện và ghép tính năng lưu/đặt tên bộ lọc",
+      "Assignee": "HOANG LAN ANH",
+      "Status": "To Do",
+      "Created": "2026-10-18 19:40:00",
+      "Updated": "2026-10-18 19:40:00"
+    },
+    {
+      "Issue key": "N1-275",
+      "Summary": "[FE] Render highlight nổi bật (màu sắc cảnh báo) cho các lead đã quá hạn SLA trên Table",
+      "Assignee": "CHAU THUY DUNG",
+      "Status": "To Do",
+      "Created": "2026-10-18 19:40:00",
+      "Updated": "2026-10-18 19:40:00"
+    },
+    {
+      "Issue key": "N1-276",
+      "Summary": "[Test] Viết kịch bản kiểm thử: lọc multi-select, gọi lại bộ lọc đã lưu",
+      "Assignee": "TRIEU QUANG DUNG",
+      "Status": "To Do",
+      "Created": "2026-10-18 19:40:00",
+      "Updated": "2026-10-18 19:40:00"
+    }
+  ]
+}

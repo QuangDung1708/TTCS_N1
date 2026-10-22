@@ -1,309 +1,405 @@
-const express = require('express');
-const router = express.Router();
-const crypto = require('crypto');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const db = require('../config/db');
-const { sendResetEmail } = require('../utils/mailer');
-const nodemailer = require('nodemailer');
-
-const JWT_SECRET = process.env.JWT_SECRET || 'crm_secret_key_2026';
-
-// 1. API ĐĂNG NHẬP (CHẤP NHẬN MẬT KHẨU 123456 CHO CẢ BCRYPT LẪN PLAIN TEXT)
-router.post('/login', async (req, res) => {
-    const { email, password } = req.body;
-    try {
-        const [users] = await db.execute('SELECT * FROM users WHERE LOWER(email) = ?', [email.trim().toLowerCase()]);
-        if (users.length === 0) {
-            return res.status(400).json({ message: 'Tài khoản hoặc mật khẩu không chính xác.' });
-        }
-
-        const user = users[0];
-
-        // So khớp mật khẩu: hỗ trợ bcrypt, hỗ trợ so khớp trực tiếp, và hỗ trợ mật khẩu test 123456
-        const isMatch = (password === '123456') || 
-                        (user.password === password) || 
-                        (await bcrypt.compare(password, user.password).catch(() => false));
-
-        if (!isMatch) {
-            return res.status(400).json({ message: 'Tài khoản hoặc mật khẩu không chính xác.' });
-        }
-        if (user.status === 'Đã khóa' || user.status === 'inactive') {
-  return res.status(403).json({ 
-    message: 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ Quản trị hệ thống!' 
-  });
-
-  const statusStr = String(user.status || '').toLowerCase().trim();
-if (statusStr === 'đã khóa' || statusStr === 'inactive' || statusStr === '0') {
-  return res.status(403).json({ 
-    message: 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ Quản trị hệ thống!' 
-  });
-}
-}
-
-        // Tạo JWT Token
-        const token = jwt.sign(
-            { id: user.id, email: user.email, role_code: user.role_code },
-            JWT_SECRET,
-            { expiresIn: '24h' }
-        );
-
-        const userData = {
-            id: user.id,
-            full_name: user.full_name,
-            email: user.email,
-            role_code: user.role_code,
-            avatar: user.avatar
+const router = require("express").Router();
+const crypto = require("crypto");
+const { db, transaction, audit } = require("../core/store");
+const { route, fail, email, text } = require("../core/http");
+const {
+  hash,
+  password,
+  active,
+  issue,
+  rateLimit,
+  authenticate,
+  queueMail,
+  bcrypt,
+} = require("../core/auth");
+const { requireMail, requireDelivery } = require("../core/mailDelivery");
+const registrationEnabled = () =>
+  process.env.ALLOW_SELF_REGISTRATION !== "false" &&
+  (process.env.NODE_ENV !== "production" ||
+    process.env.ALLOW_SELF_REGISTRATION === "true");
+const LOGIN_FAILURE_LIMIT = 5;
+const LOGIN_LOCK_SECONDS = 15;
+const generic = "Nếu email tồn tại, hướng dẫn sẽ được gửi đến hộp thư của bạn.";
+router.post(
+  "/login",
+  route(async (req, res) => {
+    await rateLimit("login:" + req.ip, 60);
+    const mail = email(req.body.email);
+    const supplied = text(req.body.password, "Mật khẩu", 200);
+    const result = await transaction(async (c) => {
+      const [rows] = await c.query(
+        "SELECT *,TIMESTAMPDIFF(MICROSECOND,UTC_TIMESTAMP(6),lock_until) lock_remaining_us FROM users WHERE email=? FOR UPDATE",
+        [mail],
+      );
+      const u = rows[0];
+      if (!u) {
+        await bcrypt.hash(supplied, 10);
+        return null;
+      }
+      if (!active(u)) return null;
+      const remaining = Number(u.lock_remaining_us || 0) / 1e6;
+      if (remaining > 0) {
+        // Old releases stored 15-minute locks. Cap those on first retry without
+        // touching administrative locks, passwords or existing sessions.
+        if (remaining > LOGIN_LOCK_SECONDS)
+          await c.query(
+            "UPDATE users SET lock_until=DATE_ADD(UTC_TIMESTAMP(),INTERVAL ? SECOND) WHERE id=?",
+            [LOGIN_LOCK_SECONDS, u.id],
+          );
+        return {
+          loginLocked: true,
+          retryAfter: Math.min(LOGIN_LOCK_SECONDS, Math.ceil(remaining)),
         };
-
-        return res.json({ token, user: userData });
-    } catch (err) {
-        console.error('Lỗi login:', err);
-        return res.status(500).json({ message: 'Lỗi máy chủ khi đăng nhập.' });
-    }
-});
-router.post('/forgot-password', async (req, res) => {
-  const { email } = req.body;
-  if (!email) return res.status(400).json({ message: 'Vui lòng nhập email!' });
-
-  try {
-    const [users] = await db.query('SELECT id, full_name FROM users WHERE email = ?', [email]);
-    if (users.length === 0) {
-      return res.status(404).json({ message: 'Email này chưa được đăng ký trong hệ thống!' });
-    }
-
-    const crypto = require('crypto');
-    const token = crypto.randomBytes(32).toString('hex');
-    const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
-
-    await db.query(
-  `INSERT INTO users (full_name, email, password, role_id, status) 
-   VALUES (?, ?, ?, 3, 'Hoạt động')`,
-  [userName, email, hashedPassword]
-);
-
-    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${token}`;
-
-    // Khởi tạo transporter bên trong hàm để lấy chính xác giá trị process.env lúc chạy
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: (process.env.SMTP_USER || '').trim(),
-        pass: (process.env.SMTP_PASS || '').trim()
       }
-    });
-
-    await transporter.sendMail({
-      from: `"Enterprise CRM" <${process.env.SMTP_USER}>`,
-      to: email,
-      subject: '[CRM] Yêu cầu thiết lập lại mật khẩu',
-      html: `
-        <div style="font-family: Arial, sans-serif; padding: 24px; border: 1px solid #e8e8e8; border-radius: 8px; max-width: 500px; margin: auto;">
-          <h2 style="color: #1677ff; margin-top: 0;">Thiết Lập Mật Khẩu Mới</h2>
-          <p>Chào bạn,</p>
-          <p>Hệ thống nhận được yêu cầu đổi mật khẩu cho tài khoản liên kết với địa chỉ email này.</p>
-          <div style="text-align: center; margin: 28px 0;">
-            <a href="${resetUrl}" style="background-color: #1677ff; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
-              Đổi Mật Khẩu Ngay
-            </a>
-          </div>
-          <p style="color: #888; font-size: 13px;">Liên kết này có hiệu lực trong vòng 30 phút.</p>
-        </div>
-      `
-    });
-
-    console.log('✅ Đã gửi mail thành công tới:', email);
-    return res.json({ success: true, message: 'Đã gửi liên kết đặt lại mật khẩu đến email của bạn!' });
-
-  } catch (err) {
-    console.error('Lỗi quy trình forgot-password:', err.message);
-    return res.status(500).json({ message: 'Không thể xử lý yêu cầu: ' + err.message });
-  }
-});
-
-// 3. API ĐẶT LẠI MẬT KHẨU MỚI (ĐÁP ỨNG AC 2: CHỈ DÙNG 1 LẦN)
-router.post('/reset-password', async (req, res) => {
-    const { token, new_password } = req.body;
-    if (!token || !new_password) {
-        return res.status(400).json({ message: 'Thiếu mã token hoặc mật khẩu mới.' });
-    }
-
-    try {
-        // Tìm token chưa qua sử dụng (used = 0)
-        const [records] = await db.execute(
-            'SELECT * FROM password_resets WHERE token = ? AND used = 0 LIMIT 1',
-            [token]
+      const valid = await bcrypt
+        .compare(supplied, u.password)
+        .catch(() => false);
+      if (!valid) {
+        // Expiry starts a new run of consecutive failures, rather than locking
+        // again immediately on the first mistake after the waiting period.
+        const attempts =
+          (u.lock_until ? 0 : Number(u.failed_login_attempts || 0)) + 1;
+        const locked = attempts >= LOGIN_FAILURE_LIMIT;
+        await c.query(
+          "UPDATE users SET failed_login_attempts=?,lock_until=IF(?,DATE_ADD(UTC_TIMESTAMP(),INTERVAL ? SECOND),NULL) WHERE id=?",
+          [attempts, locked ? 1 : 0, LOGIN_LOCK_SECONDS, u.id],
         );
-
-        if (records.length === 0) {
-            // AC 2: Báo lỗi nếu token đã dùng hoặc không tồn tại
-            return res.status(400).json({ message: 'Liên kết không hợp lệ hoặc đã được sử dụng trước đó!' });
-        }
-
-        const resetData = records[0];
-
-        // AC 1: Kiểm tra hạn 30 phút
-        if (new Date() > new Date(resetData.expires_at)) {
-            return res.status(400).json({ message: 'Liên kết đặt lại mật khẩu đã hết hạn (quá 30 phút)!' });
-        }
-
-        // Băm mật khẩu mới
-        const hashed = await bcrypt.hash(new_password, 10);
-
-        // Cập nhật vào bảng users
-        await db.execute('UPDATE users SET password = ? WHERE LOWER(email) = ?', [hashed, resetData.email.toLowerCase()]);
-
-        // AC 2: Đánh dấu token đã sử dụng (used = 1) để vô hiệu hóa
-        await db.execute('UPDATE password_resets SET used = 1 WHERE id = ?', [resetData.id]);
-
-        return res.json({ success: true, message: 'Đặt lại mật khẩu thành công! Bạn có thể đăng nhập ngay.' });
-    } catch (err) {
-        console.error('Lỗi reset-password:', err);
-        return res.status(500).json({ message: 'Lỗi hệ thống khi cập nhật mật khẩu.' });
-    }
-});
-
-router.put('/change-password', async (req, res) => {
-    const { current_password, new_password } = req.body;
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ message: 'Chưa đăng nhập!' });
-
-    try {
-        const token = authHeader.split(' ')[1];
-        const jwt = require('jsonwebtoken');
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'crm_secret_key_2026');
-        const db = require('../config/db');
-
-        const [users] = await db.execute('SELECT * FROM users WHERE id = ?', [decoded.id]);
-        if (users.length === 0) return res.status(404).json({ message: 'Không tìm thấy người dùng!' });
-
-        const user = users[0];
-        const bcrypt = require('bcryptjs');
-
-        // Kiểm tra mật khẩu hiện tại (AC 1)
-        const isMatch = (user.password === current_password) || 
-                        (await bcrypt.compare(current_password, user.password).catch(() => false)) ||
-                        (current_password === '123' || current_password === '123456');
-
-        if (!isMatch) {
-            return res.status(400).json({ message: 'Mật khẩu hiện tại không chính xác!' });
-        }
-
-        // Mã hóa và lưu mật khẩu mới
-        const hashed = await bcrypt.hash(new_password, 10);
-        await db.execute('UPDATE users SET password = ? WHERE id = ?', [hashed, user.id]);
-
-        return res.json({ success: true, message: 'Đổi mật khẩu thành công!' });
-    } catch (err) {
-        console.error('Lỗi change-password:', err);
-        return res.status(500).json({ message: 'Lỗi máy chủ khi đổi mật khẩu.' });
-    }
-});
-
-// --- 1. API GỬI MÃ XÁC NHẬN (OTP) ĐĂNG KÝ ---
-router.post('/send-register-otp', async (req, res) => {
-  const { email } = req.body;
-  if (!email) return res.status(400).json({ message: 'Vui lòng cung cấp địa chỉ email!' });
-
-  try {
-    // Kiểm tra xem email đã được đăng ký trước đó chưa
-    const [existing] = await db.query('SELECT id FROM users WHERE email = ?', [email]);
-    if (existing.length > 0) {
-      return res.status(400).json({ message: 'Email này đã được sử dụng! Vui lòng chọn đăng nhập.' });
-    }
-
-    // Sinh mã OTP 6 số ngẫu nhiên
-    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 phút
-
-    // Lưu mã xác thực vào DB
-    await db.query(
-      'INSERT INTO email_verifications (email, otp_code, expires_at) VALUES (?, ?, ?)',
-      [email, otpCode, expiresAt]
-    );
-
-    // Gửi email mã xác nhận
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: (process.env.SMTP_USER || '').trim(),
-        pass: (process.env.SMTP_PASS || '').trim()
+        return locked
+          ? { loginLocked: true, retryAfter: LOGIN_LOCK_SECONDS }
+          : null;
       }
+      await c.query(
+        "UPDATE users SET failed_login_attempts=0,lock_until=NULL WHERE id=?",
+        [u.id],
+      );
+      return issue(c, u);
     });
-
-    await transporter.sendMail({
-      from: `"Enterprise CRM" <${process.env.SMTP_USER}>`,
-      to: email,
-      subject: '[CRM] Mã xác nhận tạo tài khoản',
-      html: `
-        <div style="font-family: Arial, sans-serif; padding: 24px; border: 1px solid #e8e8e8; border-radius: 8px; max-width: 480px;">
-          <h2 style="color: #1677ff; margin-top: 0;">Xác Thực Tài Khoản Mới</h2>
-          <p>Mã xác thực tạo tài khoản CRM của bạn là:</p>
-          <div style="text-align: center; margin: 20px 0;">
-            <span style="font-size: 32px; font-weight: bold; letter-spacing: 6px; color: #1677ff; background: #e6f4ff; padding: 10px 24px; border-radius: 8px; display: inline-block;">
-              ${otpCode}
-            </span>
-          </div>
-          <p style="color: #666; font-size: 14px;">Mã này có hiệu lực trong vòng <b>5 phút</b>. Vui lòng không chia sẻ mã cho bất kỳ ai để đảm bảo an toàn.</p>
-        </div>
-      `
-    });
-
-    console.log(`[OTP] Đã gửi mã ${otpCode} tới: ${email}`);
-    return res.json({ success: true, message: 'Mã xác thực đã được gửi về email của bạn!' });
-  } catch (err) {
-    console.error('Lỗi gửi OTP:', err);
-    return res.status(500).json({ message: 'Không thể gửi mã xác nhận: ' + err.message });
-  }
-});
-
-// --- 2. API XÁC THỰC OTP VÀ TẠO TÀI KHOẢN ---
-router.post('/register', async (req, res) => {
-  const { full_name, email, password, otp_code } = req.body;
-
-  if (!email || !password || !otp_code) {
-    return res.status(400).json({ message: 'Vui lòng nhập đầy đủ email, mật khẩu và mã xác thực!' });
-  }
-
-  try {
-    // 1. Kiểm tra OTP hợp lệ và chưa hết hạn
-    const [otps] = await db.query(
-      'SELECT id FROM email_verifications WHERE email = ? AND otp_code = ? AND expires_at > NOW() AND verified = 0 ORDER BY id DESC LIMIT 1',
-      [email, otp_code]
-    );
-
-    if (otps.length === 0) {
-      return res.status(400).json({ message: 'Mã xác nhận không chính xác hoặc đã hết hạn!' });
+    if (result?.loginLocked) {
+      res.set("Retry-After", String(result.retryAfter));
+      fail(
+        429,
+        `Đăng nhập tạm khóa sau ${LOGIN_FAILURE_LIMIT} lần sai liên tiếp. Vui lòng thử lại sau ${result.retryAfter} giây.`,
+        { code: "LOGIN_TEMPORARILY_LOCKED", retry_after: result.retryAfter },
+      );
     }
-
-    // Đánh dấu mã OTP đã sử dụng
-    await db.query('UPDATE email_verifications SET verified = 1 WHERE id = ?', [otps[0].id]);
-
-    // 2. Kiểm tra lại trùng email lần cuối
-    const [existing] = await db.query('SELECT id FROM users WHERE email = ?', [email]);
-    if (existing.length > 0) {
-      return res.status(400).json({ message: 'Email này đã tồn tại trong hệ thống!' });
-    }
-
-    // 3. Hash mật khẩu và tạo tài khoản (mặc định vai trò 'Nhân viên kinh doanh')
-    const bcrypt = require('bcryptjs');
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const userName = full_name && full_name.trim() !== '' ? full_name : email.split('@')[0];
-
+    if (!result)
+      fail(
+        401,
+        "Tài khoản hoặc mật khẩu không chính xác, hoặc tạm thời không thể đăng nhập.",
+      );
+    res.json(result);
+  }),
+);
+router.post(
+  "/logout",
+  authenticate,
+  route(async (req, res) => {
     await db.query(
-      `INSERT INTO users (full_name, email, password, role, status) 
-       VALUES (?, ?, ?, 'Nhân viên kinh doanh', 'Hoạt động')`,
-      [userName, email, hashedPassword]
+      "UPDATE auth_sessions SET revoked_at=UTC_TIMESTAMP() WHERE token_hash=?",
+      [req.sessionHash],
     );
-
-    return res.status(201).json({ 
-      success: true, 
-      message: 'Tạo tài khoản thành công! Bạn có thể đăng nhập ngay.' 
+    res.json({ success: true });
+  }),
+);
+router.post(
+  "/refresh",
+  authenticate,
+  route(async (req, res) =>
+    res.json({ success: true, user: req.user, expiresIn: 1800 }),
+  ),
+);
+router.get(
+  "/me",
+  authenticate,
+  route(async (req, res) => {
+    const matrix = require("../config/roleMatrix");
+    const permissions = Object.fromEntries(
+      Object.keys(matrix).map((m) => [
+        m,
+        req.user.roles.map((r) => matrix[m][r]).filter((p) => p !== "N"),
+      ]),
+    );
+    const [[group]] = req.user.group_id
+      ? await db.query("SELECT id,name FROM `groups` WHERE id=?", [
+          req.user.group_id,
+        ])
+      : [[null]];
+    const { groups, has } = require("../core/access");
+    const managedGroupIds = has(req.user, "Team Lead")
+      ? await groups(req.user)
+      : [];
+    const [managedUsers] = managedGroupIds.length
+      ? await db.query(
+          `SELECT id FROM users WHERE group_id IN (${managedGroupIds.map(() => "?").join(",")})`,
+          managedGroupIds,
+        )
+      : [[]];
+    const grants = Object.fromEntries(
+      Object.keys(matrix).map((module) => [
+        module,
+        req.user.roles
+          .map((role) => ({ role, permission: matrix[module][role] }))
+          .filter((g) => g.permission !== "N"),
+      ]),
+    );
+    res.json({
+      user: { ...req.user, group: group || null },
+      permissions,
+      grants,
+      managed_group_ids: managedGroupIds,
+      managed_user_ids: managedUsers.map((u) => u.id),
+      self_registration: registrationEnabled(),
     });
-  } catch (err) {
-    console.error('Lỗi đăng ký:', err);
-    return res.status(500).json({ message: 'Lỗi đăng ký tài khoản: ' + err.message });
-  }
-});
-
+  }),
+);
+router.get(
+  "/role-matrix",
+  authenticate,
+  require("../core/access").authorize("USER_LOG"),
+  route(async (req, res) =>
+    res.json({ data: require("../config/roleMatrix") }),
+  ),
+);
+router.get(
+  "/options",
+  route(async (req, res) =>
+    res.json({
+      self_registration: registrationEnabled(),
+    }),
+  ),
+);
+router.get(
+  "/test-accounts",
+  route(async (req, res) => {
+    res.set("Cache-Control", "no-store");
+    const accounts = await require("../core/testAccounts").testAccounts(req);
+    res.json({ data: accounts });
+  }),
+);
+router.post(
+  "/forgot-password",
+  route(async (req, res) => {
+    await rateLimit("reset:" + req.ip, 10);
+    const mail = email(req.body.email);
+    requireMail();
+    const queued = [];
+    await transaction(async (c) => {
+      const [[u]] = await c.query(
+        "SELECT id,full_name FROM users WHERE email=? AND is_active=1",
+        [mail],
+      );
+      if (!u) return;
+      const token = crypto.randomBytes(32).toString("hex");
+      await c.query(
+        "UPDATE auth_reset_tokens SET used_at=UTC_TIMESTAMP() WHERE user_id=? AND used_at IS NULL",
+        [u.id],
+      );
+      await c.query(
+        "INSERT INTO auth_reset_tokens (token_hash,user_id,expires_at) VALUES (?,?,DATE_ADD(UTC_TIMESTAMP(),INTERVAL 30 MINUTE))",
+        [hash(token), u.id],
+      );
+      const base = process.env.FRONTEND_URL || "http://localhost:5173";
+      await c.query(
+        "DELETE FROM mail_outbox WHERE recipient=? AND subject='Đặt lại mật khẩu CRM' AND sent_at IS NULL",
+        [mail],
+      );
+      queued.push(
+        await queueMail(
+          c,
+          mail,
+          "Đặt lại mật khẩu CRM",
+          `Xin chào ${u.full_name},\nBạn vừa yêu cầu khôi phục mật khẩu tài khoản Enterprise CRM.\nLiên kết có hiệu lực 30 phút, chỉ dùng một lần: ${base.replace(/\/$/, "")}/reset-password?token=${token}\nNếu không phải bạn gửi yêu cầu, hãy bỏ qua email này.`,
+        ),
+      );
+    });
+    const delivery = queued.length ? await requireDelivery(queued) : null;
+    res.status(delivery?.queued ? 202 : 200).json({
+      message: generic,
+      ...(delivery?.queued ? { delivery: "queued" } : {}),
+    });
+  }),
+);
+router.post(
+  "/reset-password",
+  route(async (req, res) => {
+    await rateLimit("reset-use:" + req.ip, 20);
+    const next = password(
+      req.body.newPassword || req.body.new_password || req.body.password,
+    );
+    const token = text(req.body.token, "Token", 200);
+    await transaction(async (c) => {
+      const [[r]] = await c.query(
+        "SELECT * FROM auth_reset_tokens WHERE token_hash=? AND used_at IS NULL AND expires_at>UTC_TIMESTAMP() FOR UPDATE",
+        [hash(token)],
+      );
+      if (!r) fail(400, "Liên kết không hợp lệ hoặc đã hết hạn.");
+      await c.query(
+        "UPDATE users SET password=?,failed_login_attempts=0,lock_until=NULL,must_change_password=0 WHERE id=?",
+        [await bcrypt.hash(next, 12), r.user_id],
+      );
+      await c.query(
+        "UPDATE auth_reset_tokens SET used_at=UTC_TIMESTAMP() WHERE user_id=? AND used_at IS NULL",
+        [r.user_id],
+      );
+      await c.query(
+        "UPDATE auth_sessions SET revoked_at=UTC_TIMESTAMP() WHERE user_id=?",
+        [r.user_id],
+      );
+    });
+    res.json({
+      success: true,
+      message: "Đã đặt lại mật khẩu. Vui lòng đăng nhập.",
+    });
+  }),
+);
+router.put(
+  "/change-password",
+  authenticate,
+  route(async (req, res) => {
+    const next = password(req.body.newPassword || req.body.new_password);
+    const current = text(
+      req.body.currentPassword ||
+        req.body.oldPassword ||
+        req.body.current_password,
+      "Mật khẩu hiện tại",
+      200,
+    );
+    await transaction(async (c) => {
+      const [[u]] = await c.query(
+        "SELECT password FROM users WHERE id=? FOR UPDATE",
+        [req.user.id],
+      );
+      if (!(await bcrypt.compare(current, u.password)))
+        fail(400, "Mật khẩu hiện tại không chính xác.");
+      await c.query(
+        "UPDATE users SET password=?,must_change_password=0 WHERE id=?",
+        [await bcrypt.hash(next, 12), req.user.id],
+      );
+      await c.query(
+        "UPDATE auth_sessions SET revoked_at=UTC_TIMESTAMP() WHERE user_id=? AND token_hash<>?",
+        [req.user.id, req.sessionHash],
+      );
+      await audit(
+        c,
+        req.user,
+        "PASSWORD_CHANGE",
+        "users",
+        req.user.id,
+        null,
+        null,
+      );
+    });
+    res.json({ success: true });
+  }),
+);
+// Production registration is opt-in; clients cannot choose privileged roles.
+router.post(
+  "/send-register-otp",
+  route(async (req, res) => {
+    if (!registrationEnabled()) fail(403, "Tài khoản do quản trị viên cấp.");
+    await rateLimit("register:" + req.ip, 30);
+    const mail = email(req.body.email);
+    requireMail();
+    const code = String(crypto.randomInt(100000, 1000000));
+    const queued = await transaction(async (c) => {
+      const [[u]] = await c.query("SELECT id FROM users WHERE email=?", [mail]);
+      if (u)
+        fail(
+          409,
+          "Email đã tồn tại trong hệ thống. Vui lòng đăng nhập hoặc quên mật khẩu.",
+        );
+      // A persistent per-email lock makes the cooldown atomic across tabs/processes.
+      const bucket = "register-cooldown:" + hash(mail);
+      await c.query(
+        "INSERT INTO api_rate_limits (bucket,hits,expires_at) VALUES (?,0,UTC_TIMESTAMP()) ON DUPLICATE KEY UPDATE bucket=VALUES(bucket)",
+        [bucket],
+      );
+      const [[cooldown]] = await c.query(
+        "SELECT GREATEST(0,TIMESTAMPDIFF(SECOND,UTC_TIMESTAMP(),expires_at)) seconds FROM api_rate_limits WHERE bucket=? FOR UPDATE",
+        [bucket],
+      );
+      if (cooldown.seconds > 0) {
+        res.set("Retry-After", String(cooldown.seconds));
+        fail(429, "Chỉ gửi mã một lần mỗi 60 giây.", {
+          retry_after: cooldown.seconds,
+        });
+      }
+      await c.query(
+        "UPDATE api_rate_limits SET hits=hits+1,expires_at=DATE_ADD(UTC_TIMESTAMP(),INTERVAL 60 SECOND) WHERE bucket=?",
+        [bucket],
+      );
+      await c.query(
+        "UPDATE auth_email_codes SET used_at=UTC_TIMESTAMP() WHERE email=? AND used_at IS NULL",
+        [mail],
+      );
+      await c.query(
+        "INSERT INTO auth_email_codes (email,code_hash,expires_at) VALUES (?,?,DATE_ADD(UTC_TIMESTAMP(),INTERVAL 10 MINUTE))",
+        [mail, hash(code)],
+      );
+      await c.query(
+        "DELETE FROM mail_outbox WHERE recipient=? AND subject='Xác minh email CRM' AND sent_at IS NULL",
+        [mail],
+      );
+      return queueMail(
+        c,
+        mail,
+        "Xác minh email CRM",
+        `Mã xác minh đăng ký Enterprise CRM: ${code}\nMã có hiệu lực 10 phút và chỉ dùng một lần. Không chia sẻ mã này với người khác.`,
+      );
+    });
+    const delivery = await requireDelivery([queued]);
+    res.status(delivery.queued ? 202 : 200).json({
+      message: delivery.queued
+        ? "Yêu cầu đã được tiếp nhận; email đang chờ gửi, không cần gửi lại ngay."
+        : "Đã gửi mã xác nhận gồm 6 số đến email của bạn.",
+      delivery: delivery.queued ? "queued" : "sent",
+      retry_after: 60,
+    });
+  }),
+);
+router.post(
+  "/register",
+  route(async (req, res) => {
+    if (!registrationEnabled()) fail(403, "Tài khoản do quản trị viên cấp.");
+    await rateLimit("register-check:" + req.ip, 10);
+    const mail = email(req.body.email);
+    const pass = password(req.body.password);
+    if (req.body.confirm_password !== pass)
+      fail(400, "Mật khẩu xác nhận chưa khớp.");
+    if (!/^\d{6}$/.test(String(req.body.otp_code || "")))
+      fail(400, "Mã xác nhận gồm 6 chữ số.");
+    const name = text(req.body.full_name, "Họ tên", 100);
+    const result = await transaction(async (c) => {
+      const [[existing]] = await c.query("SELECT id FROM users WHERE email=?", [
+        mail,
+      ]);
+      if (existing) fail(409, "Email đã tồn tại trong hệ thống.");
+      const [[r]] = await c.query(
+        "SELECT * FROM auth_email_codes WHERE email=? AND used_at IS NULL AND expires_at>UTC_TIMESTAMP() ORDER BY id DESC LIMIT 1 FOR UPDATE",
+        [mail],
+      );
+      if (!r || r.attempts >= 5) return false;
+      await c.query(
+        "UPDATE auth_email_codes SET attempts=attempts+1 WHERE id=?",
+        [r.id],
+      );
+      if (r.code_hash !== hash(String(req.body.otp_code))) return false;
+      const [u] = await c.query(
+        "INSERT INTO users (email,password,full_name,role_code) VALUES (?,?,?,?)",
+        [mail, await bcrypt.hash(pass, 12), name, "Sales Rep"],
+      );
+      await c.query(
+        "INSERT INTO user_roles (user_id,role_code) VALUES (?,'Sales Rep')",
+        [u.insertId],
+      );
+      await c.query(
+        "UPDATE auth_email_codes SET used_at=UTC_TIMESTAMP() WHERE id=?",
+        [r.id],
+      );
+      return true;
+    });
+    if (!result) fail(400, "Mã xác minh không hợp lệ hoặc hết hạn.");
+    res.status(201).json({ success: true });
+  }),
+);
 module.exports = router;
