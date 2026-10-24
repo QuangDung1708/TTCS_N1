@@ -18,15 +18,43 @@ import {
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import axios from 'axios';
 
+// --- CONFIG AXIOS INTERCEPTORS (N1-89, N1-90) ---
+// 1. Request Interceptor: Tự động gắn Bearer Token vào Header
 axios.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('token') || localStorage.getItem('crm_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
   (error) => Promise.reject(error)
+);
+
+// 2. Response Interceptor (Task N1-90): Tự động bắt lỗi 401 (Hết hạn Token / Không hợp lệ)
+axios.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      // Xóa sạch bộ nhớ
+      localStorage.removeItem('token');
+      localStorage.removeItem('crm_token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('role');
+      localStorage.clear();
+      sessionStorage.clear();
+
+      message.error('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!');
+
+      // Tự động điều hướng văng về trang login
+      setTimeout(() => {
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login';
+        }
+      }, 300);
+    }
+    return Promise.reject(error);
+  }
 );
 
 import CustomerManagement from './CustomerManagement';
@@ -53,7 +81,6 @@ function DashboardOverview() {
     const [loading, setLoading] = useState(false);
     const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
 
-    // Khởi tạo state bằng 0 (Không gán dữ liệu giả)
     const [kpi, setKpi] = useState({
         totalCustomers: 0,
         newCustomers: 0,
@@ -68,7 +95,7 @@ function DashboardOverview() {
     const fetchStats = async () => {
         setLoading(true);
         try {
-            const token = localStorage.getItem('token');
+            const token = localStorage.getItem('token') || localStorage.getItem('crm_token');
             const res = await axios.get('http://localhost:5001/api/dashboard/stats', {
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -109,59 +136,6 @@ function DashboardOverview() {
         },
         { title: 'Người phụ trách', dataIndex: 'owner' }
     ];
-    const getActionMeta = (action) => {
-    switch (action) {
-        case 'ROLE_CHANGE':
-            return { title: 'Thay đổi vai trò người dùng', color: 'purple', icon: <KeyOutlined /> };
-        case 'DISCOUNT_CHANGE':
-            return { title: 'Điều chỉnh mức chiết khấu', color: 'red', icon: <PercentageOutlined /> };
-        case 'TARGET_UPDATE':
-            return { title: 'Cập nhật chỉ tiêu doanh số', color: 'green', icon: <TrophyOutlined /> };
-        case 'HANDOVER':
-            return { title: 'Bàn giao quyền sở hữu dữ liệu', color: 'orange', icon: <SwapOutlined /> };
-        case 'IMPORT_USERS':
-            return { title: 'Nhập dữ liệu hàng loạt từ Excel', color: 'blue', icon: <FileExcelOutlined /> };
-        default:
-            return { title: 'Nhật ký thay đổi dữ liệu', color: 'default', icon: <BellOutlined /> };
-    }
-};  
-
-// 1. Hàm đăng xuất hoàn chỉnh
-const handleLogout = () => {
-    localStorage.clear();
-    sessionStorage.clear();
-    if (typeof message !== 'undefined') {
-        message.success('Đã đăng xuất thành công!');
-    }
-    setTimeout(() => {
-        window.location.href = '/login';
-    }, 200);
-};
-
-// 2. Khai báo biến userMenu (sửa lỗi thiếu biến tại dòng 502)
-const userMenuItemsList = [
-    {
-        key: 'profile',
-        label: 'Thông tin cá nhân',
-    },
-    {
-        type: 'divider',
-    },
-    {
-        key: 'logout',
-        danger: true,
-        label: 'Đăng xuất',
-        onClick: handleLogout,
-    },
-];
-
-// Khai báo userMenu tương thích cho cả 2 kiểu Dropdown của Ant Design
-const userMenu = {
-    items: userMenuItemsList,
-    onClick: ({ key }) => {
-        if (key === 'logout') handleLogout();
-    }
-};
 
     return (
         <Spin spinning={loading}>
@@ -287,39 +261,36 @@ export default function App() {
     const navigate = useNavigate();
     const location = useLocation();
 
-// Kiểm tra nếu đang vào link reset mật khẩu -> Render riêng biệt, không bọc Sidebar/Header
-  const isResetPath = window.location.pathname.includes('/reset-password') || 
-                      window.location.search.includes('token=');
+    const isResetPath = window.location.pathname.includes('/reset-password') || 
+                        window.location.search.includes('token=');
 
-  if (isResetPath) {
-    return <ResetPassword />;
-  }
-
-    // Dữ liệu người dùng động
-    const [currentUser, setCurrentUser] = useState(() => {
-    try {
-        const token = localStorage.getItem('token');
-        const savedUser = localStorage.getItem('user');
-        if (token && savedUser) {
-            return JSON.parse(savedUser);
-        }
-    } catch (e) {
-        console.error('Lỗi đọc session:', e);
+    if (isResetPath) {
+        return <ResetPassword />;
     }
-    return null; // BẮT BUỘC trả về null nếu chưa đăng nhập hoặc đã đăng xuất
-});
-const isAdmin = currentUser?.role_code === 'Admin';
-const isDirector = currentUser?.role_code === 'Director';
 
-    // Dữ liệu thông báo chuông ĐỘNG từ bảng audit_logs
+    const [currentUser, setCurrentUser] = useState(() => {
+        try {
+            const token = localStorage.getItem('token') || localStorage.getItem('crm_token');
+            const savedUser = localStorage.getItem('user');
+            if (token && savedUser) {
+                return JSON.parse(savedUser);
+            }
+        } catch (e) {
+            console.error('Lỗi đọc session:', e);
+        }
+        return null;
+    });
+
+    const isAdmin = currentUser?.role_code === 'Admin';
+    const isDirector = currentUser?.role_code === 'Director';
+
     const [notifications, setNotifications] = useState([]);
     const [notifLoading, setNotifLoading] = useState(false);
 
-    // Lấy thông báo chuông từ Backend
     const fetchNotifications = async () => {
         setNotifLoading(true);
         try {
-            const token = localStorage.getItem('token');
+            const token = localStorage.getItem('token') || localStorage.getItem('crm_token');
             const res = await axios.get('http://localhost:5001/api/dashboard/notifications', {
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -330,10 +301,9 @@ const isDirector = currentUser?.role_code === 'Director';
         }
     };
 
-    // Lấy thông tin Profile thực tế từ Database
     const fetchUserProfile = async () => {
         try {
-            const token = localStorage.getItem('token');
+            const token = localStorage.getItem('token') || localStorage.getItem('crm_token');
             const res = await axios.get('http://localhost:5001/api/users/profile', {
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -350,43 +320,38 @@ const isDirector = currentUser?.role_code === 'Director';
         fetchUserProfile();
     }, []);
 
-const handleLogout = () => {
-    // 1. Xóa sạch bộ nhớ tạm của trình duyệt
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    localStorage.removeItem('role');
-    localStorage.clear();
-    sessionStorage.clear();
+    // HÀM ĐĂNG XUẤT CHUẨN (Task N1-89)
+    const handleLogout = async () => {
+        try {
+            const token = localStorage.getItem('token') || localStorage.getItem('crm_token');
+            if (token) {
+                await axios.post('http://localhost:5001/api/auth/logout', {}, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+            }
+        } catch (error) {
+            console.error('Lỗi khi gọi API logout:', error);
+        } finally {
+            localStorage.removeItem('token');
+            localStorage.removeItem('crm_token');
+            localStorage.removeItem('user');
+            localStorage.removeItem('role');
+            localStorage.clear();
+            sessionStorage.clear();
 
-    // 2. Đặt state user về null ngay lập tức để ngắt giao diện
-    if (typeof setCurrentUser === 'function') setCurrentUser(null);
-    if (typeof setUser === 'function') setUser(null);
+            if (typeof setCurrentUser === 'function') setCurrentUser(null);
 
-    // 3. Thông báo và làm mới tải lại vào thẳng trang login
-    message.success('Đã đăng xuất thành công!');
-    setTimeout(() => {
-        window.location.replace('/login');
-    }, 200);
-};
-
-    const handleOpenProfile = () => {
-        profileForm.setFieldsValue({
-            full_name: currentUser?.full_name || '',
-            email: currentUser?.email || '',
-            phone: currentUser.phone || '',
-            role_code: currentUser?.role_code || 'Nhân viên',
-            group_name: currentUser?.group_name || 'Toàn công ty',
-            email_signature: currentUser?.email_signature || ''
-        });
-        setAvatarUrl(currentUser?.avatar || '');
-        setIsProfileModalOpen(true);
+            message.success('Đã đăng xuất thành công!');
+            setTimeout(() => {
+                window.location.replace('/login');
+            }, 200);
+        }
     };
 
-    // Lưu Profile trực tiếp vào MySQL
     const handleSaveProfile = async (values) => {
         setSavingProfile(true);
         try {
-            const token = localStorage.getItem('token');
+            const token = localStorage.getItem('token') || localStorage.getItem('crm_token');
             const res = await axios.put('http://localhost:5001/api/users/profile', {
                 full_name: values.full_name,
                 phone: values.phone,
@@ -429,67 +394,6 @@ const handleLogout = () => {
         return false;
     };
 
-    // Popover danh sách chuông thông báo động
-    const notificationContent = (
-        <div style={{ width: 340 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <Text strong style={{ fontSize: 14 }}>Nhật Ký Thao Tác Nhạy Cảm</Text>
-                <Button type="link" size="small" onClick={fetchNotifications}>Làm mới</Button>
-            </div>
-            <Spin spinning={notifLoading}>
-                {notifications.length > 0 ? (
-                    <List
-                        itemLayout="horizontal"
-                        dataSource={notifications}
-                        renderItem={(item) => (
-                            <List.Item style={{ padding: '8px 0', borderBottom: '1px solid #f0f0f0' }}>
-                                <List.Item.Meta
-                                    avatar={<ExclamationCircleOutlined style={{ color: '#faad14', fontSize: 16 }} />}
-                                    title={<Text strong style={{ fontSize: 13 }}>{item.title}</Text>}
-                                    description={
-                                        <div>
-                                            <div style={{ fontSize: 12, color: '#475569' }}>{item.desc}</div>
-                                            <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 2 }}>{item.time}</div>
-                                        </div>
-                                    }
-                                />
-                            </List.Item>
-                        )}
-                    />
-                ) : (
-                    <Empty description="Không có thông báo mới trong cơ sở dữ liệu" image={Empty.PRESENTED_IMAGE_SIMPLE} />
-                )}
-            </Spin>
-            <div style={{ textAlign: 'center', marginTop: 8 }}>
-                <Button type="link" size="small" onClick={() => navigate('/audit-logs')}>Xem toàn bộ nhật ký hệ thống</Button>
-            </div>
-        </div>
-    );
-
-const userDropdownItems = [
-    {
-        key: 'profile',
-        label: 'Thông tin cá nhân',
-    },
-    {
-        type: 'divider',
-    },
-    {
-        key: 'logout',
-        danger: true,
-        label: 'Đăng xuất',
-    },
-];
-
-// Hàm lắng nghe sự kiện click trên menu của Ant Design Dropdown
-const handleUserDropdownClick = ({ key }) => {
-    if (key === 'logout') {
-        handleLogout();
-    } else if (key === 'profile') {
-        navigate('/profile');
-    }
-};
-
     const menuItems = [
         { key: '/dashboard', icon: <DashboardOutlined />, label: 'Tổng Quan' },
         { type: 'divider' },
@@ -497,6 +401,7 @@ const handleUserDropdownClick = ({ key }) => {
             type: 'group',
             label: collapsed ? null : 'KINH DOANH & KHÁCH HÀNG',
             children: [
+                { key: '/accounts', icon: <UserOutlined />, label: 'Quản Lý Tài Khoản' },
                 { key: '/customers', icon: <UsergroupAddOutlined />, label: 'Khách Hàng & Liên Hệ' },
                 { key: '/deals', icon: <RiseOutlined />, label: 'Cơ Hội & Pipeline' },
                 { key: '/products', icon: <AppstoreOutlined />, label: 'Sản Phẩm Dịch Vụ' },
@@ -520,11 +425,11 @@ const handleUserDropdownClick = ({ key }) => {
     ];
 
     if (window.location.pathname === '/login') {
-    return <Login onLoginSuccess={(userData) => {
-      setCurrentUser(userData);
-      window.location.href = '/dashboard';
-    }} />;
-  }
+        return <Login onLoginSuccess={(userData) => {
+            setCurrentUser(userData);
+            window.location.href = '/dashboard';
+        }} />;
+    }
 
     return (
         <ConfigProvider
@@ -560,58 +465,53 @@ const handleUserDropdownClick = ({ key }) => {
                         <Button type="text" icon={collapsed ? <MenuUnfoldOutlined style={{ fontSize: 18 }} /> : <MenuFoldOutlined style={{ fontSize: 18 }} />} onClick={() => setCollapsed(!collapsed)} style={{ width: 44, height: 44 }} />
 
                         <Space size={18}>
-                            {/* Chuông lấy số lượng thông báo thực tế từ MySQL */}
                             <NotificationBell />
 
-{/* Dropdown User Profile với Avatar và logic Đăng xuất trực tiếp */}
-<Dropdown
-    menu={{
-        items: [
-            {
-                key: 'profile',
-                label: 'Hồ sơ cá nhân',
-                onClick: () => setIsProfileModalOpen(true),
-            },
-            {
-                type: 'divider',
-            },
-            {
-                key: 'changePassword',
-                label: 'Đổi mật khẩu',
-                onClick: () => setIsPasswordModalVisible(true), // <-- KÍCH HOẠT MODAL ĐỔI MẬT KHẨU
-            },
-            {
-                key: 'logout',
-                danger: true,
-                label: 'Đăng xuất',
-                onClick: () => {
-                    localStorage.clear();
-                    sessionStorage.clear();
-                    window.location.href = '/login';
-                },
-            },
-        ],
-    }}
-    trigger={['click']}
-    placement="bottomRight"
->
-    <Space style={{ cursor: 'pointer', padding: '4px 8px', borderRadius: 8 }}>
-        <Avatar 
-            src={avatarUrl || currentUser?.avatar} 
-            style={{ backgroundColor: '#1677ff' }}
-        >
-            {currentUser?.full_name ? currentUser.full_name.charAt(0).toUpperCase() : 'U'}
-        </Avatar>
-        <div style={{ lineHeight: 1.2 }}>
-            <div style={{ fontWeight: 600, fontSize: 13, color: '#1e293b' }}>
-                {currentUser?.full_name || 'Người dùng'}
-            </div>
-            <Tag color={isAdmin ? 'red' : (isDirector ? 'purple' : 'blue')} style={{ margin: 0, fontSize: 10 }}>
-                {currentUser?.role_code || 'Nhân viên'}
-            </Tag>
-        </div>
-    </Space>
-</Dropdown> 
+                            <Dropdown
+                                menu={{
+                                    items: [
+                                        {
+                                            key: 'profile',
+                                            label: 'Hồ sơ cá nhân',
+                                            onClick: () => setIsProfileModalOpen(true),
+                                        },
+                                        {
+                                            type: 'divider',
+                                        },
+                                        {
+                                            key: 'changePassword',
+                                            label: 'Đổi mật khẩu',
+                                            onClick: () => setIsPasswordModalVisible(true),
+                                        },
+                                        {
+                                            key: 'logout',
+                                            danger: true,
+                                            icon: <LogoutOutlined />,
+                                            label: 'Đăng xuất',
+                                            onClick: handleLogout,
+                                        },
+                                    ],
+                                }}
+                                trigger={['click']}
+                                placement="bottomRight"
+                            >
+                                <Space style={{ cursor: 'pointer', padding: '4px 8px', borderRadius: 8 }}>
+                                    <Avatar 
+                                        src={avatarUrl || currentUser?.avatar} 
+                                        style={{ backgroundColor: '#1677ff' }}
+                                    >
+                                        {currentUser?.full_name ? currentUser.full_name.charAt(0).toUpperCase() : 'U'}
+                                    </Avatar>
+                                    <div style={{ lineHeight: 1.2 }}>
+                                        <div style={{ fontWeight: 600, fontSize: 13, color: '#1e293b' }}>
+                                            {currentUser?.full_name || 'Người dùng'}
+                                        </div>
+                                        <Tag color={isAdmin ? 'red' : (isDirector ? 'purple' : 'blue')} style={{ margin: 0, fontSize: 10 }}>
+                                            {currentUser?.role_code || 'Nhân viên'}
+                                        </Tag>
+                                    </div>
+                                </Space>
+                            </Dropdown> 
                         </Space>
                     </Header>
 
@@ -619,6 +519,7 @@ const handleUserDropdownClick = ({ key }) => {
                         <Routes>
                             <Route path="/" element={<Navigate to="/dashboard" replace />} />
                             <Route path="/dashboard" element={<DashboardOverview />} />
+                            <Route path="/accounts" element={<UserManagement />} />
                             <Route path="/customers" element={<CustomerManagement />} />
                             <Route path="/deals" element={<PipelineManagement />} />
                             <Route path="/products" element={<ProductManagement />} />
@@ -639,7 +540,6 @@ const handleUserDropdownClick = ({ key }) => {
                     <ChangePasswordModal visible={isPasswordModalVisible} onClose={() => setIsPasswordModalVisible(false)} onLogout={handleLogout} />
                 )}
 
-                {/* MODAL HỒ SƠ CÁ NHÂN & CHỮ KÝ EMAIL (S2-02, S2-03) */}
                 <Modal
                     title={<Space><UserOutlined style={{ color: '#1677ff' }} /> <span style={{ fontWeight: 700 }}>Hồ Sơ Cá Nhân & Chữ Ký Email</span></Space>}
                     open={isProfileModalOpen}
@@ -662,7 +562,7 @@ const handleUserDropdownClick = ({ key }) => {
                                     <Button icon={<UploadOutlined />}>Tải ảnh đại diện</Button>
                                 </Upload>
                                 <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
-                                    Hỗ trợ JPG, PNG $\le$ 2MB (Tự động cắt vuông)
+                                    Hỗ trợ JPG, PNG ≤ 2MB (Tự động cắt vuông)
                                 </div>
                             </div>
                         </div>
@@ -699,17 +599,9 @@ const handleUserDropdownClick = ({ key }) => {
                                 </Form.Item>
                             </Col>
                         </Row>
-
-                        <Form.Item 
-                            name="email_signature" 
-                            label={<Text strong>Chữ ký Email (Đính kèm khi gửi báo giá)</Text>}
-                            rules={[{ required: true, message: 'Vui lòng thiết lập chữ ký email!' }]}
-                        >
-                            <Input.TextArea rows={4} placeholder="Ví dụ: Trân trọng, Nguyễn Văn A - Chuyên viên kinh doanh..." />
-                        </Form.Item>
                     </Form>
                 </Modal>
             </Layout>
         </ConfigProvider>
     );
-}   
+}
